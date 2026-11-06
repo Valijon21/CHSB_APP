@@ -66,14 +66,14 @@
 
 ## Phase 6 — Hardening and handoff
 
-- [ ] Test mobile, tablet and desktop viewports.
-- [ ] Run accessibility checks and keyboard-only review.
-- [ ] Verify no direct mock imports from views/components.
-- [ ] Verify no answer key or secrets in student bundle.
-- [ ] Run typecheck, lint, unit, component and E2E suites.
-- [ ] Document environment variables and local run steps.
-- [ ] Create backend integration checklist for Django phase.
-- [ ] Produce final frontend demo and known-limitations report.
+- [x] Test mobile, tablet and desktop viewports.
+- [x] Run accessibility checks and keyboard-only review.
+- [x] Verify no direct mock imports from views/components.
+- [x] Verify no answer key or secrets in student bundle.
+- [x] Run typecheck, lint, unit, component and E2E suites.
+- [x] Document environment variables and local run steps.
+- [x] Create backend integration checklist for Django phase.
+- [x] Produce final frontend demo and known-limitations report.
 
 ## Definition of phase completion
 
