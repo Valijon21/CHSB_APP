@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
+import { useAssessmentStore } from '../assessment/assessmentStore';
 
 const route = useRoute();
 const router = useRouter();
+const assessmentStore = useAssessmentStore();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
-const attemptId = (route.params.attemptId as string) || 'demo-attempt-001';
+const attemptId = (route.params.attemptId as string) || assessmentStore.receipt?.attemptId || 'att-demo';
 
 function viewResult() {
   router.push(`/t/${tenantSlug}/attempts/${attemptId}/result`);
@@ -26,18 +28,24 @@ function viewResult() {
       Sizning imtihon topshiriqlaringiz tizimga qayd etildi va saqlandi.
     </p>
 
-    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 text-left text-xs space-y-2 mb-6">
-      <div class="flex justify-between">
-        <span class="text-slate-500">Urinish ID:</span>
-        <span class="font-mono font-medium text-slate-800">{{ attemptId }}</span>
+    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 text-left text-xs space-y-2.5 mb-6">
+      <div class="flex justify-between py-1 border-b border-slate-100">
+        <span class="text-slate-500">Urinish kodi (ID):</span>
+        <span class="font-mono font-bold text-slate-900">{{ attemptId }}</span>
       </div>
-      <div class="flex justify-between">
+      <div class="flex justify-between py-1 border-b border-slate-100">
+        <span class="text-slate-500">Javob berilgan savollar:</span>
+        <span class="font-bold text-teal-800">{{ assessmentStore.answeredCount }} / {{ assessmentStore.totalQuestions }}</span>
+      </div>
+      <div class="flex justify-between py-1 border-b border-slate-100">
         <span class="text-slate-500">Topshirilgan vaqt:</span>
-        <span class="text-slate-800 font-medium">{{ new Date().toLocaleTimeString('uz-UZ') }}</span>
+        <span class="text-slate-800 font-medium">
+          {{ assessmentStore.receipt ? new Date(assessmentStore.receipt.submittedAt).toLocaleTimeString('uz-UZ') : new Date().toLocaleTimeString('uz-UZ') }}
+        </span>
       </div>
-      <div class="flex justify-between">
+      <div class="flex justify-between py-1">
         <span class="text-slate-500">Holat:</span>
-        <span class="text-emerald-700 font-semibold">Baholash uchun yuborildi</span>
+        <span class="text-emerald-700 font-semibold">O'qituvchi tekshiruviga yuborildi</span>
       </div>
     </div>
 
