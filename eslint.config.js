@@ -18,6 +18,15 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   {
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  {
     files: ['*.vue', '**/*.vue'],
     languageOptions: {
       parserOptions: {
@@ -31,8 +40,6 @@ export default tseslint.config(
       'vue/multiline-html-element-content-newline': 'off',
       'vue/html-self-closing': 'off',
       'vue/attributes-order': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
 );

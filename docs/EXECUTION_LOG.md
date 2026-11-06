@@ -27,3 +27,16 @@
   - Report: `docs/reports/PHASE_1_COMPLETION_REPORT.md`
 - **Natija:** Barcha sifat darvozalari (typecheck, lint, test, build) benuqson o'tdi.
 - **Git:** Lokal checkpoint saqlandi.
+
+## [2026-11-06] — Phase 2: Domain Model & Mock Repositories Yakunlandi
+- **Phase:** Phase 2
+- **Task ID:** TASK-2.1, TASK-2.2, TASK-2.3, TASK-2.4, TASK-2.5
+- **O'zgartirilgan/Yaratilgan fayllar:**
+  - Entities: `src/entities/tenant/model.ts`, `src/entities/school/model.ts`, `src/entities/class-group/model.ts`, `src/entities/roster/model.ts`, `src/entities/assessment/model.ts`, `src/entities/attempt/model.ts`, `src/entities/result/model.ts`
+  - Repositories: `src/shared/api/repositories/TenantRepository.ts`, `RosterRepository.ts`, `AssessmentRepository.ts`, `AttemptRepository.ts`, `ResultRepository.ts`, `TeacherRepository.ts`
+  - Mocks: `src/mocks/fixtures/tenants.ts`, `src/mocks/fixtures/questions.ts`, `src/mocks/fixtures/raw_questions.json`, `src/mocks/repositories/*`
+  - Assets: `public/assets/questions/` (4 ta rasm)
+  - Tests: `tests/domain-schemas.test.ts`, `tests/mock-repositories.test.ts`
+  - Report: `docs/reports/PHASE_2_COMPLETION_REPORT.md`
+- **Natija:** 21 ta unit/repo/router test 100% muvaffaqiyatli o'tdi. Cross-tenant izolyatsiyasi to'liq isbotlandi.
+- **Git:** Lokal checkpoint saqlandi.
