@@ -4,6 +4,7 @@ import type { Assessment, Question } from '../../entities/assessment/model';
 import type { AssessmentAttempt, SubmissionReceipt } from '../../entities/attempt/model';
 import type { AssessmentResult } from '../../entities/result/model';
 import { api } from '../../shared/api';
+import { seededShuffle } from '../../shared/utils/cryptoShuffle';
 
 const DRAFT_STORAGE_PREFIX = 'chsb_draft_v2_';
 
@@ -61,7 +62,8 @@ export const useAssessmentStore = defineStore('assessment', () => {
   async function startAssessment(
     tenantId: string,
     assessmentId: string,
-    rosterRecordId: string
+    rosterRecordId: string,
+    options?: { shuffle?: boolean }
   ): Promise<boolean> {
     errorMessage.value = null;
 
@@ -71,7 +73,21 @@ export const useAssessmentStore = defineStore('assessment', () => {
         errorMessage.value = "Imtihon ma'lumotlari topilmadi.";
         return false;
       }
-      assessment.value = data;
+
+      let questions = data.questions;
+      if (options?.shuffle) {
+        const seed = `${tenantId}_${assessmentId}_${rosterRecordId}`;
+        questions = seededShuffle(data.questions, `${seed}_questions`).map((q, idx) => ({
+          ...q,
+          order: idx + 1,
+          options: seededShuffle(q.options, `${seed}_q_${q.id}_options`),
+        }));
+      }
+
+      assessment.value = {
+        ...data,
+        questions,
+      };
 
       // Create or restore attempt
       const newAttempt = await api.attempt.createAttempt(tenantId, assessmentId, rosterRecordId);

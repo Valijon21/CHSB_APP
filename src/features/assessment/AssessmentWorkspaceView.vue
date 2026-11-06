@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useTenantStore } from '../tenant-context/tenantStore';
 import { useStudentAdmissionStore } from '../student-admission/admissionStore';
 import { useAssessmentStore } from './assessmentStore';
+import { useExamProctor } from '../../shared/composables/useExamProctor';
 import QuestionBlockRenderer from '../../shared/components/QuestionBlockRenderer.vue';
 
 const route = useRoute();
@@ -11,6 +12,7 @@ const router = useRouter();
 const tenantStore = useTenantStore();
 const admissionStore = useStudentAdmissionStore();
 const assessmentStore = useAssessmentStore();
+const proctor = useExamProctor(3);
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const assessmentId = (route.params.assessmentId as string) || 'chsb-inf-11-q1';
@@ -18,11 +20,13 @@ const assessmentId = (route.params.assessmentId as string) || 'chsb-inf-11-q1';
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
 
-  // If assessment not loaded yet (e.g. direct refresh), initialize it
+  proctor.startProctoring();
+
+  // If assessment not loaded yet (e.g. direct refresh), initialize it with deterministic shuffle
   if (!assessmentStore.assessment) {
     const tenantId = tenantStore.currentTenant?.tenantId || 'tenant-al-xorazmiy';
     const rosterRecordId = admissionStore.confirmedStudent?.rosterRecordId || 'rec-ax-101';
-    await assessmentStore.startAssessment(tenantId, assessmentId, rosterRecordId);
+    await assessmentStore.startAssessment(tenantId, assessmentId, rosterRecordId, { shuffle: true });
   }
 });
 
@@ -50,7 +54,14 @@ async function handleFinish() {
 </script>
 
 <template>
-  <div v-if="assessmentStore.assessment" class="space-y-4">
+  <div
+    v-if="assessmentStore.assessment"
+    class="space-y-4 select-none"
+    @contextmenu.prevent
+    @copy.prevent
+    @cut.prevent
+    @paste.prevent
+  >
     <!-- Top Progress and Timer Bar -->
     <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
@@ -58,6 +69,38 @@ async function handleFinish() {
         <span class="px-2.5 py-1 rounded-md bg-teal-50 text-teal-900 font-bold text-sm border border-teal-200">
           {{ assessmentStore.answeredCount }} / {{ assessmentStore.totalQuestions }}
         </span>
+      </div>
+
+      <!-- Center Proctor / Security Status & Fullscreen toggle -->
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          @click="proctor.requestFullscreen()"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition cursor-pointer text-slate-700 bg-slate-50 border-slate-200 hover:bg-slate-100"
+          title="To'liq ekranga o'tish"
+        >
+          <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+          <span>To'liq ekran</span>
+        </button>
+
+        <div
+          :class="[
+            'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border',
+            proctor.violationCount.value === 0
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : proctor.violationCount.value < proctor.maxViolations
+                ? 'bg-amber-50 text-amber-800 border-amber-200 animate-pulse'
+                : 'bg-rose-50 text-rose-800 border-rose-300 animate-pulse'
+          ]"
+        >
+          <span
+            class="w-1.5 h-1.5 rounded-full"
+            :class="proctor.violationCount.value === 0 ? 'bg-emerald-500' : 'bg-amber-500'"
+          ></span>
+          <span>Nazorat: {{ proctor.violationCount.value }} / {{ proctor.maxViolations }}</span>
+        </div>
       </div>
 
       <div class="flex items-center gap-3">
@@ -215,5 +258,47 @@ async function handleFinish() {
   <div v-else class="text-center py-12">
     <div class="w-8 h-8 border-3 border-teal-800 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
     <p class="text-sm text-slate-500">Imtihon savollari yuklanmoqda...</p>
+  </div>
+
+  <!-- Anti-Cheat Proctoring Alert Modal -->
+  <div
+    v-if="proctor.isWarningModalOpen.value"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="proctor-modal-title"
+  >
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-rose-100 text-center animate-in fade-in">
+      <div class="w-14 h-14 mx-auto rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center mb-4 text-rose-600">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+
+      <h3 id="proctor-modal-title" class="text-lg font-bold text-slate-900 mb-2">
+        Diqqat! Imtihon qoidasi buzildi
+      </h3>
+
+      <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+        {{ proctor.lastWarningMessage.value }}
+      </p>
+
+      <div class="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-900 mb-5">
+        <p class="font-semibold">
+          Qoidabuzarlik: {{ proctor.violationCount.value }} / {{ proctor.maxViolations }}
+        </p>
+        <p class="mt-0.5 text-amber-700">
+          Imtihon oynasidan chiqish yoki nusxa olish qat'iyan taqiqlanadi. Har bir harakat qayd etiladi.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        @click="proctor.dismissWarning"
+        class="w-full py-2.5 px-4 bg-teal-800 hover:bg-teal-900 text-white rounded-lg font-medium text-sm transition cursor-pointer shadow-sm"
+      >
+        Tushundim, imtihonni davom ettirish
+      </button>
+    </div>
   </div>
 </template>

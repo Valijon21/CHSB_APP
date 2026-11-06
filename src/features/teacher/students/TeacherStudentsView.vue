@@ -162,3 +162,4 @@ function handleClassFilter(e: Event) {
     </div>
   </div>
 </template>
+

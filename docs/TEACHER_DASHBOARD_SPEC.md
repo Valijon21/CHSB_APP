@@ -99,3 +99,4 @@ Teacher Dashboard — bu oddiy statik monitoring paneli emas, balki pedagogning 
 2. **Repository Scope:** Barcha so'rovlar `tenantId` parametri orqali filtrlanadi.
 3. **Data Protection:** Maxfiy javob kalitlari yoki parollar frontendga uzatilmaydi.
 4. **SaaS Layout:** Barcha sahifalar zamonaviy Sidebar navigatsiya paneli va Header bilan birlashtirilgan.
+
