@@ -32,13 +32,13 @@
 
 ## Phase 3 — Student admission
 
-- [ ] Build tenant public-context screen.
-- [ ] Build roster credential form.
-- [ ] Add client-side validation without revealing roster existence.
-- [ ] Build generic failure and retry states.
-- [ ] Build student identity confirmation screen.
-- [ ] Prevent tenant context changes during an active student flow.
-- [ ] Add E2E admission tests.
+- [x] Build tenant public-context screen.
+- [x] Build roster credential form.
+- [x] Add client-side validation without revealing roster existence.
+- [x] Build generic failure and retry states.
+- [x] Build student identity confirmation screen.
+- [x] Prevent tenant context changes during an active student flow.
+- [x] Add E2E admission tests.
 
 ## Phase 4 — Assessment experience
 
