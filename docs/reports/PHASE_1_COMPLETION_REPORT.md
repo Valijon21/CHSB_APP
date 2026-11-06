@@ -80,3 +80,4 @@ Vue 3, TypeScript strict mode, Vite, Tailwind CSS, Vue Router 4 va Pinia yordami
 ## 6. Xulosa va Keyingi Qadam
 Phase 1 to'liq va benuqson yakunlandi. Barcha poydevor talablari bajarildi. 
 Rejaga muvofiq **Phase 2 — Domain Model and Mock Repositories** bosqichiga avtomatik o'tiladi.
+

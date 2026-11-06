@@ -1,112 +1,163 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
+import { useTeacherStore } from '../../features/teacher/teacherStore';
+import { useTenantStore } from '../../features/tenant-context/tenantStore';
 
 const route = useRoute();
+const teacherStore = useTeacherStore();
+const tenantStore = useTenantStore();
+
+const isMobileMenuOpen = ref(false);
 const tenantSlug = computed(() => (route.params.tenantSlug as string) || 'al-xorazmiy');
+
+const navigationItems = [
+  { name: 'Dashboard', path: '/teacher/dashboard', icon: '📊' },
+  { name: 'Sinflar', path: '/teacher/classes', icon: '🏫' },
+  { name: "O'quvchilar", path: '/teacher/students', icon: '👥' },
+  { name: 'Imtihonlar', path: '/teacher/assessments', icon: '📝' },
+  { name: 'Natijalar', path: '/teacher/results', icon: '📈' },
+  { name: 'Tahlillar', path: '/teacher/analytics', icon: '📉' },
+  { name: 'Hisobotlar', path: '/teacher/reports', icon: '📑' },
+  { name: 'Profil & Sozlamalar', path: '/teacher/profile', icon: '👤' },
+  { name: 'Tenant Admin', path: '/admin', icon: '⚙️' },
+];
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-    <!-- Staff Top Header -->
-    <header class="border-b border-slate-200 bg-white sticky top-0 z-20">
-      <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span class="w-9 h-9 rounded-lg bg-indigo-900 flex items-center justify-center text-white font-bold text-base shadow-xs">
-              T
-            </span>
-            <div>
-              <span class="text-sm font-bold text-slate-900 block leading-tight">CHSB Staff Portal</span>
-              <span class="text-xs text-indigo-700 font-medium">O'qituvchi & Admin</span>
-            </div>
-          </div>
-
-          <!-- Tenant Context Badge -->
-          <div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-md bg-indigo-50 border border-indigo-100 text-xs text-indigo-950 font-medium">
-            <span>Tenant:</span>
-            <span class="font-mono bg-white px-1.5 py-0.5 rounded border border-indigo-200">{{ tenantSlug }}</span>
-          </div>
+  <div class="min-h-screen bg-slate-100 flex flex-col lg:flex-row text-slate-800 font-sans">
+    <!-- Desktop Sidebar -->
+    <aside class="hidden lg:flex flex-col w-64 bg-slate-900 text-slate-200 border-r border-slate-800 shrink-0">
+      <!-- Brand Header -->
+      <div class="h-16 flex items-center px-6 border-b border-slate-800 gap-3">
+        <span class="w-9 h-9 rounded-lg bg-teal-600 flex items-center justify-center text-white font-bold text-base shadow-xs">
+          CH
+        </span>
+        <div>
+          <span class="font-bold text-sm tracking-wide text-white block">CHSB Platform</span>
+          <span class="text-[11px] text-teal-400 font-medium tracking-wide">Teacher Workspace</span>
         </div>
+      </div>
 
-        <!-- Navigation Bar -->
-        <nav class="hidden md:flex items-center gap-1 text-sm font-medium text-slate-600">
+      <!-- Tenant Scope Card -->
+      <div class="p-4 border-b border-slate-800 bg-slate-950/40">
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+          <span>Faol Muassasa:</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        </div>
+        <div class="text-xs font-semibold text-slate-200 truncate">
+          {{ tenantStore.currentTenant?.displayName || (tenantSlug === 'temurbeklar-maktabi' ? 'Temurbeklar Maktabi' : 'Al-Xorazmiy IT Maktabi') }}
+        </div>
+        <div class="mt-2 flex items-center gap-1.5 text-[11px]">
           <router-link
-            :to="`/t/${tenantSlug}/teacher`"
-            exact-active-class="text-indigo-900 bg-slate-100"
-            class="px-3 py-1.5 rounded-md hover:text-slate-900 hover:bg-slate-50 transition"
+            :to="`/t/${tenantSlug === 'al-xorazmiy' ? 'temurbeklar-maktabi' : 'al-xorazmiy'}/teacher/dashboard`"
+            class="text-teal-400 hover:text-teal-300 underline font-medium"
           >
-            Boshqaruv
-          </router-link>
-          <router-link
-            :to="`/t/${tenantSlug}/teacher/classes`"
-            active-class="text-indigo-900 bg-slate-100"
-            class="px-3 py-1.5 rounded-md hover:text-slate-900 hover:bg-slate-50 transition"
-          >
-            Sinflar & Roster
-          </router-link>
-          <router-link
-            :to="`/t/${tenantSlug}/teacher/assessments`"
-            active-class="text-indigo-900 bg-slate-100"
-            class="px-3 py-1.5 rounded-md hover:text-slate-900 hover:bg-slate-50 transition"
-          >
-            Baholashlar
-          </router-link>
-          <router-link
-            :to="`/t/${tenantSlug}/teacher/results`"
-            active-class="text-indigo-900 bg-slate-100"
-            class="px-3 py-1.5 rounded-md hover:text-slate-900 hover:bg-slate-50 transition"
-          >
-            Natijalar
-          </router-link>
-          <router-link
-            :to="`/t/${tenantSlug}/admin`"
-            active-class="text-indigo-900 bg-slate-100"
-            class="px-3 py-1.5 rounded-md hover:text-slate-900 hover:bg-slate-50 transition"
-          >
-            Admin
-          </router-link>
-        </nav>
-
-        <!-- Demo Mode Indicator -->
-        <div class="flex items-center gap-2">
-          <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-            Demo Prototip
-          </span>
-          <router-link
-            :to="`/t/${tenantSlug}/student`"
-            class="text-xs text-slate-500 hover:text-slate-800 underline ml-2"
-          >
-            O'quvchi rejimiga o'tish
+            {{ tenantSlug === 'al-xorazmiy' ? "Temurbeklar maktabiga o'tish ⇄" : "Al-Xorazmiyga o'tish ⇄" }}
           </router-link>
         </div>
       </div>
 
-      <!-- Mobile Navigation sub-bar -->
-      <div class="md:hidden border-t border-slate-100 px-4 py-2 flex items-center justify-between text-xs overflow-x-auto gap-2">
-        <router-link :to="`/t/${tenantSlug}/teacher`" class="whitespace-nowrap px-2 py-1">Boshqaruv</router-link>
-        <router-link :to="`/t/${tenantSlug}/teacher/classes`" class="whitespace-nowrap px-2 py-1">Sinflar</router-link>
-        <router-link :to="`/t/${tenantSlug}/teacher/assessments`" class="whitespace-nowrap px-2 py-1">Baholashlar</router-link>
-        <router-link :to="`/t/${tenantSlug}/teacher/results`" class="whitespace-nowrap px-2 py-1">Natijalar</router-link>
-        <router-link :to="`/t/${tenantSlug}/admin`" class="whitespace-nowrap px-2 py-1">Admin</router-link>
+      <!-- Navigation links -->
+      <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+        <router-link
+          v-for="item in navigationItems"
+          :key="item.path"
+          :to="`/t/${tenantSlug}${item.path}`"
+          class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-medium transition group"
+          :class="[
+            route.path.includes(item.path)
+              ? 'bg-teal-600 text-white font-semibold shadow-xs'
+              : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-100'
+          ]"
+        >
+          <span class="text-base">{{ item.icon }}</span>
+          <span>{{ item.name }}</span>
+        </router-link>
+      </nav>
+
+      <!-- Teacher Footer Profile Card -->
+      <div class="p-3 border-t border-slate-800 bg-slate-950/60">
+        <div class="flex items-center gap-3 p-2 rounded-lg bg-slate-900 border border-slate-800">
+          <span class="w-8 h-8 rounded-full bg-indigo-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+            DU
+          </span>
+          <div class="truncate text-left flex-1">
+            <span class="text-xs font-semibold text-slate-200 block truncate">
+              {{ teacherStore.profile?.fullName || 'Dilmurod Ustoz' }}
+            </span>
+            <span class="text-[10px] text-slate-400 block truncate">
+              Informatika fani
+            </span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Top Navigation Header -->
+    <header class="lg:hidden bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30">
+      <div class="px-4 h-14 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded bg-teal-600 flex items-center justify-center font-bold text-xs">
+            CH
+          </span>
+          <span class="font-bold text-sm">CHSB O'qituvchi</span>
+        </div>
+
+        <button
+          @click="isMobileMenuOpen = !isMobileMenuOpen"
+          class="p-2 rounded-md bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>{{ isMobileMenuOpen ? '✕ Yopish' : '☰ Menyu' }}</span>
+        </button>
+      </div>
+
+      <!-- Mobile drawer menu -->
+      <div v-if="isMobileMenuOpen" class="p-3 bg-slate-900 border-t border-slate-800 space-y-1">
+        <router-link
+          v-for="item in navigationItems"
+          :key="item.path"
+          :to="`/t/${tenantSlug}${item.path}`"
+          @click="isMobileMenuOpen = false"
+          class="flex items-center gap-2.5 px-3 py-2 rounded text-xs font-medium"
+          :class="route.path.includes(item.path) ? 'bg-teal-600 text-white' : 'text-slate-300 hover:bg-slate-800'"
+        >
+          <span>{{ item.icon }}</span>
+          <span>{{ item.name }}</span>
+        </router-link>
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-      <slot>
-        <router-view />
-      </slot>
-    </main>
+    <!-- Main Workspace Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <!-- Workspace Top Bar -->
+      <div class="h-14 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-10 shadow-xs">
+        <div class="flex items-center gap-2 text-xs text-slate-500">
+          <span class="font-medium text-slate-700">Muassasa:</span>
+          <span class="font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+            {{ tenantSlug }}
+          </span>
+          <span class="hidden sm:inline text-slate-300">|</span>
+          <span class="hidden sm:inline font-mono text-[11px] text-slate-400">CHSB Enterprise V2</span>
+        </div>
 
-    <!-- Staff Footer -->
-    <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
-      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-        <span>CHSB Teacher & Tenant Admin Portal &copy; {{ new Date().getFullYear() }}</span>
-        <span class="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-          Ko'rsatilayotgan barcha ma'lumotlar sintetik test ma'lumotlaridir
-        </span>
+        <div class="flex items-center gap-3">
+          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            ✓ Tizim Faol
+          </span>
+          <router-link
+            :to="`/t/${tenantSlug}/student`"
+            class="px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition cursor-pointer border border-slate-200"
+          >
+            O'quvchi rejimi →
+          </router-link>
+        </div>
       </div>
-    </footer>
+
+      <!-- Page Content -->
+      <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <router-view />
+      </main>
+    </div>
   </div>
 </template>

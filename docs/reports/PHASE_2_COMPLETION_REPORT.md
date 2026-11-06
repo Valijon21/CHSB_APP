@@ -75,3 +75,4 @@ Frontend va kelajakdagi Django REST Framework o'rtasidagi ma'lumotlar chegaralar
 ## 5. Xulosa va Keyingi Qadam
 Phase 2 to'liq va muvaffaqiyatli yakunlandi.
 Rejaga muvofiq **Phase 3 — Roster-based Student Admission** bosqichiga avtomatik o'tiladi.
+

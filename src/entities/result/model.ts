@@ -19,3 +19,4 @@ export const AssessmentResultSchema = z.object({
 });
 
 export type AssessmentResult = z.infer<typeof AssessmentResultSchema>;
+

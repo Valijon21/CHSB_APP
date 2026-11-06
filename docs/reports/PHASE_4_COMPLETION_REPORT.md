@@ -65,3 +65,4 @@ Eski `CHSB_11_SINF.html` faylidagi barcha haqiqiy imtihon faktlarini to'liq va x
 ## 4. Xulosa va Keyingi Qadam
 Phase 4 to'liq va muvaffaqiyatli yakunlandi.
 Rejaga muvofiq **Phase 5 — Teacher and Tenant Admin** (o'qituvchi boshqaruv paneli, sinflar ro'yxati, baholashlar va natijalar monitoringi) bosqichiga avtomatik o'tiladi.
+

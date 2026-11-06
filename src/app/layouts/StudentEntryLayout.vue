@@ -44,3 +44,4 @@ const tenantSlug = computed(() => (route.params.tenantSlug as string) || '');
     </footer>
   </div>
 </template>
+

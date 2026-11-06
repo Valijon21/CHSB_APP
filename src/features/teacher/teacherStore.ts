@@ -4,6 +4,14 @@ import type { ClassGroup } from '../../entities/class-group/model';
 import type { StudentRosterRecord } from '../../entities/roster/model';
 import type { AssessmentSummary } from '../../entities/assessment/model';
 import type { AssessmentResult } from '../../entities/result/model';
+import type {
+  TeacherProfile,
+  ClassDetail,
+  StudentDetail,
+  AssessmentDetail,
+  AnalyticsData,
+  ReportItem,
+} from '../../entities/teacher/model';
 import { api } from '../../shared/api';
 
 export const useTeacherStore = defineStore('teacher', () => {
@@ -11,14 +19,33 @@ export const useTeacherStore = defineStore('teacher', () => {
   const classes = ref<ClassGroup[]>([]);
   const roster = ref<StudentRosterRecord[]>([]);
   const selectedClassId = ref<string | null>(null);
+  const studentSearchQuery = ref('');
   const assessments = ref<AssessmentSummary[]>([]);
   const results = ref<AssessmentResult[]>([]);
+  const profile = ref<TeacherProfile | null>(null);
+  const classDetail = ref<ClassDetail | null>(null);
+  const studentDetail = ref<StudentDetail | null>(null);
+  const assessmentDetail = ref<AssessmentDetail | null>(null);
+  const analytics = ref<AnalyticsData | null>(null);
+  const reportData = ref<ReportItem[]>([]);
   const isLoading = ref(false);
   const errorMessage = ref<string | null>(null);
 
   const filteredRoster = computed(() => {
-    if (!selectedClassId.value) return roster.value;
-    return roster.value.filter((r) => r.classGroupId === selectedClassId.value);
+    let list = roster.value;
+    if (selectedClassId.value) {
+      list = list.filter((r) => r.classGroupId === selectedClassId.value);
+    }
+    const q = studentSearchQuery.value.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.firstName.toLowerCase().includes(q) ||
+          r.lastName.toLowerCase().includes(q) ||
+          r.rosterCode.toLowerCase().includes(q)
+      );
+    }
+    return list;
   });
 
   const totalRosterCount = computed(() => roster.value.length);
@@ -31,31 +58,43 @@ export const useTeacherStore = defineStore('teacher', () => {
 
   async function loadTeacherData(tenantId: string): Promise<boolean> {
     if (currentTenantId.value === tenantId && classes.value.length > 0) {
-      return true; // Already loaded for this tenant
+      return true;
     }
 
-    // Reset when switching tenant
     currentTenantId.value = tenantId;
     classes.value = [];
     roster.value = [];
     selectedClassId.value = null;
+    studentSearchQuery.value = '';
     assessments.value = [];
     results.value = [];
+    profile.value = null;
+    classDetail.value = null;
+    studentDetail.value = null;
+    assessmentDetail.value = null;
+    analytics.value = null;
+    reportData.value = [];
     isLoading.value = true;
     errorMessage.value = null;
 
     try {
-      const [classList, rosterList, assessmentList, resultList] = await Promise.all([
+      const [classList, rosterList, assessmentList, resultList, prof, an, rep] = await Promise.all([
         api.teacher.getClasses(tenantId),
         api.teacher.getRoster(tenantId),
         api.teacher.getAssessments(tenantId),
         api.teacher.getResults(tenantId),
+        api.teacher.getProfile(tenantId),
+        api.teacher.getAnalytics(tenantId),
+        api.teacher.generateReportData(tenantId),
       ]);
 
       classes.value = classList;
       roster.value = rosterList;
       assessments.value = assessmentList;
       results.value = resultList;
+      profile.value = prof;
+      analytics.value = an;
+      reportData.value = rep;
       return true;
     } catch {
       errorMessage.value = "O'qituvchi ma'lumotlarini yuklashda xatolik yuz berdi.";
@@ -65,8 +104,85 @@ export const useTeacherStore = defineStore('teacher', () => {
     }
   }
 
-  function selectClass(classId: string | null) {
-    selectedClassId.value = classId;
+  async function loadClassDetail(tenantId: string, classId: string): Promise<boolean> {
+    isLoading.value = true;
+    classDetail.value = null;
+    try {
+      classDetail.value = await api.teacher.getClassDetail(tenantId, classId);
+      return classDetail.value !== null;
+    } catch {
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function loadStudentDetail(tenantId: string, studentId: string): Promise<boolean> {
+    isLoading.value = true;
+    studentDetail.value = null;
+    try {
+      studentDetail.value = await api.teacher.getStudentDetail(tenantId, studentId);
+      return studentDetail.value !== null;
+    } catch {
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function loadAssessmentDetail(tenantId: string, assessmentId: string): Promise<boolean> {
+    isLoading.value = true;
+    assessmentDetail.value = null;
+    try {
+      assessmentDetail.value = await api.teacher.getAssessmentDetail(tenantId, assessmentId);
+      return assessmentDetail.value !== null;
+    } catch {
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  function filterByClass(classGroupId: string | null) {
+    selectedClassId.value = classGroupId;
+  }
+
+  function selectClass(classGroupId: string | null) {
+    selectedClassId.value = classGroupId;
+  }
+
+  function setSearchQuery(query: string) {
+    studentSearchQuery.value = query;
+  }
+
+  function exportResultsCSV(): string {
+    const headers = [
+      '№',
+      "O'quvchi F.I.SH.",
+      'Sinf',
+      'Roster Kodi',
+      'Imtihon',
+      'Ball',
+      'Maksimal Ball',
+      'Foiz (%)',
+      'Topshirilgan Vaqt',
+      'Holati',
+    ];
+
+    const rows = reportData.value.map((item, index) => [
+      String(index + 1),
+      `"${item.studentName.replace(/"/g, '""')}"`,
+      `"${item.className}"`,
+      item.rosterCode,
+      `"${item.assessmentTitle}"`,
+      item.score.toFixed(1),
+      item.maxScore.toFixed(1),
+      `${item.percentage}%`,
+      item.submittedAt,
+      item.status,
+    ]);
+
+    return [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
   }
 
   return {
@@ -74,15 +190,28 @@ export const useTeacherStore = defineStore('teacher', () => {
     classes,
     roster,
     selectedClassId,
-    filteredRoster,
+    studentSearchQuery,
     assessments,
     results,
+    profile,
+    classDetail,
+    studentDetail,
+    assessmentDetail,
+    analytics,
+    reportData,
+    filteredRoster,
     totalRosterCount,
     totalClassesCount,
     averageScore,
     isLoading,
     errorMessage,
     loadTeacherData,
+    loadClassDetail,
+    loadStudentDetail,
+    loadAssessmentDetail,
+    filterByClass,
     selectClass,
+    setSearchQuery,
+    exportResultsCSV,
   };
 });

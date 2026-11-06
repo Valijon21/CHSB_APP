@@ -50,3 +50,4 @@ export class MockResultRepository implements ResultRepository {
     return Array.from(this.results.values()).filter((r) => r.tenantId === tenantId);
   }
 }
+

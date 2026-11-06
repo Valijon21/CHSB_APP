@@ -99,3 +99,4 @@ export class MockAttemptRepository implements AttemptRepository {
     return receipt;
   }
 }
+

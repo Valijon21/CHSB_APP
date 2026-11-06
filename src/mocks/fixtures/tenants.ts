@@ -213,3 +213,4 @@ export function toTenantPublicContext(t: Tenant): TenantPublicContext {
     status: t.status === 'active' ? 'active' : 'inactive',
   };
 }
+

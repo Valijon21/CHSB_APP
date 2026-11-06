@@ -38,3 +38,4 @@ export type RosterLookupResult =
   | { status: 'inactive'; message: string }
   | { status: 'ambiguous'; message: string }
   | { status: 'not_found'; message: string };
+

@@ -9,3 +9,4 @@ export const SchoolSchema = z.object({
 });
 
 export type School = z.infer<typeof SchoolSchema>;
+

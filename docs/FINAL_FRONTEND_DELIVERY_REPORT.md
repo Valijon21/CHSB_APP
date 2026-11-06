@@ -193,3 +193,4 @@ npm run build
 ## 8. Yakuniy Xulosa
 
 CHSB Platform Frontend V2 loyihasi barcha arxitektura me'yorlariga, xavfsizlik qoidalariga va buyurtmachining master ko'rsatmalariga 100% muvofiq holda to'liq yakunlandi va topshirishga tayyor.
+

@@ -14,10 +14,18 @@ A modern, trustworthy educational assessment interface. Prioritize readability, 
 | `/t/:tenantSlug/assessments/:assessmentId/attempt` | ExamLayout | Assessment workspace |
 | `/t/:tenantSlug/attempts/:attemptId/receipt` | StudentLayout | Submission receipt |
 | `/t/:tenantSlug/attempts/:attemptId/result` | StudentLayout | Result view |
-| `/t/:tenantSlug/teacher` | StaffLayout | Teacher overview |
-| `/t/:tenantSlug/teacher/classes` | StaffLayout | Class list |
-| `/t/:tenantSlug/teacher/assessments` | StaffLayout | Assessment list |
-| `/t/:tenantSlug/teacher/results` | StaffLayout | Results prototype |
+| `/t/:tenantSlug/teacher` | StaffLayout | Teacher workspace redirect |
+| `/t/:tenantSlug/teacher/dashboard` | StaffLayout | Teacher overview KPI dashboard |
+| `/t/:tenantSlug/teacher/classes` | StaffLayout | Classes management list |
+| `/t/:tenantSlug/teacher/classes/:classId` | StaffLayout | Class drilldown & student roster |
+| `/t/:tenantSlug/teacher/students` | StaffLayout | Student directory, search & filters |
+| `/t/:tenantSlug/teacher/students/:studentId` | StaffLayout | Student profile & exam history |
+| `/t/:tenantSlug/teacher/assessments` | StaffLayout | Assessment catalog & filters |
+| `/t/:tenantSlug/teacher/assessments/:assessmentId` | StaffLayout | Assessment details & questions breakdown |
+| `/t/:tenantSlug/teacher/results` | StaffLayout | Results & provisional scoring table |
+| `/t/:tenantSlug/teacher/analytics` | StaffLayout | Comparative analytics, KPIs & charts |
+| `/t/:tenantSlug/teacher/reports` | StaffLayout | Report generator & CSV/Excel export |
+| `/t/:tenantSlug/teacher/profile` | StaffLayout | Teacher profile & workspace settings |
 | `/t/:tenantSlug/admin` | StaffLayout | Tenant admin prototype |
 
 ## Exam workspace

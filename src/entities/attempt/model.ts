@@ -28,3 +28,4 @@ export const SubmissionReceiptSchema = z.object({
 });
 
 export type SubmissionReceipt = z.infer<typeof SubmissionReceiptSchema>;
+

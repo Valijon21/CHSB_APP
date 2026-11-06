@@ -4,7 +4,7 @@
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.9_Strict-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.4-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Tests Passing](https://img.shields.io/badge/Vitest-49%20passed%20(100%25)-green?style=flat&logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Tests Passing](https://img.shields.io/badge/Vitest-55%20passed%20(100%25)-green?style=flat&logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Status](https://img.shields.io/badge/Status-Completed-success?style=flat)]()
 
 Ushbu loyiha O'zbekiston maktablarida choraklik baholash (CHSB) jarayonlarini raqamlashtirish uchun mo'ljallangan korporativ darajadagi **Multi-Tenant Roster-Based Assessment Platform** frontend tizimidir.
@@ -71,7 +71,14 @@ Brauzerda quyidagi manzillarni oching:
   *(Demo kod: `STU-1101`)*
 - **O'quvchi kirish portali (Temurbeklar):** [http://localhost:5173/t/temurbeklar-maktabi/student](http://localhost:5173/t/temurbeklar-maktabi/student)  
   *(Demo kod: `TM-201`)*
-- **O'qituvchi boshqaruv paneli:** [http://localhost:5173/t/al-xorazmiy/teacher](http://localhost:5173/t/al-xorazmiy/teacher)
+- **O'qituvchi Boshqaruv Kabineti (Dashboard):** [http://localhost:5173/t/al-xorazmiy/teacher/dashboard](http://localhost:5173/t/al-xorazmiy/teacher/dashboard)
+- **Sinflar Boshqaruvi:** [http://localhost:5173/t/al-xorazmiy/teacher/classes](http://localhost:5173/t/al-xorazmiy/teacher/classes)
+- **O'quvchilar Boshqaruvi (Roster):** [http://localhost:5173/t/al-xorazmiy/teacher/students](http://localhost:5173/t/al-xorazmiy/teacher/students)
+- **Baholashlar Katalogi:** [http://localhost:5173/t/al-xorazmiy/teacher/assessments](http://localhost:5173/t/al-xorazmiy/teacher/assessments)
+- **Natijalar Jadvali & CSV Export:** [http://localhost:5173/t/al-xorazmiy/teacher/results](http://localhost:5173/t/al-xorazmiy/teacher/results)
+- **Pedagogik Tahlillar (Analytics):** [http://localhost:5173/t/al-xorazmiy/teacher/analytics](http://localhost:5173/t/al-xorazmiy/teacher/analytics)
+- **Hisobotlar Generatori:** [http://localhost:5173/t/al-xorazmiy/teacher/reports](http://localhost:5173/t/al-xorazmiy/teacher/reports)
+- **O'qituvchi Profili:** [http://localhost:5173/t/al-xorazmiy/teacher/profile](http://localhost:5173/t/al-xorazmiy/teacher/profile)
 - **Tenant Administrator:** [http://localhost:5173/t/al-xorazmiy/admin](http://localhost:5173/t/al-xorazmiy/admin)
 
 ---
@@ -102,3 +109,4 @@ Barcha batafsil texnik hujjatlar va hisobotlar `docs/` katalogida joylashgan:
 
 ## 📄 Litsenziya
 Ushbu loyiha ta'lim va attestatsiya maqsadlari uchun ishlab chiqilgan.
+
