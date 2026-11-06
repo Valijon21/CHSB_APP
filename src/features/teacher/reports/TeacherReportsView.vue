@@ -187,3 +187,4 @@ function printReport() {
     </div>
   </div>
 </template>
+
