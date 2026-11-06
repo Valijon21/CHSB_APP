@@ -217,3 +217,4 @@ flowchart TD
 Ushbu audit natijasida loyihaning boshlang'ich holati to'liq o'rganildi, barcha cheklovlar va talablar aniq belgilab olindi. Kod yozish boshlanmadi. 
 
 Ushbu audit hisoboti Git orqali kommit qilinadi va foydalanuvchiga Phase 1 (Frontend poydevorini o'rnatish) ga o'tish uchun taqdim etiladi.
+
