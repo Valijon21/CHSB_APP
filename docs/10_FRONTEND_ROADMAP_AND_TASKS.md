@@ -11,13 +11,13 @@
 
 ## Phase 1 — Frontend foundation
 
-- [ ] Configure Vue 3 + TypeScript + Vite (only if not already present).
-- [ ] Enable TypeScript strict mode.
-- [ ] Configure Vue Router and Pinia.
-- [ ] Configure ESLint, Prettier and Vitest.
-- [ ] Establish app shell, layouts and route-level error handling.
-- [ ] Establish design tokens, typography, spacing and responsive breakpoints.
-- [ ] Build accessible shared form, button, card, alert, modal and loading components.
+- [x] Configure Vue 3 + TypeScript + Vite (only if not already present).
+- [x] Enable TypeScript strict mode.
+- [x] Configure Vue Router and Pinia.
+- [x] Configure ESLint, Prettier and Vitest.
+- [x] Establish app shell, layouts and route-level error handling.
+- [x] Establish design tokens, typography, spacing and responsive breakpoints.
+- [x] Build accessible shared form, button, card, alert, modal and loading components.
 
 ## Phase 2 — Domain and data boundaries
 

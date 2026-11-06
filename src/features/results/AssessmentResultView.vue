@@ -1,0 +1,49 @@
+<script setup lang="ts">
+import { useRoute, useRouter } from 'vue-router';
+
+const route = useRoute();
+const router = useRouter();
+
+const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
+
+function finish() {
+  router.push(`/t/${tenantSlug}/student`);
+}
+</script>
+
+<template>
+  <div class="max-w-lg mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8">
+    <div class="text-center pb-5 border-b border-slate-100">
+      <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 mb-2">
+        Dastlabki Demo Natija
+      </span>
+      <h2 class="text-xl font-bold text-slate-900">1-ChSB Natijasi</h2>
+      <p class="text-xs text-slate-500 mt-1">Informatika va axborot texnologiyalari — 11-sinf</p>
+    </div>
+
+    <!-- Score Highlight Card -->
+    <div class="my-6 p-6 rounded-xl bg-slate-50 border border-slate-200 text-center">
+      <span class="text-xs text-slate-500 font-medium uppercase tracking-wider block mb-1">
+        To'plangan dastlabki ball
+      </span>
+      <div class="text-4xl font-black text-teal-800 my-2">
+        35 <span class="text-lg font-normal text-slate-400">/ 40</span>
+      </div>
+      <p class="text-xs text-slate-500 font-medium">
+        87.5% umumiy o'zlashtirish ko'rsatkichi
+      </p>
+    </div>
+
+    <!-- Official note about teacher verification (Preserved from legacy HTML) -->
+    <div class="p-3.5 rounded-lg bg-amber-50/80 border border-amber-200 text-amber-900 text-xs leading-relaxed mb-6">
+      <strong>Eslatma:</strong> Bu natija o'qituvchi tomonidan tekshiriladi, ball o'zgarishi mumkin.
+    </div>
+
+    <button
+      @click="finish"
+      class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg transition text-sm cursor-pointer"
+    >
+      Bosh sahifaga qaytish
+    </button>
+  </div>
+</template>
