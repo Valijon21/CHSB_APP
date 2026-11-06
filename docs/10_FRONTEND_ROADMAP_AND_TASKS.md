@@ -55,14 +55,14 @@
 
 ## Phase 5 — Teacher/admin prototype
 
-- [ ] Build staff layout and tenant context indicator.
-- [ ] Build teacher overview.
-- [ ] Build class list.
-- [ ] Build roster list prototype with synthetic data.
-- [ ] Build assessment list and status filters.
-- [ ] Build results summary prototype.
-- [ ] Add visible demo-data labels.
-- [ ] Test tenant-scoped navigation and empty states.
+- [x] Build staff layout and tenant context indicator.
+- [x] Build teacher overview.
+- [x] Build class list.
+- [x] Build roster list prototype with synthetic data.
+- [x] Build assessment list and status filters.
+- [x] Build results summary prototype.
+- [x] Add visible demo-data labels.
+- [x] Test tenant-scoped navigation and empty states.
 
 ## Phase 6 — Hardening and handoff
 

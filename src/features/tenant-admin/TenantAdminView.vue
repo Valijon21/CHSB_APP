@@ -1,8 +1,20 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useTenantStore } from '../tenant-context/tenantStore';
+import { useTeacherStore } from '../teacher/teacherStore';
 
 const route = useRoute();
+const tenantStore = useTenantStore();
+const teacherStore = useTeacherStore();
+
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
+
+onMounted(async () => {
+  await tenantStore.loadTenant(tenantSlug);
+  const tenantId = tenantStore.currentTenant?.tenantId || (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
+  await teacherStore.loadTeacherData(tenantId);
+});
 </script>
 
 <template>
@@ -11,7 +23,7 @@ const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
       <div>
         <h2 class="text-xl font-bold text-slate-900">Tenant Administrator Sozlamalari</h2>
         <p class="text-xs text-slate-500 mt-0.5">
-          Muassasa konfiguratsiyasi: <span class="font-mono text-indigo-700 font-semibold">{{ tenantSlug }}</span>
+          Muassasa boshqaruvi: <span class="font-mono text-indigo-700 font-semibold">{{ tenantStore.currentTenant?.displayName }}</span>
         </p>
       </div>
       <span class="text-xs px-2.5 py-1 rounded bg-slate-100 text-slate-600 font-mono">
@@ -30,7 +42,11 @@ const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
           </div>
           <div class="flex justify-between py-1 border-b border-slate-100">
             <span class="text-slate-500">Rasmiy Nomi:</span>
-            <span class="font-medium">Al-Xorazmiy nomidagi IT-maktab</span>
+            <span class="font-medium">{{ tenantStore.currentTenant?.displayName }}</span>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-100">
+            <span class="text-slate-500">Biriktirilgan Sinflar:</span>
+            <span class="font-bold text-indigo-950">{{ teacherStore.classes.length }} ta sinf</span>
           </div>
           <div class="flex justify-between py-1">
             <span class="text-slate-500">Holat:</span>
@@ -50,9 +66,13 @@ const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
             <span class="text-slate-500">Ochiq ro'yxatdan o'tish:</span>
             <span class="text-rose-700 font-semibold">O'chirilgan (Disabled)</span>
           </div>
-          <div class="flex justify-between py-1">
+          <div class="flex justify-between py-1 border-b border-slate-100">
             <span class="text-slate-500">Izolyatsiya darajasi:</span>
             <span class="text-indigo-800 font-mono">Tenant Strict Isolation</span>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-slate-500">Jami Roster:</span>
+            <span class="font-bold text-slate-900">{{ teacherStore.roster.length }} nafar o'quvchi</span>
           </div>
         </div>
       </div>
