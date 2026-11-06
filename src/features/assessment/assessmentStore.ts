@@ -135,7 +135,7 @@ export const useAssessmentStore = defineStore('assessment', () => {
   }
 
   async function submitAssessment(tenantId: string): Promise<boolean> {
-    if (!attempt.value) return false;
+    if (!attempt.value || attempt.value.status === 'submitted_demo' || isSubmitting.value) return false;
 
     isSubmitting.value = true;
     stopTimer();
@@ -147,6 +147,7 @@ export const useAssessmentStore = defineStore('assessment', () => {
         `idem-${attempt.value.id}`
       );
       receipt.value = submission;
+      attempt.value.status = 'submitted_demo';
 
       // Fetch result
       const res = await api.result.getResultByAttemptId(tenantId, attempt.value.id);
