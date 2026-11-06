@@ -2,10 +2,10 @@
 
 **Oxirgi yangilanish:** 2026-11-06  
 **Loyiha holati:** Jarayonda (In Progress)  
-**Joriy Phase:** Phase 3 — Roster-Based Student Admission  
-**Joriy Task ID:** TASK-3.1 (Pinia Tenant & Admission Stores, Verification Flow)  
-**Oxirgi bajarilgan vazifa:** Phase 2 — Domain Model and Mock Repositories (COMPLETED)  
-**Keyingi vazifa:** TASK-3.1: O'quvchi Roster qidiruvi, shaxsni tasdiqlash va xatolik holatlari  
+**Joriy Phase:** Phase 4 — Assessment Experience  
+**Joriy Task ID:** TASK-4.1 (Assessment Engine, 15-Question Renderer, Timer, Drafts & Submission)  
+**Oxirgi bajarilgan vazifa:** Phase 3 — Roster-Based Student Admission (COMPLETED)  
+**Keyingi vazifa:** TASK-4.1: 15 ta savolni to'liq render qilish, 40-daqiqalik demo timer, savollar navigatsiyasi, topshirish  
 
 ---
 
@@ -16,8 +16,8 @@
 | **Phase 0** | Audit and Baseline | COMPLETED | 2026-11-06 | 2026-11-06 |
 | **Phase 1** | Frontend Foundation | COMPLETED | 2026-11-06 | 2026-11-06 |
 | **Phase 2** | Domain Model and Mock Repositories | COMPLETED | 2026-11-06 | 2026-11-06 |
-| **Phase 3** | Roster-Based Student Admission | IN_PROGRESS | 2026-11-06 | - |
-| **Phase 4** | Assessment Experience | PENDING | - | - |
+| **Phase 3** | Roster-Based Student Admission | COMPLETED | 2026-11-06 | 2026-11-06 |
+| **Phase 4** | Assessment Experience | IN_PROGRESS | 2026-11-06 | - |
 | **Phase 5** | Teacher and Tenant Admin | PENDING | - | - |
 | **Phase 6** | QA, Security, Accessibility & Hardening | PENDING | - | - |
 
@@ -38,6 +38,10 @@
 - [x] TASK-2.3: Ikkita alohida tenant uchun sintetik mock ma'lumotlar va deterministik mock repositorylar.
 - [x] TASK-2.4: 15 ta savol va rasmlar ekstraktsiyasi (`public/assets/questions/`).
 - [x] TASK-2.5: Qat'iy tenant izolyatsiyasi testlari (Cross-tenant data leakage ga qarshi 21 ta test).
+- [x] TASK-3.1: Tenant Context Store (`useTenantStore`) va Student Admission Store (`useStudentAdmissionStore`).
+- [x] TASK-3.2: O'quvchi kodi bilan kirish (`StudentEntryView`) va shaxsni tasdiqlash (`StudentVerifyView`).
+- [x] TASK-3.3: Nofaol, noaniq va noto'g'ri kodlar uchun maxfiy ma'lumot oshkor bo'lmaydigan xatoliklar menejmenti.
+- [x] TASK-3.4: Roster admission unit va integration testlari (29 ta test PASS).
 
 ---
 

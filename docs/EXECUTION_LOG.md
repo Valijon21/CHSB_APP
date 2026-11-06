@@ -40,3 +40,16 @@
   - Report: `docs/reports/PHASE_2_COMPLETION_REPORT.md`
 - **Natija:** 21 ta unit/repo/router test 100% muvaffaqiyatli o'tdi. Cross-tenant izolyatsiyasi to'liq isbotlandi.
 - **Git:** Lokal checkpoint saqlandi.
+
+## [2026-11-06] — Phase 3: Roster-based Student Admission Yakunlandi
+- **Phase:** Phase 3
+- **Task ID:** TASK-3.1, TASK-3.2, TASK-3.3, TASK-3.4
+- **O'zgartirilgan/Yaratilgan fayllar:**
+  - `src/features/tenant-context/tenantStore.ts`
+  - `src/features/student-admission/admissionStore.ts`
+  - `src/features/student-admission/StudentEntryView.vue`
+  - `src/features/student-admission/StudentVerifyView.vue`
+  - `tests/student-admission.test.ts`
+  - `docs/reports/PHASE_3_COMPLETION_REPORT.md`
+- **Natija:** O'quvchi kirishi to'liq roster-based tizimga o'tkazildi. Roster qidiruvi, shaxs tasdig'i, nofaol va not_found xatoliklari to'liq ishchi holatda. 29 ta test 100% PASS.
+- **Git:** Lokal checkpoint saqlandi.
