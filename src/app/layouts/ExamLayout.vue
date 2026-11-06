@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import { computed } from 'vue';
+import { useAssessmentStore } from '../../features/assessment/assessmentStore';
+import NetworkStatusIndicator from '../../shared/components/NetworkStatusIndicator.vue';
 
 const route = useRoute();
 const tenantSlug = computed(() => (route.params.tenantSlug as string) || '');
+const assessmentStore = useAssessmentStore();
 </script>
 
 <template>
@@ -27,6 +30,11 @@ const tenantSlug = computed(() => (route.params.tenantSlug as string) || '');
         </div>
       </div>
     </header>
+
+    <!-- Global Network Resilience & Offline Status Indicator -->
+    <NetworkStatusIndicator
+      :offline-emergency-hash="assessmentStore.offlineEmergencyCode || undefined"
+    />
 
     <!-- Main Exam Workspace -->
     <main class="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-6 flex flex-col">

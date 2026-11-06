@@ -5,6 +5,8 @@ import type { AssessmentAttempt, SubmissionReceipt } from '../../entities/attemp
 import type { AssessmentResult } from '../../entities/result/model';
 import { api } from '../../shared/api';
 import { seededShuffle } from '../../shared/utils/cryptoShuffle';
+import { offlineStorage } from '../../shared/storage/indexedDbAdapter';
+import { generateOfflineVerificationHash } from '../../shared/utils/offlineHash';
 
 const DRAFT_STORAGE_PREFIX = 'chsb_draft_v2_';
 
@@ -18,6 +20,7 @@ export const useAssessmentStore = defineStore('assessment', () => {
   const errorMessage = ref<string | null>(null);
   const receipt = ref<SubmissionReceipt | null>(null);
   const result = ref<AssessmentResult | null>(null);
+  const offlineEmergencyCode = ref<string | null>(null);
 
   let timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -68,7 +71,15 @@ export const useAssessmentStore = defineStore('assessment', () => {
     errorMessage.value = null;
 
     try {
-      const data = await api.assessment.getAssessmentById(tenantId, assessmentId);
+      let data = await api.assessment.getAssessmentById(tenantId, assessmentId);
+      if (!data) {
+        // Fallback to offline cached assessment
+        data = await offlineStorage.getCachedAssessment(assessmentId);
+      } else {
+        // Cache for offline resilience
+        await offlineStorage.cacheAssessment(data);
+      }
+
       if (!data) {
         errorMessage.value = "Imtihon ma'lumotlari topilmadi.";
         return false;
@@ -126,6 +137,7 @@ export const useAssessmentStore = defineStore('assessment', () => {
       const draftKey = `${DRAFT_STORAGE_PREFIX}${attempt.value.tenantId}_${attempt.value.assessmentId}_${attempt.value.rosterRecordId}`;
       try {
         localStorage.setItem(draftKey, JSON.stringify(answers.value));
+        offlineStorage.saveDraft(draftKey, answers.value);
       } catch {
         // Safe fallback if storage quota exceeded
       }
@@ -179,11 +191,64 @@ export const useAssessmentStore = defineStore('assessment', () => {
 
       return true;
     } catch {
+      // Offline fallback: enqueue submission in offline storage and generate offline verification code
+      if (attempt.value) {
+        const timestamp = new Date().toISOString();
+        const offlineCode = generateOfflineVerificationHash(
+          attempt.value.rosterRecordId,
+          attempt.value.assessmentId,
+          answers.value,
+          timestamp
+        );
+        offlineEmergencyCode.value = offlineCode;
+
+        await offlineStorage.enqueueSubmission({
+          id: `queue-${attempt.value.id}-${Date.now()}`,
+          tenantId,
+          attemptId: attempt.value.id,
+          assessmentId: attempt.value.assessmentId,
+          studentId: attempt.value.rosterRecordId,
+          answers: { ...answers.value },
+          offlineHash: offlineCode,
+          enqueuedAt: timestamp,
+          synced: false,
+        });
+
+        // Set local provisional receipt so student can view receipt screen safely
+        receipt.value = {
+          attemptId: attempt.value.id,
+          tenantId,
+          submittedAt: timestamp,
+          receiptCode: offlineCode,
+          status: 'received_demo',
+          idemKey: `offline-${attempt.value.id}`,
+        };
+        attempt.value.status = 'submitted_demo';
+        return true;
+      }
+
       errorMessage.value = "Imtihonni topshirishda xatolik yuz berdi. Qaytadan urinib ko'ring.";
       return false;
     } finally {
       isSubmitting.value = false;
     }
+  }
+
+  async function syncQueuedSubmissions(tenantId: string): Promise<number> {
+    const queued = await offlineStorage.getQueuedSubmissions();
+    let syncedCount = 0;
+    for (const item of queued) {
+      if (item.tenantId === tenantId && !item.synced) {
+        try {
+          await api.attempt.submitAttempt(tenantId, item.attemptId, `sync-${item.id}`);
+          await offlineStorage.dequeueSubmission(item.id);
+          syncedCount++;
+        } catch {
+          // Keep in queue for next retry
+        }
+      }
+    }
+    return syncedCount;
   }
 
   return {
@@ -202,12 +267,14 @@ export const useAssessmentStore = defineStore('assessment', () => {
     errorMessage,
     receipt,
     result,
+    offlineEmergencyCode,
     startAssessment,
     selectAnswer,
     nextQuestion,
     prevQuestion,
     goToQuestion,
     submitAssessment,
+    syncQueuedSubmissions,
     stopTimer,
   };
 });
