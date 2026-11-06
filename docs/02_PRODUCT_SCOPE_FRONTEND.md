@@ -15,9 +15,14 @@ Deliver a polished, accessible, responsive CHSB assessment frontend that can dem
 - submits and sees a result/receipt state.
 
 ### Teacher
-- views classes and eligible learners in a tenant;
-- sees assessment participation and result summaries in prototype mode;
-- can inspect a learner's submission/result presentation where permitted.
+- operates within an enterprise SaaS workspace (`StaffLayout`) with dedicated sidebar navigation;
+- manages assigned classes, views class performance and drill-down class details;
+- manages students roster directory, search, filter and student performance profile;
+- tracks assessments, completion rates and assessment-level question analytics;
+- reviews submission results, grades, provisional scores and verification statuses;
+- monitors cross-class comparative analytics, participation metrics and score distribution;
+- generates and exports reports (CSV/Excel format and printable views);
+- inspects teacher profile, assigned subjects and notification preferences.
 
 ### Tenant administrator
 - sees tenant-scoped overview and configuration placeholders;
@@ -37,10 +42,15 @@ Deliver a polished, accessible, responsive CHSB assessment frontend that can dem
 5. Assessment workspace: question navigation, answer selection, timer display, progress.
 6. Submission confirmation.
 7. Result / submission receipt.
-8. Teacher dashboard prototype.
-9. Class roster prototype.
-10. Assessment and result list prototypes.
-11. Tenant-aware not-found, forbidden, unavailable and error states.
+8. Teacher dashboard overview.
+9. Class management & class detail view (`/classes/:classId`).
+10. Student directory & student profile view (`/students/:studentId`).
+11. Assessment management & assessment detail view (`/assessments/:assessmentId`).
+12. Results summary & evaluation table.
+13. Analytics & comparative performance view.
+14. Reports generator & CSV/Excel export view.
+15. Teacher profile & workspace settings.
+16. Tenant-aware not-found, forbidden, unavailable and error states.
 
 ## Assessment facts preserved from source
 

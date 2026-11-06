@@ -35,6 +35,7 @@ Read every document in this folder before implementation. Treat `01_APPROVED_DEC
 - Never expose answer keys or scoring secrets to student-side code.
 - Treat browser timer and mock submission as demo-only.
 - Do not claim that frontend route guards provide security.
+- Implement the Teacher Dashboard as a full SaaS workspace according to `docs/TEACHER_DASHBOARD_SPEC.md` (Overview, Classes, Students, Assessments, Results, Analytics, Reports, Profile).
 - Do not introduce broad refactors unrelated to approved scope.
 - Do not delete or overwrite existing project files without explaining why and preserving required behavior.
 

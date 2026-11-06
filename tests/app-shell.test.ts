@@ -15,3 +15,4 @@ describe('App Shell', () => {
     expect(wrapper.find('#chsb-app').exists()).toBe(true);
   });
 });
+

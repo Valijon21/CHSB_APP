@@ -29,12 +29,18 @@
 - [x] Cache keys include tenant identity.
 - [x] Staff prototype always shows active tenant context.
 
-## Teacher prototype
+## Teacher workspace
 
-- [x] Teacher can view mock class and assessment summaries.
-- [x] Empty and error states are implemented.
-- [x] Demo data is clearly labeled.
-- [x] No cross-tenant data is visible through normal navigation.
+- [x] Teacher can view overview dashboard with KPI cards and recent activity.
+- [x] Teacher can manage classes and drill down into class details and roster.
+- [x] Teacher can search, filter, and inspect individual student profiles and exam histories.
+- [x] Teacher can inspect assessment catalog and assessment-level question statistics.
+- [x] Teacher can review submission results with scores, percentages and verification status.
+- [x] Analytics view provides cross-class comparison and cognitive level distributions.
+- [x] Reports module supports generating and exporting CSV/Excel data and print previews.
+- [x] Teacher profile displays assigned tenant, schools and workspace preferences.
+- [x] Empty, loading and error states are fully handled.
+- [x] Strict tenant isolation: no cross-tenant data is accessible.
 
 ## Engineering
 

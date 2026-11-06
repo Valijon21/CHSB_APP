@@ -45,3 +45,4 @@ export const useTenantStore = defineStore('tenant', () => {
     clearTenant,
   };
 });
+

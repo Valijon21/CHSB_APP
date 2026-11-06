@@ -32,6 +32,14 @@ src/
     assessment/
     results/
     teacher/
+      dashboard/
+      classes/
+      students/
+      assessments/
+      results/
+      analytics/
+      reports/
+      profile/
     tenant-admin/
   entities/
     tenant/

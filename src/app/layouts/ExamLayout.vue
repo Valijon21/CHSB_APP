@@ -36,3 +36,4 @@ const tenantSlug = computed(() => (route.params.tenantSlug as string) || '');
     </main>
   </div>
 </template>
+

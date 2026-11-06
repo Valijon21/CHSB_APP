@@ -25,3 +25,4 @@ describe('Router Configuration', () => {
     expect(router.currentRoute.value.path).toBe('/t/al-xorazmiy/student');
   });
 });
+

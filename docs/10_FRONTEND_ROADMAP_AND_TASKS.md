@@ -53,16 +53,18 @@
 - [x] Build result presentation without inventing answer key/grade rules.
 - [x] Add full 15-question synthetic demo journey tests.
 
-## Phase 5 — Teacher/admin prototype
+## Phase 5 — Teacher/admin workspace expansion
 
-- [x] Build staff layout and tenant context indicator.
-- [x] Build teacher overview.
-- [x] Build class list.
-- [x] Build roster list prototype with synthetic data.
-- [x] Build assessment list and status filters.
-- [x] Build results summary prototype.
-- [x] Add visible demo-data labels.
-- [x] Test tenant-scoped navigation and empty states.
+- [x] Build staff layout with responsive SaaS sidebar and tenant indicator.
+- [x] Build teacher dashboard overview (KPI cards, recent activity, alerts).
+- [x] Build classes management and class detail view (`/classes/:classId`).
+- [x] Build students management directory, instant search, filters and student profile (`/students/:studentId`).
+- [x] Build assessments management catalog and assessment detail view (`/assessments/:assessmentId`).
+- [x] Build results management and evaluation summary table.
+- [x] Build analytics module (cross-class comparison, score distribution, question cognitive breakdown).
+- [x] Build reports module with multi-format generation (CSV/Excel download and PDF preview).
+- [x] Build teacher profile and workspace notification settings.
+- [x] Test tenant-scoped navigation, empty states, and cross-tenant isolation.
 
 ## Phase 6 — Hardening and handoff
 

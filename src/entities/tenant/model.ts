@@ -24,3 +24,4 @@ export const TenantPublicContextSchema = z.object({
 });
 
 export type TenantPublicContext = z.infer<typeof TenantPublicContextSchema>;
+

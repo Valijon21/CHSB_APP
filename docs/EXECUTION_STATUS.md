@@ -53,8 +53,12 @@
 - [x] TASK-5.4: Baholashlar va natijalar xulosasi (`TeacherAssessmentsView.vue`, `TeacherResultsView.vue`).
 - [x] TASK-5.5: Tenant Administrator portali (`TenantAdminView.vue`).
 - [x] TASK-5.6: 40 ta unit/repo/router/teacher test 100% PASS.
+- [x] TASK-5.7: Teacher Workspace SaaS Sidebar (`StaffLayout.vue`) va to'liq 11 ta marshrut.
+- [x] TASK-5.8: ClassDetail (`TeacherClassDetailView`) va StudentDetail (`TeacherStudentDetailView`).
+- [x] TASK-5.9: AssessmentDetail, Analytics (`TeacherAnalyticsView`) va Reports (`TeacherReportsView`) bilan CSV/Excel eksporti.
+- [x] TASK-5.10: TeacherProfile (`TeacherProfileView`) va `docs/TEACHER_DASHBOARD_SPEC.md` arxitektura hujjati.
 - [x] TASK-6.1: `tests/phase6-hardening.test.ts` (9 ta E2E, xavfsizlik, tenant izolyatsiyasi va double-submit testlari).
-- [x] TASK-6.2: Sifat darvozalari tekshiruvi: TypeScript strict 0 xato, ESLint 0 ogohlantirish, 49 ta test 100% PASS, Build PASS.
+- [x] TASK-6.2: Sifat darvozalari tekshiruvi: TypeScript strict 0 xato, ESLint 0 ogohlantirish, 55 ta test 100% PASS, Build PASS.
 - [x] TASK-6.3: `docs/reports/PHASE_6_COMPLETION_REPORT.md` va `docs/FINAL_FRONTEND_DELIVERY_REPORT.md` yakuniy hisobotlari.
 
 ---
@@ -65,7 +69,7 @@ Hozirda birorta ham hal qilinmagan xato yoki texnik qarz mavjud emas.
 ---
 
 ## Test Natijalari
-- **Jami testlar:** 8 ta test suite, 49 ta test (100% PASS)
+- **Jami testlar:** 8 ta test suite, 55 ta test (100% PASS)
 - **TypeScript strict mode:** 0 xato
 - **ESLint:** 0 ogohlantirish (`--max-warnings 0`)
 - **Vite production build:** Benuqson muvaffaqiyatli yig'ildi.

@@ -11,3 +11,4 @@ export const ClassGroupSchema = z.object({
 });
 
 export type ClassGroup = z.infer<typeof ClassGroupSchema>;
+

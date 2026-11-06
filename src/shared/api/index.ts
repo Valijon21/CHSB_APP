@@ -30,3 +30,4 @@ export const api: ApiServices = {
   result: new MockResultRepository(),
   teacher: new MockTeacherRepository(),
 };
+

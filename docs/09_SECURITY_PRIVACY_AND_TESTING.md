@@ -49,7 +49,10 @@ Collect and display only data needed for the assessment. Student identity fields
 - submit confirmation and receipt;
 - closed assessment cannot be started;
 - mobile viewport exam journey;
-- teacher views only current tenant's mock data.
+- teacher views only current tenant's mock data and assigned classes;
+- teacher cannot access cross-tenant student profiles or class details;
+- teacher analytics and reports strictly isolate tenant datasets;
+- mock report exports (CSV/Excel) generate sanitized, tenant-scoped records.
 
 ## Quality gates
 

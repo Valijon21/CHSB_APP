@@ -29,3 +29,4 @@
 - **Status:** Tasdiqlangan (Xavfsizlik qoidasi)
 - **Kontekst:** Test o'tkazish platformasida o'quvchi bundle yoki tarmoq so'rovlarini ko'rib, to'g'ri javoblarni bilib olmasligi shart.
 - **Qaror:** To'g'ri javoblar kaliti (answer keys) va baholash sirlari student-facing bundle ichiga kiritilmaydi. Mock baholash ham demo rejimida o'tadi.
+

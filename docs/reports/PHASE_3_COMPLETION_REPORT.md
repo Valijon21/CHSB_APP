@@ -55,3 +55,4 @@ O'quvchilarning tizimga kirishini to'liq roster asosida tashkil etish:
 ## 4. Xulosa va Keyingi Qadam
 Phase 3 to'liq va muvaffaqiyatli yakunlandi.
 Rejaga muvofiq **Phase 4 — Assessment Experience** (15 ta savolli imtihon dvigateli, taymer, draft recovery, topshirish) bosqichiga avtomatik o'tiladi.
+

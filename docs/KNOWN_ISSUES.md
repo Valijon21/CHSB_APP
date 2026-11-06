@@ -7,3 +7,4 @@
 
 ## 2. Texnik Qarzlar va Bloklanmagan Eslatmalar
 - Hozircha mavjud emas.
+
