@@ -2,10 +2,10 @@
 
 **Oxirgi yangilanish:** 2026-11-06  
 **Loyiha holati:** Jarayonda (In Progress)  
-**Joriy Phase:** Phase 4 — Assessment Experience  
-**Joriy Task ID:** TASK-4.1 (Assessment Engine, 15-Question Renderer, Timer, Drafts & Submission)  
-**Oxirgi bajarilgan vazifa:** Phase 3 — Roster-Based Student Admission (COMPLETED)  
-**Keyingi vazifa:** TASK-4.1: 15 ta savolni to'liq render qilish, 40-daqiqalik demo timer, savollar navigatsiyasi, topshirish  
+**Joriy Phase:** Phase 5 — Teacher and Tenant Admin  
+**Joriy Task ID:** TASK-5.1 (Teacher Dashboard, Class Roster, Assessments, Results Summary & Admin Views)  
+**Oxirgi bajarilgan vazifa:** Phase 4 — Assessment Experience (COMPLETED)  
+**Keyingi vazifa:** TASK-5.1: O'qituvchi boshqaruv paneli, sinflar ro'yxati, natijalar tahlili va tenant admin sozlamalari  
 
 ---
 
@@ -17,8 +17,8 @@
 | **Phase 1** | Frontend Foundation | COMPLETED | 2026-11-06 | 2026-11-06 |
 | **Phase 2** | Domain Model and Mock Repositories | COMPLETED | 2026-11-06 | 2026-11-06 |
 | **Phase 3** | Roster-Based Student Admission | COMPLETED | 2026-11-06 | 2026-11-06 |
-| **Phase 4** | Assessment Experience | IN_PROGRESS | 2026-11-06 | - |
-| **Phase 5** | Teacher and Tenant Admin | PENDING | - | - |
+| **Phase 4** | Assessment Experience | COMPLETED | 2026-11-06 | 2026-11-06 |
+| **Phase 5** | Teacher and Tenant Admin | IN_PROGRESS | 2026-11-06 | - |
 | **Phase 6** | QA, Security, Accessibility & Hardening | PENDING | - | - |
 
 ---
@@ -42,6 +42,11 @@
 - [x] TASK-3.2: O'quvchi kodi bilan kirish (`StudentEntryView`) va shaxsni tasdiqlash (`StudentVerifyView`).
 - [x] TASK-3.3: Nofaol, noaniq va noto'g'ri kodlar uchun maxfiy ma'lumot oshkor bo'lmaydigan xatoliklar menejmenti.
 - [x] TASK-3.4: Roster admission unit va integration testlari (29 ta test PASS).
+- [x] TASK-4.1: Typed `QuestionBlockRenderer` (paragraph, image, table, code).
+- [x] TASK-4.2: `useAssessmentStore` imtihon dvigateli (15 savol, 40 ball, 40 min timer, draft persistence).
+- [x] TASK-4.3: 15-savolli interaktiv ish maydoni va navigatsiya paneli (`AssessmentWorkspaceView`).
+- [x] TASK-4.4: Topshirish kvitansiyasi (`SubmissionReceiptView`) va dastlabki natija (`AssessmentResultView`).
+- [x] TASK-4.5: 37 ta unit/component/store test 100% PASS.
 
 ---
 

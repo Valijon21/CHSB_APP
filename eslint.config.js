@@ -40,6 +40,7 @@ export default tseslint.config(
       'vue/multiline-html-element-content-newline': 'off',
       'vue/html-self-closing': 'off',
       'vue/attributes-order': 'off',
+      'vue/no-v-html': 'off',
     },
   },
 );

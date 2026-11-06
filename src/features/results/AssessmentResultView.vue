@@ -1,12 +1,33 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useTenantStore } from '../tenant-context/tenantStore';
+import { useAssessmentStore } from '../assessment/assessmentStore';
+import { api } from '../../shared/api';
 
 const route = useRoute();
 const router = useRouter();
+const tenantStore = useTenantStore();
+const assessmentStore = useAssessmentStore();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
+const attemptId = (route.params.attemptId as string) || 'demo-attempt';
+
+onMounted(async () => {
+  await tenantStore.loadTenant(tenantSlug);
+
+  // If result not in store, fetch from repo
+  if (!assessmentStore.result) {
+    const tenantId = tenantStore.currentTenant?.tenantId || 'tenant-al-xorazmiy';
+    const res = await api.result.getResultByAttemptId(tenantId, attemptId);
+    if (res) {
+      assessmentStore.result = res;
+    }
+  }
+});
 
 function finish() {
+  assessmentStore.stopTimer();
   router.push(`/t/${tenantSlug}/student`);
 }
 </script>
@@ -27,11 +48,28 @@ function finish() {
         To'plangan dastlabki ball
       </span>
       <div class="text-4xl font-black text-teal-800 my-2">
-        35 <span class="text-lg font-normal text-slate-400">/ 40</span>
+        {{ assessmentStore.result?.score ?? 35 }}
+        <span class="text-lg font-normal text-slate-400">/ {{ assessmentStore.result?.maxScore ?? 40 }}</span>
       </div>
       <p class="text-xs text-slate-500 font-medium">
-        87.5% umumiy o'zlashtirish ko'rsatkichi
+        {{ assessmentStore.result?.percentage ?? 87.5 }}% umumiy o'zlashtirish ko'rsatkichi
       </p>
+    </div>
+
+    <!-- Questions answered breakdown -->
+    <div class="bg-slate-50 rounded-lg p-3.5 border border-slate-100 text-xs text-slate-600 mb-6 space-y-1.5">
+      <div class="flex justify-between">
+        <span>Jami savollar:</span>
+        <span class="font-bold text-slate-800">15 ta</span>
+      </div>
+      <div class="flex justify-between">
+        <span>Javob berilgan savollar:</span>
+        <span class="font-bold text-teal-800">{{ assessmentStore.result?.answeredQuestions ?? 15 }} ta</span>
+      </div>
+      <div class="flex justify-between">
+        <span>O'quvchi:</span>
+        <span class="font-medium text-slate-800">{{ assessmentStore.result?.studentName ?? "O'quvchi" }}</span>
+      </div>
     </div>
 
     <!-- Official note about teacher verification (Preserved from legacy HTML) -->

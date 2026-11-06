@@ -42,16 +42,16 @@
 
 ## Phase 4 — Assessment experience
 
-- [ ] Build instructions/readiness screen.
-- [ ] Build typed question block renderer (paragraph, image, table).
-- [ ] Build A/B/C/D answer component.
-- [ ] Build question navigator and progress summary.
-- [ ] Build frontend-only countdown display with warning states.
-- [ ] Add answer draft state and versioned demo persistence.
-- [ ] Build submit confirmation.
-- [ ] Build demo submission receipt.
-- [ ] Build result presentation without inventing answer key/grade rules.
-- [ ] Add full 15-question synthetic demo journey tests.
+- [x] Build instructions/readiness screen.
+- [x] Build typed question block renderer (paragraph, image, table).
+- [x] Build A/B/C/D answer component.
+- [x] Build question navigator and progress summary.
+- [x] Build frontend-only countdown display with warning states.
+- [x] Add answer draft state and versioned demo persistence.
+- [x] Build submit confirmation.
+- [x] Build demo submission receipt.
+- [x] Build result presentation without inventing answer key/grade rules.
+- [x] Add full 15-question synthetic demo journey tests.
 
 ## Phase 5 — Teacher/admin prototype
 

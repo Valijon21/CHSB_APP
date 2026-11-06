@@ -53,3 +53,18 @@
   - `docs/reports/PHASE_3_COMPLETION_REPORT.md`
 - **Natija:** O'quvchi kirishi to'liq roster-based tizimga o'tkazildi. Roster qidiruvi, shaxs tasdig'i, nofaol va not_found xatoliklari to'liq ishchi holatda. 29 ta test 100% PASS.
 - **Git:** Lokal checkpoint saqlandi.
+
+## [2026-11-06] — Phase 4: Assessment Experience Yakunlandi
+- **Phase:** Phase 4
+- **Task ID:** TASK-4.1, TASK-4.2, TASK-4.3, TASK-4.4, TASK-4.5
+- **O'zgartirilgan/Yaratilgan fayllar:**
+  - `src/shared/components/QuestionBlockRenderer.vue`
+  - `src/features/assessment/assessmentStore.ts`
+  - `src/features/assessment/AssessmentInstructionsView.vue`
+  - `src/features/assessment/AssessmentWorkspaceView.vue`
+  - `src/features/results/SubmissionReceiptView.vue`
+  - `src/features/results/AssessmentResultView.vue`
+  - `tests/assessment-experience.test.ts`
+  - `docs/reports/PHASE_4_COMPLETION_REPORT.md`
+- **Natija:** 15 savol, 40 ball, 40 daqiqa, taymer, savollar navigatori, qoralama saqlash va topshirish to'liq ishchi holatda. 37 ta test 100% PASS.
+- **Git:** Lokal checkpoint saqlandi.
