@@ -21,14 +21,14 @@
 
 ## Phase 2 — Domain and data boundaries
 
-- [ ] Define tenant, school, class, roster, assessment, attempt and result types.
-- [ ] Define repository interfaces.
-- [ ] Implement deterministic mock repositories.
-- [ ] Add two isolated tenant fixtures.
-- [ ] Add roster lookup scenarios (valid, invalid, inactive, ambiguous).
-- [ ] Add assessment availability scenarios.
-- [ ] Add Zod runtime schemas.
-- [ ] Add repository tests, including cross-tenant isolation.
+- [x] Define tenant, school, class, roster, assessment, attempt and result types.
+- [x] Define repository interfaces.
+- [x] Implement deterministic mock repositories.
+- [x] Add two isolated tenant fixtures.
+- [x] Add roster lookup scenarios (valid, invalid, inactive, ambiguous).
+- [x] Add assessment availability scenarios.
+- [x] Add Zod runtime schemas.
+- [x] Add repository tests, including cross-tenant isolation.
 
 ## Phase 3 — Student admission
 

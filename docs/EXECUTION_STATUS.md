@@ -2,10 +2,10 @@
 
 **Oxirgi yangilanish:** 2026-11-06  
 **Loyiha holati:** Jarayonda (In Progress)  
-**Joriy Phase:** Phase 2 — Domain Model and Mock Repositories  
-**Joriy Task ID:** TASK-2.1 (Domain Models & Zod Schemas)  
-**Oxirgi bajarilgan vazifa:** Phase 1 — Frontend Foundation (COMPLETED)  
-**Keyingi vazifa:** TASK-2.1: Domain Models, Zod Schemas, Repository Interfaces, Synthetic Tenants  
+**Joriy Phase:** Phase 3 — Roster-Based Student Admission  
+**Joriy Task ID:** TASK-3.1 (Pinia Tenant & Admission Stores, Verification Flow)  
+**Oxirgi bajarilgan vazifa:** Phase 2 — Domain Model and Mock Repositories (COMPLETED)  
+**Keyingi vazifa:** TASK-3.1: O'quvchi Roster qidiruvi, shaxsni tasdiqlash va xatolik holatlari  
 
 ---
 
@@ -15,8 +15,8 @@
 |---|---|---|---|---|
 | **Phase 0** | Audit and Baseline | COMPLETED | 2026-11-06 | 2026-11-06 |
 | **Phase 1** | Frontend Foundation | COMPLETED | 2026-11-06 | 2026-11-06 |
-| **Phase 2** | Domain Model and Mock Repositories | IN_PROGRESS | 2026-11-06 | - |
-| **Phase 3** | Roster-Based Student Admission | PENDING | - | - |
+| **Phase 2** | Domain Model and Mock Repositories | COMPLETED | 2026-11-06 | 2026-11-06 |
+| **Phase 3** | Roster-Based Student Admission | IN_PROGRESS | 2026-11-06 | - |
 | **Phase 4** | Assessment Experience | PENDING | - | - |
 | **Phase 5** | Teacher and Tenant Admin | PENDING | - | - |
 | **Phase 6** | QA, Security, Accessibility & Hardening | PENDING | - | - |
@@ -33,6 +33,11 @@
 - [x] TASK-1.3: Asosiy 4 ta layout yaratish (`StudentEntryLayout`, `StudentLayout`, `ExamLayout`, `StaffLayout`).
 - [x] TASK-1.4: Global error boundary, Not Found page va responsive app shell.
 - [x] TASK-1.5: Sifat darvozalari (`typecheck`, `lint`, `test`, `build`) va Phase 1 Completion Report.
+- [x] TASK-2.1: Domain modellari va Zod runtime schemalari (`Tenant`, `Roster`, `Assessment`, `Attempt`, `Result`).
+- [x] TASK-2.2: Typed Repository Pattern interfeyslari (`src/shared/api/repositories/`).
+- [x] TASK-2.3: Ikkita alohida tenant uchun sintetik mock ma'lumotlar va deterministik mock repositorylar.
+- [x] TASK-2.4: 15 ta savol va rasmlar ekstraktsiyasi (`public/assets/questions/`).
+- [x] TASK-2.5: Qat'iy tenant izolyatsiyasi testlari (Cross-tenant data leakage ga qarshi 21 ta test).
 
 ---
 
