@@ -4,6 +4,7 @@ import type { AssessmentRepository } from './repositories/AssessmentRepository';
 import type { AttemptRepository } from './repositories/AttemptRepository';
 import type { ResultRepository } from './repositories/ResultRepository';
 import type { TeacherRepository } from './repositories/TeacherRepository';
+import type { RegionalRepository } from './repositories/RegionalRepository';
 
 import { MockTenantRepository } from '../../mocks/repositories/MockTenantRepository';
 import { MockRosterRepository } from '../../mocks/repositories/MockRosterRepository';
@@ -11,6 +12,7 @@ import { MockAssessmentRepository } from '../../mocks/repositories/MockAssessmen
 import { MockAttemptRepository } from '../../mocks/repositories/MockAttemptRepository';
 import { MockResultRepository } from '../../mocks/repositories/MockResultRepository';
 import { MockTeacherRepository } from '../../mocks/repositories/MockTeacherRepository';
+import { MockRegionalRepository } from '../../mocks/repositories/MockRegionalRepository';
 
 export interface ApiServices {
   tenant: TenantRepository;
@@ -19,6 +21,7 @@ export interface ApiServices {
   attempt: AttemptRepository;
   result: ResultRepository;
   teacher: TeacherRepository;
+  regional: RegionalRepository;
 }
 
 // In this frontend-only phase, instantiate mock repositories
@@ -29,5 +32,6 @@ export const api: ApiServices = {
   attempt: new MockAttemptRepository(),
   result: new MockResultRepository(),
   teacher: new MockTeacherRepository(),
+  regional: new MockRegionalRepository(),
 };
 

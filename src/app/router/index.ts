@@ -27,6 +27,7 @@ import TeacherResultsView from '../../features/teacher/results/TeacherResultsVie
 import TeacherAnalyticsView from '../../features/teacher/analytics/TeacherAnalyticsView.vue';
 import TeacherReportsView from '../../features/teacher/reports/TeacherReportsView.vue';
 import TeacherProfileView from '../../features/teacher/profile/TeacherProfileView.vue';
+import RegionalOversightView from '../../features/regional-oversight/RegionalOversightView.vue';
 
 // Views - Tenant Admin & Shared
 import TenantAdminView from '../../features/tenant-admin/TenantAdminView.vue';
@@ -172,6 +173,11 @@ const routes: RouteRecordRaw[] = [
             name: 'TeacherProfile',
             component: TeacherProfileView,
           },
+          {
+            path: 'regional-oversight',
+            name: 'RegionalOversight',
+            component: RegionalOversightView,
+          },
         ],
       },
       // Tenant Admin Portal
@@ -187,6 +193,10 @@ const routes: RouteRecordRaw[] = [
         ],
       },
     ],
+  },
+  {
+    path: '/regional/oversight',
+    redirect: '/t/al-xorazmiy/teacher/regional-oversight',
   },
   // Catch-all 404 Not Found
   {
