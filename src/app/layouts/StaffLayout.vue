@@ -21,6 +21,7 @@ const navigationItems = [
   { name: 'Natijalar', path: '/teacher/results', icon: '📈' },
   { name: 'Tahlillar', path: '/teacher/analytics', icon: '📉' },
   { name: 'Hisobotlar', path: '/teacher/reports', icon: '📑' },
+  { name: 'Viloyat Boshqaruvi', path: '/teacher/regional-oversight', icon: '🏛️' },
   { name: 'Profil & Sozlamalar', path: '/teacher/profile', icon: '👤' },
   { name: 'Tenant Admin', path: '/admin', icon: '⚙️' },
 ];
