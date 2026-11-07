@@ -3,6 +3,8 @@ import { useRoute } from 'vue-router';
 import { ref, computed } from 'vue';
 import { useTeacherStore } from '../../features/teacher/teacherStore';
 import { useTenantStore } from '../../features/tenant-context/tenantStore';
+import LanguageSwitcher from '../../shared/components/LanguageSwitcher.vue';
+import ThemeToggle from '../../shared/components/ThemeToggle.vue';
 
 const route = useRoute();
 const teacherStore = useTeacherStore();
@@ -25,7 +27,7 @@ const navigationItems = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-100 flex flex-col lg:flex-row text-slate-800 font-sans">
+  <div class="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col lg:flex-row text-slate-800 dark:text-slate-100 font-sans transition-colors">
     <!-- Desktop Sidebar -->
     <aside class="hidden lg:flex flex-col w-64 bg-slate-900 text-slate-200 border-r border-slate-800 shrink-0">
       <!-- Brand Header -->
@@ -131,23 +133,25 @@ const navigationItems = [
     <!-- Main Workspace Content Area -->
     <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
       <!-- Workspace Top Bar -->
-      <div class="h-14 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-10 shadow-xs">
-        <div class="flex items-center gap-2 text-xs text-slate-500">
-          <span class="font-medium text-slate-700">Muassasa:</span>
-          <span class="font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+      <div class="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-10 shadow-xs">
+        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span class="font-medium text-slate-700 dark:text-slate-300">Muassasa:</span>
+          <span class="font-semibold text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800">
             {{ tenantSlug }}
           </span>
-          <span class="hidden sm:inline text-slate-300">|</span>
+          <span class="hidden sm:inline text-slate-300 dark:text-slate-600">|</span>
           <span class="hidden sm:inline font-mono text-[11px] text-slate-400">CHSB Enterprise V2</span>
         </div>
 
-        <div class="flex items-center gap-3">
-          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+        <div class="flex items-center gap-2.5">
+          <LanguageSwitcher />
+          <ThemeToggle />
+          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hidden sm:inline-flex">
             ✓ Tizim Faol
           </span>
           <router-link
             :to="`/t/${tenantSlug}/student`"
-            class="px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition cursor-pointer border border-slate-200"
+            class="px-3 py-1.5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-medium transition cursor-pointer border border-slate-200 dark:border-slate-600"
           >
             O'quvchi rejimi →
           </router-link>

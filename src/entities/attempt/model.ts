@@ -25,6 +25,7 @@ export const SubmissionReceiptSchema = z.object({
   status: z.enum(['received_demo', 'received']),
   submittedAt: z.string(),
   message: z.string(),
+  receiptCode: z.string().optional(),
 });
 
 export type SubmissionReceipt = z.infer<typeof SubmissionReceiptSchema>;

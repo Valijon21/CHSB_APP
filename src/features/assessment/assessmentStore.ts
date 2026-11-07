@@ -218,10 +218,12 @@ export const useAssessmentStore = defineStore('assessment', () => {
         receipt.value = {
           attemptId: attempt.value.id,
           tenantId,
+          assessmentId: attempt.value.assessmentId,
+          rosterRecordId: attempt.value.rosterRecordId,
           submittedAt: timestamp,
           receiptCode: offlineCode,
           status: 'received_demo',
-          idemKey: `offline-${attempt.value.id}`,
+          message: "Demo imtihon javoblari oflayn qabul qilindi. Favqulodda kod biriktirildi.",
         };
         attempt.value.status = 'submitted_demo';
         return true;
