@@ -55,3 +55,4 @@ export const uz: TranslationDictionary = {
     profile: 'Profil',
   },
 };
+

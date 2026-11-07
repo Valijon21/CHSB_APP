@@ -55,3 +55,4 @@ export const kaa: TranslationDictionary = {
     profile: 'Profil',
   },
 };
+

@@ -36,3 +36,4 @@ export function generateOfflineVerificationHash(
 
   return `CHSB-${fullHex.slice(0, 4)}-${fullHex.slice(4, 8)}-${fullHex.slice(8, 12)}`;
 }
+

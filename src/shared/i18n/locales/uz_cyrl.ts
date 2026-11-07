@@ -55,3 +55,4 @@ export const uz_cyrl: TranslationDictionary = {
     profile: 'Профил',
   },
 };
+

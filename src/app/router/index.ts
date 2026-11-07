@@ -22,6 +22,7 @@ import TeacherStudentsView from '../../features/teacher/students/TeacherStudents
 import TeacherStudentDetailView from '../../features/teacher/students/TeacherStudentDetailView.vue';
 import TeacherAssessmentsView from '../../features/teacher/assessments/TeacherAssessmentsView.vue';
 import TeacherAssessmentDetailView from '../../features/teacher/assessments/TeacherAssessmentDetailView.vue';
+import TeacherLiveRoomView from '../../features/teacher/proctor/TeacherLiveRoomView.vue';
 import TeacherResultsView from '../../features/teacher/results/TeacherResultsView.vue';
 import TeacherAnalyticsView from '../../features/teacher/analytics/TeacherAnalyticsView.vue';
 import TeacherReportsView from '../../features/teacher/reports/TeacherReportsView.vue';
@@ -145,6 +146,11 @@ const routes: RouteRecordRaw[] = [
             path: 'assessments/:assessmentId',
             name: 'TeacherAssessmentDetail',
             component: TeacherAssessmentDetailView,
+          },
+          {
+            path: 'assessments/:assessmentId/live',
+            name: 'TeacherLiveRoom',
+            component: TeacherLiveRoomView,
           },
           {
             path: 'results',

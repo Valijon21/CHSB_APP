@@ -32,3 +32,4 @@ const svgContent = computed(() => {
 <template>
   <div class="inline-block" v-html="svgContent" :title="`QR Code: ${value}`"></div>
 </template>
+
