@@ -36,11 +36,12 @@ function gfMultiply(x: number, y: number): number {
 function rsComputePoly(ecCount: number): Uint8Array {
   let poly = new Uint8Array([1]);
   for (let i = 0; i < ecCount; i++) {
-    const factor = GF_EXP[i]!;
+    const factor = GF_EXP[i] ?? 0;
     const next = new Uint8Array(poly.length + 1);
     for (let j = 0; j < poly.length; j++) {
-      next[j] ^= gfMultiply(poly[j]!, factor);
-      next[j + 1] ^= poly[j]!;
+      const p = poly[j] ?? 0;
+      next[j] = (next[j] ?? 0) ^ gfMultiply(p, factor);
+      next[j + 1] = (next[j + 1] ?? 0) ^ p;
     }
     poly = next;
   }
@@ -53,10 +54,11 @@ function rsEncode(data: Uint8Array, ecCount: number): Uint8Array {
   result.set(data, 0);
 
   for (let i = 0; i < data.length; i++) {
-    const coef = result[i]!;
+    const coef = result[i] ?? 0;
     if (coef !== 0) {
       for (let j = 0; j < poly.length; j++) {
-        result[i + j] ^= gfMultiply(poly[j]!, coef);
+        const p = poly[j] ?? 0;
+        result[i + j] = (result[i + j] ?? 0) ^ gfMultiply(p, coef);
       }
     }
   }
