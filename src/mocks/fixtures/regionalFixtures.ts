@@ -265,3 +265,4 @@ export const mockRegionalOverview: RegionalOverviewStats = {
   overallQualityRate: 72.8,
   totalActiveAnomalies: 8,
 };
+

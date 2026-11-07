@@ -63,3 +63,4 @@ export const RegionalOverviewStatsSchema = z.object({
 });
 
 export type RegionalOverviewStats = z.infer<typeof RegionalOverviewStatsSchema>;
+

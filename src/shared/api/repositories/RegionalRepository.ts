@@ -12,3 +12,4 @@ export interface RegionalRepository {
   getAnomalies(districtId?: string): Promise<IntegrityAnomaly[]>;
   getRegionalOverview(): Promise<RegionalOverviewStats>;
 }
+

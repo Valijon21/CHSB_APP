@@ -74,3 +74,4 @@ function getBadge(severity: 'info' | 'warning' | 'danger') {
     </div>
   </div>
 </template>
+
