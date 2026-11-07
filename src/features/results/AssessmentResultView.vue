@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTenantStore } from '../tenant-context/tenantStore';
 import { useAssessmentStore } from '../assessment/assessmentStore';
 import { api } from '../../shared/api';
+import CertificateModal from './CertificateModal.vue';
 
 const route = useRoute();
 const router = useRouter();
 const tenantStore = useTenantStore();
 const assessmentStore = useAssessmentStore();
+const isCertModalOpen = ref(false);
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const attemptId = (route.params.attemptId as string) || 'demo-attempt';
@@ -77,11 +79,33 @@ function finish() {
       <strong>Eslatma:</strong> Bu natija o'qituvchi tomonidan tekshiriladi, ball o'zgarishi mumkin.
     </div>
 
+    <!-- Official Certificate Action -->
+    <button
+      v-if="assessmentStore.result"
+      type="button"
+      @click="isCertModalOpen = true"
+      class="w-full mb-3 py-2.5 px-4 bg-teal-800 hover:bg-teal-900 text-white font-semibold rounded-lg transition text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+    >
+      <svg class="w-4 h-4 text-teal-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+      </svg>
+      <span>Rasmiy Sertifikatni Ko'rish va Yuklab Olish (PDF)</span>
+    </button>
+
     <button
       @click="finish"
       class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg transition text-sm cursor-pointer"
     >
       Bosh sahifaga qaytish
     </button>
+
+    <!-- Certificate Modal Component -->
+    <CertificateModal
+      v-if="assessmentStore.result"
+      :is-open="isCertModalOpen"
+      :result="assessmentStore.result"
+      :school-name="tenantStore.currentTenant?.displayName"
+      @close="isCertModalOpen = false"
+    />
   </div>
 </template>
