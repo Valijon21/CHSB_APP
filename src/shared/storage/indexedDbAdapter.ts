@@ -220,3 +220,4 @@ class OfflineStorageAdapter {
 }
 
 export const offlineStorage = new OfflineStorageAdapter();
+

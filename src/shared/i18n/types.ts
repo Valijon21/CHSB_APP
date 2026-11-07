@@ -55,3 +55,4 @@ export interface TranslationDictionary {
     profile: string;
   };
 }
+

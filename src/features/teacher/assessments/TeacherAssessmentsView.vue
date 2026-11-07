@@ -87,12 +87,22 @@ onMounted(async () => {
             </span>
           </div>
 
-          <router-link
-            :to="`/t/${tenantSlug}/teacher/assessments/${asm.id}`"
-            class="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-lg font-semibold transition"
-          >
-            Tahlilni ko'rish →
-          </router-link>
+          <div class="flex items-center gap-2">
+            <router-link
+              :to="`/t/${tenantSlug}/teacher/assessments/${asm.id}/live`"
+              class="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-semibold transition flex items-center gap-1.5 shadow-2xs text-xs"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-ping"></span>
+              <span>Jonli Nazorat</span>
+            </router-link>
+
+            <router-link
+              :to="`/t/${tenantSlug}/teacher/assessments/${asm.id}`"
+              class="px-3 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-lg font-semibold transition text-xs"
+            >
+              Tahlilni ko'rish →
+            </router-link>
+          </div>
         </div>
       </div>
     </div>

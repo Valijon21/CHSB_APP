@@ -68,3 +68,4 @@ export function useI18n() {
     availableLocales: supportedLocales,
   };
 }
+

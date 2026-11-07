@@ -47,3 +47,4 @@ const { fontScale, setFontScale } = useAccessibility();
     </button>
   </div>
 </template>
+
