@@ -23,6 +23,7 @@ import TeacherStudentDetailView from '../../features/teacher/students/TeacherStu
 import TeacherAssessmentsView from '../../features/teacher/assessments/TeacherAssessmentsView.vue';
 import TeacherAssessmentDetailView from '../../features/teacher/assessments/TeacherAssessmentDetailView.vue';
 import TeacherLiveRoomView from '../../features/teacher/proctor/TeacherLiveRoomView.vue';
+import EmaktabSyncView from '../../features/emaktab/views/EmaktabSyncView.vue';
 import TeacherResultsView from '../../features/teacher/results/TeacherResultsView.vue';
 import TeacherAnalyticsView from '../../features/teacher/analytics/TeacherAnalyticsView.vue';
 import TeacherReportsView from '../../features/teacher/reports/TeacherReportsView.vue';
@@ -152,6 +153,11 @@ const routes: RouteRecordRaw[] = [
             path: 'assessments/:assessmentId/live',
             name: 'TeacherLiveRoom',
             component: TeacherLiveRoomView,
+          },
+          {
+            path: 'assessments/:assessmentId/emaktab-sync',
+            name: 'TeacherEmaktabSync',
+            component: EmaktabSyncView,
           },
           {
             path: 'results',
