@@ -59,6 +59,13 @@ function handleConfirmAction(payload: {
           >
             ← Testlar ro'yxatiga qaytish
           </router-link>
+          <span class="text-slate-300">|</span>
+          <router-link
+            :to="`/t/${tenantSlug}/teacher/assessments/${assessmentId}/emaktab-sync`"
+            class="text-xs text-teal-600 dark:text-teal-400 hover:underline font-medium flex items-center gap-1"
+          >
+            eMaktab Sinxronizatsiyasi →
+          </router-link>
         </div>
         <div class="flex items-center gap-2.5">
           <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
