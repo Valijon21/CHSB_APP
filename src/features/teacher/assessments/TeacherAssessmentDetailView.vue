@@ -101,7 +101,7 @@ onMounted(async () => {
                       'px-2 py-0.5 rounded text-[11px]',
                       q.cognitiveLevel === '(B)' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
                       q.cognitiveLevel === '(Q)' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
-                      'bg-purple-50 text-purple-800 border border-purple-200'
+                      'bg-indigo-50 text-indigo-800 border border-indigo-200'
                     ]"
                   >
                     {{ q.cognitiveLevel === '(B)' ? 'Bilish (B)' : q.cognitiveLevel === '(Q)' ? "Qo'llash (Q)" : 'Mulohaza (M)' }}

@@ -171,7 +171,7 @@ onMounted(async () => {
               <span class="font-bold text-sm text-slate-800">
                 {{ teacherStore.analytics.cognitiveBreakdown.reasoning.label }}
               </span>
-              <span class="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-800">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">
                 9.0 ball
               </span>
             </div>
@@ -180,7 +180,7 @@ onMounted(async () => {
             </p>
             <div class="pt-2 flex justify-between items-center text-xs">
               <span class="text-slate-500">O'zlashtirish aniqligi:</span>
-              <span class="font-bold text-purple-800 text-sm">
+              <span class="font-bold text-indigo-800 text-sm">
                 {{ teacherStore.analytics.cognitiveBreakdown.reasoning.averageAccuracy }}%
               </span>
             </div>
