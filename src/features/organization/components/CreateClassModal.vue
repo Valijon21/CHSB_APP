@@ -130,10 +130,11 @@ function handleSubmit() {
         <div class="grid grid-cols-2 gap-3">
           <!-- Grade Level -->
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">
+            <label for="create-class-grade" class="block font-semibold text-slate-700 mb-1">
               Parallel (Sinf bosqichi) <span class="text-rose-600">*</span>
             </label>
             <select
+              id="create-class-grade"
               v-model.number="gradeLevel"
               @change="handleGradeChange"
               class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-700 focus:outline-hidden bg-white text-slate-800"
@@ -146,10 +147,11 @@ function handleSubmit() {
 
           <!-- Class Name -->
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">
+            <label for="create-class-name" class="block font-semibold text-slate-700 mb-1">
               Sinf Nomi <span class="text-rose-600">*</span>
             </label>
             <input
+              id="create-class-name"
               v-model="name"
               type="text"
               placeholder="Masalan: 9-A yoki 10-V"
@@ -188,8 +190,9 @@ function handleSubmit() {
         <div class="grid grid-cols-2 gap-3">
           <!-- Academic Year -->
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">O'quv Yili</label>
+            <label for="create-class-year" class="block font-semibold text-slate-700 mb-1">O'quv Yili</label>
             <select
+              id="create-class-year"
               v-model="academicYear"
               class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-700 focus:outline-hidden bg-white text-slate-800"
             >
@@ -200,8 +203,9 @@ function handleSubmit() {
 
           <!-- Track / Yo'nalish -->
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">Fan Yo'nalishi</label>
+            <label for="create-class-track" class="block font-semibold text-slate-700 mb-1">Fan Yo'nalishi</label>
             <select
+              id="create-class-track"
               v-model="track"
               class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-700 focus:outline-hidden bg-white text-slate-800"
             >
@@ -216,10 +220,11 @@ function handleSubmit() {
 
         <!-- Head Teacher (Sinf rahbari) Selector -->
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">
+          <label for="create-class-teacher" class="block font-semibold text-slate-700 mb-1">
             Sinf Rahbari (O'qituvchi)
           </label>
           <select
+            id="create-class-teacher"
             v-model="headTeacherId"
             class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-700 focus:outline-hidden bg-white text-slate-800"
           >
@@ -254,3 +259,4 @@ function handleSubmit() {
     </div>
   </div>
 </template>
+
