@@ -364,9 +364,24 @@ export class MockOrganizationRepository implements OrganizationRepository {
 
   // --- SINFLAR (CLASS GROUPS) ---
   async createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord> {
+    const classId = `cls-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    let headTeacherName = input.headTeacherName;
+
+    if (input.headTeacherId) {
+      const teacher = this.teachers.find((t) => t.id === input.headTeacherId);
+      if (teacher) {
+        headTeacherName = teacher.fullName;
+        if (!teacher.assignedClassIds.includes(classId)) {
+          teacher.assignedClassIds.push(classId);
+          teacher.assignedClassNames.push(input.name);
+        }
+      }
+    }
+
     const newClass: ClassGroupRecord = {
       ...input,
-      id: `cls-${Date.now()}`,
+      id: classId,
+      headTeacherName,
       studentCount: 0,
       createdAt: new Date().toISOString(),
     };

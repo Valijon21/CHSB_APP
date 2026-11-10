@@ -185,9 +185,14 @@ export const useTeacherStore = defineStore('teacher', () => {
     return [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
   }
 
+  function addClass(newCls: ClassGroup): void {
+    classes.value.push(newCls);
+  }
+
   return {
     currentTenantId,
     classes,
+    addClass,
     roster,
     selectedClassId,
     studentSearchQuery,
