@@ -30,3 +30,4 @@ export interface LogStats {
   infoCount: number;
   lastErrorTime?: string;
 }
+

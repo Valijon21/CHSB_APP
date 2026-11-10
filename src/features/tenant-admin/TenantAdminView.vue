@@ -5,9 +5,10 @@ import { useTenantStore } from '../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacher/teacherStore';
 import { useOrganizationStore } from '../organization/store/organizationStore';
 import CreateTeacherModal from '../organization/components/CreateTeacherModal.vue';
+import CreateClassModal from '../organization/components/CreateClassModal.vue';
 import TeacherRosterTable from '../organization/components/TeacherRosterTable.vue';
 import SystemLogViewer from './components/SystemLogViewer.vue';
-import type { TeacherInput } from '../../entities/organization/model';
+import type { TeacherInput, ClassGroupInput } from '../../entities/organization/model';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
@@ -16,6 +17,7 @@ const orgStore = useOrganizationStore();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const isCreateTeacherModalOpen = ref(false);
+const isCreateClassModalOpen = ref(false);
 const activeTab = ref<'teachers' | 'logs'>(route.query.tab === 'logs' ? 'logs' : 'teachers');
 
 onMounted(async () => {
@@ -31,6 +33,19 @@ async function handleCreateTeacher(input: TeacherInput) {
 
 async function handleDeleteTeacher(id: string) {
   await orgStore.deleteTeacher(id);
+}
+
+async function handleCreateClass(input: ClassGroupInput) {
+  const created = await orgStore.createClassGroup(input);
+  teacherStore.addClass({
+    id: created.id,
+    tenantId: input.tenantSlug,
+    schoolId: input.schoolId,
+    name: created.name,
+    grade: created.gradeLevel,
+    academicYear: created.academicYear,
+    studentCount: 0,
+  });
 }
 </script>
 
@@ -69,9 +84,18 @@ async function handleDeleteTeacher(id: string) {
             <span class="text-slate-500">Rasmiy Nomi:</span>
             <span class="font-medium">{{ tenantStore.currentTenant?.displayName }}</span>
           </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
+          <div class="flex justify-between items-center py-1 border-b border-slate-100">
             <span class="text-slate-500">Biriktirilgan Sinflar:</span>
-            <span class="font-bold text-indigo-950">{{ teacherStore.classes.length }} ta sinf</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-indigo-950">{{ orgStore.classGroups.length || teacherStore.classes.length }} ta sinf</span>
+              <button
+                type="button"
+                @click="isCreateClassModalOpen = true"
+                class="text-[11px] px-2 py-0.5 rounded bg-teal-50 text-teal-800 hover:bg-teal-100 font-semibold transition cursor-pointer"
+              >
+                + Sinf qo'shish
+              </button>
+            </div>
           </div>
           <div class="flex justify-between py-1">
             <span class="text-slate-500">Holat:</span>
@@ -167,6 +191,16 @@ async function handleDeleteTeacher(id: string) {
       :available-classes="orgStore.classGroups"
       @close="isCreateTeacherModalOpen = false"
       @create="handleCreateTeacher"
+    />
+
+    <!-- Yangi Sinf Modal -->
+    <CreateClassModal
+      :is-open="isCreateClassModalOpen"
+      :school-id="tenantStore.currentTenant?.tenantId || 'sch-01'"
+      :tenant-slug="tenantSlug"
+      :available-teachers="orgStore.teachers"
+      @close="isCreateClassModalOpen = false"
+      @create="handleCreateClass"
     />
   </div>
 </template>

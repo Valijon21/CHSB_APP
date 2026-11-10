@@ -39,3 +39,4 @@ describe('TASK-LOG.4: SystemLogViewer UI Component', () => {
     expect(wrapper.text()).not.toContain('Beta: Second entry');
   });
 });
+

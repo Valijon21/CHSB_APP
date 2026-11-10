@@ -87,3 +87,4 @@ export const backendLogger = winston.createLogger({
 
 ## 4. XULOSA
 Ushbu standart frontenddagi `LoggerService` bilan to'liq uyg'un bo'lib, kelgusida distributed tracing (masalan, `traceId` orqali frontend va backend xatolarini bir-biriga bog'lash) imkoniyatini beradi.
+
