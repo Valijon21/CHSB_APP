@@ -61,3 +61,4 @@ describe('TASK-LOG.1: LogStorageEngine Unit Tests', () => {
     expect(MAX_LOG_CAPACITY).toBe(10000);
   });
 });
+

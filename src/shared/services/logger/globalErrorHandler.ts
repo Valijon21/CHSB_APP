@@ -86,3 +86,4 @@ export function initGlobalErrorHandlers(app: App, router?: Router): void {
     });
   }
 }
+
