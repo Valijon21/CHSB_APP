@@ -137,3 +137,4 @@ function getQualBadge(qual: string) {
     </div>
   </div>
 </template>
+

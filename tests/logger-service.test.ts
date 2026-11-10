@@ -49,11 +49,11 @@ describe('TASK-LOG.2: LoggerService Unit Tests', () => {
 
     const onlyErrors = await service.getLogs({ level: 'ERROR' });
     expect(onlyErrors.length).toBe(1);
-    expect(onlyErrors[0].message).toBe('Error 1');
+    expect(onlyErrors[0]!.message).toBe('Error 1');
 
     const onlyWarns = await service.getLogs({ level: 'WARN' });
     expect(onlyWarns.length).toBe(1);
-    expect(onlyWarns[0].message).toBe('Warning 1');
+    expect(onlyWarns[0]!.message).toBe('Warning 1');
 
     const all = await service.getLogs({ level: 'ALL' });
     expect(all.length).toBe(3);
@@ -67,7 +67,7 @@ describe('TASK-LOG.2: LoggerService Unit Tests', () => {
 
     const searchBirth = await service.getLogs({ searchQuery: 'birthDate' });
     expect(searchBirth.length).toBe(1);
-    expect(searchBirth[0].message).toBe('Failed to save student');
+    expect(searchBirth[0]!.message).toBe('Failed to save student');
 
     const searchRoute = await service.getLogs({ searchQuery: 'temurbeklar' });
     expect(searchRoute.length).toBe(2);

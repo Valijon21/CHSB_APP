@@ -32,3 +32,4 @@ export interface OrganizationRepository {
   createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord>;
   getClassGroupsBySchool(tenantSlug: string): Promise<ClassGroupRecord[]>;
 }
+

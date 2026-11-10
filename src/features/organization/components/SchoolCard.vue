@@ -96,3 +96,4 @@ function getTypeLabel(type: string) {
     </div>
   </div>
 </template>
+
