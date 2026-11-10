@@ -10,7 +10,7 @@ function getTypeLabel(type: string) {
     case 'specialized':
       return { text: 'Ixtisoslashtirilgan', color: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200' };
     case 'lyceum':
-      return { text: 'Akademik Litsey', color: 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200' };
+      return { text: 'Akademik Litsey', color: 'bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200' };
     case 'private':
       return { text: 'Xususiy', color: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200' };
     default:
