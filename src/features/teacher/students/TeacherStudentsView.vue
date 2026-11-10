@@ -1,16 +1,38 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
+import { useOrganizationStore } from '../../organization/store/organizationStore';
+import CreateStudentModal from '../../organization/components/CreateStudentModal.vue';
+import BulkStudentImportModal from '../../organization/components/BulkStudentImportModal.vue';
+import type { StudentInput, ClassGroupRecord } from '../../../entities/organization/model';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
 const teacherStore = useTeacherStore();
+const orgStore = useOrganizationStore();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const searchInput = ref('');
 const statusFilter = ref<'all' | 'eligible' | 'inactive'>('all');
+
+const isCreateModalOpen = ref(false);
+const isBulkModalOpen = ref(false);
+
+const availableClassRecords = computed<ClassGroupRecord[]>(() => {
+  return teacherStore.classes.map((c) => ({
+    id: c.id,
+    name: c.name,
+    schoolId: tenantStore.currentTenant?.tenantId || 'sch-01',
+    tenantSlug,
+    gradeLevel: 10,
+    shift: 1,
+    academicYear: '2026-2027',
+    studentCount: 0,
+    createdAt: '',
+  }));
+});
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
@@ -28,6 +50,40 @@ function handleClassFilter(e: Event) {
   const target = e.target as HTMLSelectElement;
   teacherStore.filterByClass(target.value || null);
 }
+
+async function handleCreateStudent(input: StudentInput) {
+  const created = await orgStore.createStudent(input);
+  teacherStore.roster.push({
+    id: created.id,
+    tenantId: tenantStore.currentTenant?.tenantId || 'tenant-al-xorazmiy',
+    schoolId: input.schoolId,
+    classGroupId: input.classGroupId,
+    rosterCode: created.rosterCode,
+    firstName: created.firstName,
+    lastName: created.lastName,
+    middleName: created.middleName,
+    status: 'eligible',
+    availableAssessmentIds: [],
+  });
+}
+
+async function handleBulkImport(inputs: StudentInput[]) {
+  const createdList = await orgStore.bulkImportStudents(inputs);
+  for (const created of createdList) {
+    teacherStore.roster.push({
+      id: created.id,
+      tenantId: tenantStore.currentTenant?.tenantId || 'tenant-al-xorazmiy',
+      schoolId: created.schoolId,
+      classGroupId: created.classGroupId,
+      rosterCode: created.rosterCode,
+      firstName: created.firstName,
+      lastName: created.lastName,
+      middleName: created.middleName,
+      status: 'eligible',
+      availableAssessmentIds: [],
+    });
+  }
+}
 </script>
 
 <template>
@@ -41,12 +97,36 @@ function handleClassFilter(e: Event) {
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Yangi O'quvchi Tugmasi -->
+        <button
+          type="button"
+          @click="isCreateModalOpen = true"
+          class="px-3.5 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          + Yangi O'quvchi
+        </button>
+
+        <!-- Ommaviy Import Tugmasi -->
+        <button
+          type="button"
+          @click="isBulkModalOpen = true"
+          class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          📥 Ommaviy Import
+        </button>
+
         <router-link
           :to="`/t/${tenantSlug}/teacher/reports`"
-          class="px-3.5 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-lg text-xs font-semibold transition"
+          class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition"
         >
-          CSV/Excel Yuklab Olish →
+          CSV/Excel →
         </router-link>
       </div>
     </div>
@@ -160,6 +240,26 @@ function handleClassFilter(e: Event) {
         Qidiruv bo'yicha hech qanday o'quvchi topilmadi.
       </div>
     </div>
+
+    <!-- 1. Yangi O'quvchi Qo'shish Modali -->
+    <CreateStudentModal
+      :is-open="isCreateModalOpen"
+      :school-id="tenantStore.currentTenant?.tenantId || 'sch-01'"
+      :tenant-slug="tenantSlug"
+      :available-classes="availableClassRecords"
+      @close="isCreateModalOpen = false"
+      @create="handleCreateStudent"
+    />
+
+    <!-- 2. Ommaviy Import Modali -->
+    <BulkStudentImportModal
+      :is-open="isBulkModalOpen"
+      :school-id="tenantStore.currentTenant?.tenantId || 'sch-01'"
+      :tenant-slug="tenantSlug"
+      :available-classes="availableClassRecords"
+      @close="isBulkModalOpen = false"
+      @bulk-import="handleBulkImport"
+    />
   </div>
 </template>
 
