@@ -52,3 +52,4 @@ describe('TASK-CLS.4: Class Management End-to-End Integration Tests', () => {
     expect(foundStudent?.className).toBe('7-G');
   });
 });
+

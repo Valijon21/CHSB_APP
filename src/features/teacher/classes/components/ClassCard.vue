@@ -69,10 +69,11 @@ const gradeDisplay = props.classItem.gradeLevel ?? (props.classItem as ClassGrou
       </span>
       <router-link
         :to="`/t/${tenantSlug}/teacher/classes/${classItem.id}`"
-        class="px-3 py-1.5 bg-teal-800 hover:bg-teal-900 text-white rounded-md text-xs font-semibold transition cursor-pointer"
+        class="px-3.5 py-2 min-h-[38px] inline-flex items-center bg-teal-800 hover:bg-teal-900 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-2xs"
       >
         Sinfni ko'rish →
       </router-link>
     </div>
   </div>
 </template>
+

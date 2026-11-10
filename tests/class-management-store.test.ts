@@ -75,3 +75,4 @@ describe('TASK-CLS.1: Class Management Store & Repository Sync', () => {
     expect(teacherStore.classes[0]?.name).toBe('8-B');
   });
 });
+
