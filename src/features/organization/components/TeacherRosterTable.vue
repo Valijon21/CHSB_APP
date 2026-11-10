@@ -119,7 +119,7 @@ function getQualBadge(qual: string) {
               <button
                 type="button"
                 @click="emit('delete', teacher.id)"
-                class="text-rose-600 hover:text-rose-800 text-[11px] font-semibold hover:underline cursor-pointer"
+                class="px-2.5 py-1.5 rounded-lg text-rose-600 hover:text-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-[11px] font-semibold transition cursor-pointer"
                 title="O'chirish"
               >
                 O'chirish

@@ -9,11 +9,10 @@ describe('TASK-UI.2: Accessibility (WCAG 2.1 AA) Form Labels & Contrast', () => 
       props: {
         isOpen: true,
         thresholds: {
-          assessmentId: 'ass-1',
           grade5Min: 86,
           grade4Min: 71,
           grade3Min: 56,
-          updatedAt: '2026-09-01T08:00:00Z',
+          grade2Max: 55,
         },
       },
     });

@@ -110,7 +110,7 @@ const navigationItems = [
 
         <button
           @click="isMobileMenuOpen = !isMobileMenuOpen"
-          class="p-2 rounded-md bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs flex items-center gap-1.5 cursor-pointer"
+          class="px-3 py-2 min-h-[40px] rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs flex items-center gap-1.5 cursor-pointer touch-manipulation"
         >
           <span>{{ isMobileMenuOpen ? '✕ Yopish' : '☰ Menyu' }}</span>
         </button>

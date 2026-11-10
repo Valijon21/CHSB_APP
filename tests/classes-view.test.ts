@@ -59,3 +59,4 @@ describe('TASK-CLS.3: TeacherClassesView & ClassCard Unit Tests', () => {
     expect(wrapper.find('input[placeholder*="Sinf nomi"]').exists()).toBe(true);
   });
 });
+
