@@ -142,3 +142,4 @@ describe('TASK-MS.3: Organization & Multi-School Pinia Store', () => {
     expect(store.students.some((s) => s.id === student.id)).toBe(false);
   });
 });
+

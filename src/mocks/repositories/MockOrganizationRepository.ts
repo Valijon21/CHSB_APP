@@ -379,3 +379,4 @@ export class MockOrganizationRepository implements OrganizationRepository {
     return this.classGroups.filter((c) => c.tenantSlug === tenantSlug);
   }
 }
+

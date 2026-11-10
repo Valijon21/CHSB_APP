@@ -120,3 +120,4 @@ describe('TASK-MS.7: Multi-School & User Management End-to-End Integration Flow'
     expect(store.students.some((s) => s.lastName === 'Madaminov')).toBe(false);
   });
 });
+
