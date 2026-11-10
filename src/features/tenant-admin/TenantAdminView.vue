@@ -6,6 +6,7 @@ import { useTeacherStore } from '../teacher/teacherStore';
 import { useOrganizationStore } from '../organization/store/organizationStore';
 import CreateTeacherModal from '../organization/components/CreateTeacherModal.vue';
 import TeacherRosterTable from '../organization/components/TeacherRosterTable.vue';
+import SystemLogViewer from './components/SystemLogViewer.vue';
 import type { TeacherInput } from '../../entities/organization/model';
 
 const route = useRoute();
@@ -15,6 +16,7 @@ const orgStore = useOrganizationStore();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const isCreateTeacherModalOpen = ref(false);
+const activeTab = ref<'teachers' | 'logs'>(route.query.tab === 'logs' ? 'logs' : 'teachers');
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
@@ -101,8 +103,31 @@ async function handleDeleteTeacher(id: string) {
       </div>
     </div>
 
+    <!-- Tab Navigation -->
+    <div class="flex items-center gap-2 border-b border-slate-200">
+      <button
+        type="button"
+        @click="activeTab = 'teachers'"
+        class="pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer"
+        :class="activeTab === 'teachers' ? 'border-teal-700 text-teal-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
+      >
+        <span>👨‍🏫</span>
+        <span>O'qituvchilar Tarkibi</span>
+      </button>
+
+      <button
+        type="button"
+        @click="activeTab = 'logs'"
+        class="pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer"
+        :class="activeTab === 'logs' ? 'border-teal-700 text-teal-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
+      >
+        <span>📋</span>
+        <span>Tizim Loglari & Audit (Xatolar Konsoli)</span>
+      </button>
+    </div>
+
     <!-- O'qituvchilar Boshqaruvi Bo'limi -->
-    <div class="space-y-4 pt-2">
+    <div v-if="activeTab === 'teachers'" class="space-y-4 pt-1">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h3 class="text-base font-bold text-slate-900">Maktab O'qituvchilari Boshqaruvi</h3>
@@ -127,6 +152,11 @@ async function handleDeleteTeacher(id: string) {
         :teachers="orgStore.teachers"
         @delete="handleDeleteTeacher"
       />
+    </div>
+
+    <!-- Tizim Loglari & Audit Bo'limi -->
+    <div v-else-if="activeTab === 'logs'" class="space-y-4 pt-1">
+      <SystemLogViewer />
     </div>
 
     <!-- Yangi O'qituvchi Modal -->
