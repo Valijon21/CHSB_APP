@@ -95,6 +95,7 @@ function handleReset() {
               type="number"
               min="0"
               max="100"
+              aria-label="A'lo 5 baho minimal foizi"
               class="w-16 p-1 text-center font-bold border rounded-md dark:bg-slate-700 dark:border-slate-600"
             />
             <span>%</span>
@@ -114,6 +115,7 @@ function handleReset() {
               type="number"
               min="0"
               max="100"
+              aria-label="Yaxshi 4 baho minimal foizi"
               class="w-16 p-1 text-center font-bold border rounded-md dark:bg-slate-700 dark:border-slate-600"
             />
             <span>%</span>
@@ -133,6 +135,7 @@ function handleReset() {
               type="number"
               min="0"
               max="100"
+              aria-label="Qoniqarli 3 baho minimal foizi"
               class="w-16 p-1 text-center font-bold border rounded-md dark:bg-slate-700 dark:border-slate-600"
             />
             <span>%</span>
@@ -152,6 +155,7 @@ function handleReset() {
               type="number"
               min="0"
               max="100"
+              aria-label="Qoniqarsiz 2 baho maksimal foizi"
               class="w-16 p-1 text-center font-bold border rounded-md dark:bg-slate-700 dark:border-slate-600"
             />
             <span>%</span>

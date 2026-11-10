@@ -193,6 +193,7 @@ function getGradeBadge(grade: number | null) {
               <div v-if="pair.emaktabStudent" class="flex items-center gap-2">
                 <select
                   :value="pair.chsbCandidate?.candidateId ?? ''"
+                  aria-label="CHSB nomzodini tanlash"
                   @change="(e) => {
                     const val = (e.target as HTMLSelectElement).value;
                     emit('manual-match', {
@@ -260,6 +261,7 @@ function getGradeBadge(grade: number | null) {
               <div v-if="pair.finalGrade5 === null && pair.emaktabStudent">
                 <select
                   :value="pair.absenceReason ?? 'sababsiz'"
+                  aria-label="Qatnashmaganlik sababini tanlash"
                   @change="(e) => {
                     const reason = (e.target as HTMLSelectElement).value as AbsenceReason;
                     emit('set-absence', { matchId: pair.matchId, reason });
