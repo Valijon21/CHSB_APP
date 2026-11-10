@@ -304,3 +304,4 @@ export const useEmaktabSyncStore = defineStore('emaktabSync', () => {
     downloadCsv,
   };
 });
+
