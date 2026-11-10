@@ -285,3 +285,4 @@ function getGradeBadge(grade: number | null) {
     </div>
   </div>
 </template>
+
