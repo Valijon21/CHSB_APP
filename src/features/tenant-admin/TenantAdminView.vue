@@ -1,20 +1,35 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacher/teacherStore';
+import { useOrganizationStore } from '../organization/store/organizationStore';
+import CreateTeacherModal from '../organization/components/CreateTeacherModal.vue';
+import TeacherRosterTable from '../organization/components/TeacherRosterTable.vue';
+import type { TeacherInput } from '../../entities/organization/model';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
 const teacherStore = useTeacherStore();
+const orgStore = useOrganizationStore();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
+const isCreateTeacherModalOpen = ref(false);
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
   const tenantId = tenantStore.currentTenant?.tenantId || (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
   await teacherStore.loadTeacherData(tenantId);
+  await orgStore.loadSchoolContext(tenantSlug);
 });
+
+async function handleCreateTeacher(input: TeacherInput) {
+  await orgStore.createTeacher(input);
+}
+
+async function handleDeleteTeacher(id: string) {
+  await orgStore.deleteTeacher(id);
+}
 </script>
 
 <template>
@@ -26,9 +41,17 @@ onMounted(async () => {
           Muassasa boshqaruvi: <span class="font-mono text-indigo-700 font-semibold">{{ tenantStore.currentTenant?.displayName }}</span>
         </p>
       </div>
-      <span class="text-xs px-2.5 py-1 rounded bg-slate-100 text-slate-600 font-mono">
-        Tenant Admin Portal
-      </span>
+      <div class="flex items-center gap-2">
+        <router-link
+          to="/schools"
+          class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold transition"
+        >
+          ← Barcha Maktablar Katalogi
+        </router-link>
+        <span class="text-xs px-2.5 py-1 rounded bg-slate-100 text-slate-600 font-mono">
+          Tenant Admin Portal
+        </span>
+      </div>
     </div>
 
     <!-- Tenant Settings Cards -->
@@ -77,5 +100,43 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- O'qituvchilar Boshqaruvi Bo'limi -->
+    <div class="space-y-4 pt-2">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Maktab O'qituvchilari Boshqaruvi</h3>
+          <p class="text-xs text-slate-500">
+            Maktab pedagogik tarkibini shakllantirish, fan va sinflarni biriktirish
+          </p>
+        </div>
+
+        <button
+          type="button"
+          @click="isCreateTeacherModalOpen = true"
+          class="px-3.5 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          + Yangi O'qituvchi Qo'shish
+        </button>
+      </div>
+
+      <TeacherRosterTable
+        :teachers="orgStore.teachers"
+        @delete="handleDeleteTeacher"
+      />
+    </div>
+
+    <!-- Yangi O'qituvchi Modal -->
+    <CreateTeacherModal
+      :is-open="isCreateTeacherModalOpen"
+      :school-id="tenantStore.currentTenant?.tenantId || 'sch-01'"
+      :tenant-slug="tenantSlug"
+      :available-classes="orgStore.classGroups"
+      @close="isCreateTeacherModalOpen = false"
+      @create="handleCreateTeacher"
+    />
   </div>
 </template>
