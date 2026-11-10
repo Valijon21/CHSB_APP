@@ -199,6 +199,11 @@ const routes: RouteRecordRaw[] = [
           },
         ],
       },
+      // Tenant Admin Alias/Redirect to prevent 404
+      {
+        path: 'tenant-admin',
+        redirect: (to) => `/t/${to.params.tenantSlug}/admin`,
+      },
     ],
   },
   {
