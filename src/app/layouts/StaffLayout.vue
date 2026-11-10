@@ -51,12 +51,13 @@ const navigationItems = [
         <div class="text-xs font-semibold text-slate-200 truncate">
           {{ tenantStore.currentTenant?.displayName || (tenantSlug === 'temurbeklar-maktabi' ? 'Temurbeklar Maktabi' : 'Al-Xorazmiy IT Maktabi') }}
         </div>
-        <div class="mt-2 flex items-center gap-1.5 text-[11px]">
+        <div class="mt-2 flex flex-col gap-1 text-[11px]">
           <router-link
-            :to="`/t/${tenantSlug === 'al-xorazmiy' ? 'temurbeklar-maktabi' : 'al-xorazmiy'}/teacher/dashboard`"
-            class="text-teal-400 hover:text-teal-300 underline font-medium"
+            to="/schools"
+            class="text-teal-400 hover:text-teal-300 underline font-medium flex items-center gap-1"
           >
-            {{ tenantSlug === 'al-xorazmiy' ? "Temurbeklar maktabiga o'tish ⇄" : "Al-Xorazmiyga o'tish ⇄" }}
+            <span>🏢</span>
+            <span>Barcha maktablar katalogi ⇄</span>
           </router-link>
         </div>
       </div>

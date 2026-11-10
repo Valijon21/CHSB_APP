@@ -96,7 +96,7 @@ export const StudentInputSchema = z.object({
   className: z.string().min(1, 'Sinf nomi bo\'sh bo\'lmasligi shart'),
   firstName: z.string().min(2, 'Ism kamida 2 ta harfdan iborat bo\'lishi kerak'),
   lastName: z.string().min(2, 'Familiya kamida 2 ta harfdan iborat bo\'lishi kerak'),
-  middleName: z.string().optional().default(''),
+  middleName: z.string().optional(),
   gender: StudentGenderSchema,
   birthDate: z
     .string()
