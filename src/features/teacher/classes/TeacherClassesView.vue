@@ -113,7 +113,7 @@ async function handleCreateClass(input: ClassGroupInput) {
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          + Yangi Sinf Qo'shish
+          <span>Yangi Sinf Qo'shish</span>
         </button>
       </div>
     </div>
@@ -181,9 +181,12 @@ async function handleCreateClass(input: ClassGroupInput) {
         type="button"
         @click="isCreateClassModalOpen = true"
         aria-label="Yangi sinf ochish"
-        class="px-4 py-2 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+        class="px-4 py-2 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 mx-auto cursor-pointer min-h-[38px]"
       >
-        + Yangi Sinf Ochish
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Yangi Sinf Ochish</span>
       </button>
     </div>
 

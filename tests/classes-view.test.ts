@@ -55,7 +55,7 @@ describe('TASK-CLS.3: TeacherClassesView & ClassCard Unit Tests', () => {
     await new Promise((r) => setTimeout(r, 60));
 
     expect(wrapper.text()).toContain('Maktab Sinflari Boshqaruvi');
-    expect(wrapper.text()).toContain('+ Yangi Sinf Qo\'shish');
+    expect(wrapper.text()).toContain('Yangi Sinf Qo\'shish');
     expect(wrapper.find('input[placeholder*="Sinf nomi"]').exists()).toBe(true);
   });
 });
