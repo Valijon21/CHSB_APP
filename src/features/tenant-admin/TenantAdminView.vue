@@ -51,21 +51,22 @@ async function handleCreateClass(input: ClassGroupInput) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
       <div>
-        <h2 class="text-xl font-bold text-slate-900">Tenant Administrator Sozlamalari</h2>
-        <p class="text-xs text-slate-500 mt-0.5">
-          Muassasa boshqaruvi: <span class="font-mono text-indigo-700 font-semibold">{{ tenantStore.currentTenant?.displayName }}</span>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white">Tenant Administrator Sozlamalari</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          Muassasa boshqaruvi: <span class="font-mono text-indigo-700 dark:text-indigo-400 font-semibold">{{ tenantStore.currentTenant?.displayName }}</span>
         </p>
       </div>
       <div class="flex items-center gap-2">
         <router-link
           to="/schools"
-          class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold transition"
+          aria-label="Maktablar katalogiga qaytish"
+          class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold transition min-h-[36px] flex items-center"
         >
           ← Barcha Maktablar Katalogi
         </router-link>
-        <span class="text-xs px-2.5 py-1 rounded bg-slate-100 text-slate-600 font-mono">
+        <span class="text-xs px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">
           Tenant Admin Portal
         </span>
       </div>
@@ -73,67 +74,69 @@ async function handleCreateClass(input: ClassGroupInput) {
 
     <!-- Tenant Settings Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
-        <h3 class="text-sm font-bold text-slate-900">Muassasa Ma'lumotlari</h3>
+      <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3 transition-colors">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Muassasa Ma'lumotlari</h3>
         <div class="space-y-2 text-xs">
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span class="text-slate-500">Tenant Slug:</span>
-            <span class="font-mono font-medium">{{ tenantSlug }}</span>
+          <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
+            <span class="text-slate-500 dark:text-slate-400">Tenant Slug:</span>
+            <span class="font-mono font-medium text-slate-800 dark:text-slate-200">{{ tenantSlug }}</span>
           </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span class="text-slate-500">Rasmiy Nomi:</span>
-            <span class="font-medium">{{ tenantStore.currentTenant?.displayName }}</span>
+          <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
+            <span class="text-slate-500 dark:text-slate-400">Rasmiy Nomi:</span>
+            <span class="font-medium text-slate-800 dark:text-slate-200">{{ tenantStore.currentTenant?.displayName }}</span>
           </div>
-          <div class="flex justify-between items-center py-1 border-b border-slate-100">
-            <span class="text-slate-500">Biriktirilgan Sinflar:</span>
+          <div class="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-700/60">
+            <span class="text-slate-500 dark:text-slate-400">Biriktirilgan Sinflar:</span>
             <div class="flex items-center gap-2">
-              <span class="font-bold text-indigo-950">{{ orgStore.classGroups.length || teacherStore.classes.length }} ta sinf</span>
+              <span class="font-bold text-indigo-950 dark:text-indigo-300">{{ orgStore.classGroups.length || teacherStore.classes.length }} ta sinf</span>
               <button
                 type="button"
                 @click="isCreateClassModalOpen = true"
-                class="text-[11px] px-2 py-0.5 rounded bg-teal-50 text-teal-800 hover:bg-teal-100 font-semibold transition cursor-pointer"
+                aria-label="Yangi sinf qo'shish"
+                class="text-[11px] px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/80 border border-teal-200 dark:border-teal-800 font-semibold transition cursor-pointer min-h-[30px]"
               >
                 + Sinf qo'shish
               </button>
             </div>
           </div>
           <div class="flex justify-between py-1">
-            <span class="text-slate-500">Holat:</span>
-            <span class="text-emerald-700 font-semibold">Faol (Active)</span>
+            <span class="text-slate-500 dark:text-slate-400">Holat:</span>
+            <span class="text-emerald-700 dark:text-emerald-400 font-semibold">Faol (Active)</span>
           </div>
         </div>
       </div>
 
-      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
-        <h3 class="text-sm font-bold text-slate-900">Xavfsizlik & Roster Konfiguratsiyasi</h3>
+      <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3 transition-colors">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Xavfsizlik & Roster Konfiguratsiyasi</h3>
         <div class="space-y-2 text-xs">
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span class="text-slate-500">Kirish usuli:</span>
-            <span class="font-semibold text-slate-800">Roster Lookup (Kod orqali)</span>
+          <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
+            <span class="text-slate-500 dark:text-slate-400">Kirish usuli:</span>
+            <span class="font-semibold text-slate-800 dark:text-slate-200">Roster Lookup (Kod orqali)</span>
           </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span class="text-slate-500">Ochiq ro'yxatdan o'tish:</span>
-            <span class="text-rose-700 font-semibold">O'chirilgan (Disabled)</span>
+          <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
+            <span class="text-slate-500 dark:text-slate-400">Ochiq ro'yxatdan o'tish:</span>
+            <span class="text-rose-700 dark:text-rose-400 font-semibold">O'chirilgan (Disabled)</span>
           </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span class="text-slate-500">Izolyatsiya darajasi:</span>
-            <span class="text-indigo-800 font-mono">Tenant Strict Isolation</span>
+          <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
+            <span class="text-slate-500 dark:text-slate-400">Izolyatsiya darajasi:</span>
+            <span class="text-indigo-800 dark:text-indigo-300 font-mono">Tenant Strict Isolation</span>
           </div>
           <div class="flex justify-between py-1">
-            <span class="text-slate-500">Jami Roster:</span>
-            <span class="font-bold text-slate-900">{{ teacherStore.roster.length }} nafar o'quvchi</span>
+            <span class="text-slate-500 dark:text-slate-400">Jami Roster:</span>
+            <span class="font-bold text-slate-900 dark:text-white">{{ teacherStore.roster.length }} nafar o'quvchi</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Tab Navigation -->
-    <div class="flex items-center gap-2 border-b border-slate-200">
+    <div class="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 overflow-x-auto whitespace-nowrap">
       <button
         type="button"
         @click="activeTab = 'teachers'"
-        class="pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer"
-        :class="activeTab === 'teachers' ? 'border-teal-700 text-teal-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
+        aria-label="O'qituvchilar tarkibi varag'i"
+        class="pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+        :class="activeTab === 'teachers' ? 'border-teal-700 dark:border-teal-400 text-teal-800 dark:text-teal-300' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
       >
         <span>👨‍🏫</span>
         <span>O'qituvchilar Tarkibi</span>
@@ -142,8 +145,9 @@ async function handleCreateClass(input: ClassGroupInput) {
       <button
         type="button"
         @click="activeTab = 'logs'"
-        class="pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer"
-        :class="activeTab === 'logs' ? 'border-teal-700 text-teal-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
+        aria-label="Tizim loglari va audit xatolar konsoli"
+        class="pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+        :class="activeTab === 'logs' ? 'border-teal-700 dark:border-teal-400 text-teal-800 dark:text-teal-300' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
       >
         <span>📋</span>
         <span>Tizim Loglari & Audit (Xatolar Konsoli)</span>
@@ -154,8 +158,8 @@ async function handleCreateClass(input: ClassGroupInput) {
     <div v-if="activeTab === 'teachers'" class="space-y-4 pt-1">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h3 class="text-base font-bold text-slate-900">Maktab O'qituvchilari Boshqaruvi</h3>
-          <p class="text-xs text-slate-500">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Maktab O'qituvchilari Boshqaruvi</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
             Maktab pedagogik tarkibini shakllantirish, fan va sinflarni biriktirish
           </p>
         </div>
@@ -163,7 +167,8 @@ async function handleCreateClass(input: ClassGroupInput) {
         <button
           type="button"
           @click="isCreateTeacherModalOpen = true"
-          class="px-3.5 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+          aria-label="Yangi o'qituvchi qo'shish"
+          class="px-3.5 py-2 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer min-h-[38px]"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
