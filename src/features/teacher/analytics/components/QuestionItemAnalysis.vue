@@ -191,3 +191,4 @@ function getBarColor(rate: number) {
     </div>
   </div>
 </template>
+
