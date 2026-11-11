@@ -23,58 +23,58 @@ onMounted(async () => {
 <template>
   <div class="space-y-6">
     <!-- Breadcrumbs & Header -->
-    <div class="flex items-center gap-2 text-xs text-slate-500">
-      <router-link :to="`/t/${tenantSlug}/teacher/classes`" class="hover:text-teal-800 underline">
+    <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+      <router-link :to="`/t/${tenantSlug}/teacher/classes`" class="hover:text-teal-800 dark:hover:text-teal-400 underline">
         ← Barcha sinflar
       </router-link>
       <span>/</span>
-      <span class="font-semibold text-slate-700">{{ teacherStore.classDetail?.classGroup.name || 'Sinf' }}</span>
+      <span class="font-semibold text-slate-700 dark:text-slate-200">{{ teacherStore.classDetail?.classGroup.name || 'Sinf' }}</span>
     </div>
 
     <!-- Loading State -->
     <div v-if="teacherStore.isLoading" class="text-center py-12">
       <div class="w-8 h-8 border-3 border-teal-800 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-      <p class="text-xs text-slate-500 font-medium">Sinf tafsilotlari yuklanmoqda...</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Sinf tafsilotlari yuklanmoqda...</p>
     </div>
 
     <!-- Detail Content -->
     <div v-else-if="teacherStore.classDetail" class="space-y-6">
-      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors">
         <div>
-          <span class="text-xs font-semibold px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200">
+          <span class="text-xs font-semibold px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
             {{ teacherStore.classDetail.classGroup.academicYear }}
           </span>
-          <h1 class="text-2xl font-bold text-slate-900 mt-2">
+          <h1 class="text-2xl font-bold text-slate-900 dark:text-white mt-2">
             {{ teacherStore.classDetail.classGroup.name }} Tafsilotlari
           </h1>
-          <p class="text-xs text-slate-500 mt-1">
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Informatika va axborot texnologiyalari • {{ teacherStore.classDetail.classGroup.grade }}-sinf
           </p>
         </div>
 
         <div class="flex items-center gap-4 text-center">
-          <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <span class="text-xs text-slate-500 block">O'rtacha Ball</span>
-            <span class="text-xl font-bold text-teal-800">{{ teacherStore.classDetail.averageScore }} / 40</span>
+          <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-200 dark:border-slate-700">
+            <span class="text-xs text-slate-500 dark:text-slate-400 block">O'rtacha Ball</span>
+            <span class="text-xl font-bold text-teal-800 dark:text-teal-400">{{ teacherStore.classDetail.averageScore }} / 40</span>
           </div>
-          <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <span class="text-xs text-slate-500 block">Ishtirok Foizi</span>
-            <span class="text-xl font-bold text-indigo-700">{{ teacherStore.classDetail.participationRate }}%</span>
+          <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-200 dark:border-slate-700">
+            <span class="text-xs text-slate-500 dark:text-slate-400 block">Ishtirok Foizi</span>
+            <span class="text-xl font-bold text-indigo-700 dark:text-indigo-400">{{ teacherStore.classDetail.participationRate }}%</span>
           </div>
         </div>
       </div>
 
       <!-- Students in this Class -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs overflow-hidden transition-colors">
+        <div class="p-4 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+          <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
             Sinf O'quvchilari ({{ teacherStore.classDetail.students.length }})
           </h2>
         </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs sm:text-sm">
-            <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+            <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th class="p-3.5">№</th>
                 <th class="p-3.5">O'quvchi F.I.SH.</th>
@@ -84,30 +84,30 @@ onMounted(async () => {
                 <th class="p-3.5 text-right">Amal</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-700/80">
               <tr
                 v-for="(stu, idx) in teacherStore.classDetail.students"
                 :key="stu.id"
-                class="hover:bg-slate-50/60"
+                class="hover:bg-slate-50/60 dark:hover:bg-slate-700/40 transition"
               >
                 <td class="p-3.5 text-slate-400 font-mono">{{ idx + 1 }}</td>
-                <td class="p-3.5 font-bold text-slate-800">
+                <td class="p-3.5 font-bold text-slate-800 dark:text-white">
                   {{ stu.firstName }} {{ stu.lastName }} {{ stu.middleName || '' }}
                 </td>
-                <td class="p-3.5 font-mono text-teal-800 font-semibold">{{ stu.rosterCode }}</td>
+                <td class="p-3.5 font-mono text-teal-800 dark:text-teal-400 font-semibold">{{ stu.rosterCode }}</td>
                 <td class="p-3.5">
                   <span
                     :class="[
                       'px-2 py-0.5 rounded text-[11px] font-semibold',
                       stu.status === 'eligible'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                        : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                     ]"
                   >
                     {{ stu.status === 'eligible' ? 'Ruxsat berilgan' : 'Nofaol' }}
                   </span>
                 </td>
-                <td class="p-3.5 font-bold text-slate-900">
+                <td class="p-3.5 font-bold text-slate-900 dark:text-white font-mono">
                   {{
                     teacherStore.classDetail.results.find((r) => r.rosterRecordId === stu.id)?.score
                       ? teacherStore.classDetail.results.find((r) => r.rosterRecordId === stu.id)?.score + ' ball'
@@ -117,7 +117,7 @@ onMounted(async () => {
                 <td class="p-3.5 text-right">
                   <router-link
                     :to="`/t/${tenantSlug}/teacher/students/${stu.id}`"
-                    class="text-xs font-semibold text-teal-700 hover:underline"
+                    class="text-xs font-semibold text-teal-700 dark:text-teal-400 hover:underline min-h-[36px] inline-flex items-center"
                   >
                     Profil →
                   </router-link>
@@ -130,11 +130,11 @@ onMounted(async () => {
     </div>
 
     <!-- Error/Not Found State -->
-    <div v-else class="text-center py-12 bg-white rounded-xl border border-slate-200">
-      <p class="text-sm text-slate-500">Sinf topilmadi yoki bu muassasaga tegishli emas.</p>
+    <div v-else class="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+      <p class="text-sm text-slate-500 dark:text-slate-400">Sinf topilmadi yoki bu muassasaga tegishli emas.</p>
       <router-link
         :to="`/t/${tenantSlug}/teacher/classes`"
-        class="mt-3 inline-block text-xs font-semibold text-teal-700 hover:underline"
+        class="mt-3 inline-block text-xs font-semibold text-teal-700 dark:text-teal-400 hover:underline"
       >
         Sinflar ro'yxatiga qaytish
       </router-link>
