@@ -29,19 +29,19 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="w-full max-w-md bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm">
+  <div class="w-full max-w-md bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs transition-colors">
     <!-- Tenant Loading / Inactive States -->
     <div v-if="tenantStore.isLoading" class="text-center py-8">
       <div class="w-8 h-8 border-3 border-teal-800 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-      <p class="text-xs text-slate-500 font-medium">Muassasa ma'lumotlari yuklanmoqda...</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Muassasa ma'lumotlari yuklanmoqda...</p>
     </div>
 
-    <div v-else-if="tenantStore.error" class="p-4 rounded-lg bg-rose-50 border border-rose-200 text-center">
-      <div class="text-rose-700 font-bold text-sm mb-1">Muassasa faol emas yoki topilmadi</div>
-      <p class="text-xs text-rose-600">{{ tenantStore.error }}</p>
+    <div v-else-if="tenantStore.error" class="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-center">
+      <div class="text-rose-700 dark:text-rose-300 font-bold text-sm mb-1">Muassasa faol emas yoki topilmadi</div>
+      <p class="text-xs text-rose-600 dark:text-rose-400">{{ tenantStore.error }}</p>
       <router-link
         to="/t/al-xorazmiy/student"
-        class="mt-3 inline-block text-xs font-semibold text-rose-800 underline"
+        class="mt-3 inline-block text-xs font-semibold text-rose-800 dark:text-rose-300 underline"
       >
         Standart muassasaga o'tish (Al-Xorazmiy)
       </router-link>
@@ -50,23 +50,24 @@ async function handleSubmit() {
     <!-- Normal Admission Form -->
     <div v-else>
       <div class="mb-6 text-center">
-        <h2 class="text-xl font-bold text-slate-900">CHSB Imtihoniga Kirish</h2>
-        <p class="text-xs text-slate-500 mt-1">
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white">CHSB Imtihoniga Kirish</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
           {{ tenantStore.currentTenant?.displayName }} o'quvchilari uchun maxsus portal
         </p>
       </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div>
-          <label for="rosterCodeInput" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+          <label for="rosterCodeInput" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
             O'quvchi Kodi (Roster Code)
           </label>
           <input
             id="rosterCodeInput"
             v-model="rosterCode"
             type="text"
+            aria-label="O'quvchi Roster kodi"
             placeholder="masalan: STU-1101"
-            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-teal-700 font-mono text-sm uppercase placeholder:normal-case placeholder:text-slate-400"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-teal-700 focus:border-teal-700 font-mono text-sm uppercase placeholder:normal-case placeholder:text-slate-400 dark:placeholder:text-slate-400"
             autocomplete="off"
             :disabled="admissionStore.status === 'looking_up'"
           />
@@ -74,7 +75,7 @@ async function handleSubmit() {
           <!-- Error message display -->
           <div
             v-if="admissionStore.errorMessage"
-            class="p-2.5 rounded-md bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium mt-2 flex items-center gap-1.5"
+            class="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 font-medium mt-2 flex items-center gap-1.5"
             role="alert"
           >
             <span>⚠️</span>
@@ -85,8 +86,9 @@ async function handleSubmit() {
         <div class="pt-2">
           <button
             type="submit"
+            aria-label="Kodni tekshirish va davom etish"
             :disabled="admissionStore.status === 'looking_up'"
-            class="w-full py-2.5 px-4 bg-teal-800 hover:bg-teal-900 disabled:bg-slate-400 text-white font-medium rounded-lg transition shadow-xs cursor-pointer text-sm flex items-center justify-center gap-2"
+            class="w-full py-2.5 px-4 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 disabled:bg-slate-400 text-white font-medium rounded-xl transition shadow-xs cursor-pointer text-sm flex items-center justify-center gap-2 min-h-[42px]"
           >
             <span v-if="admissionStore.status === 'looking_up'" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
             <span>{{ admissionStore.status === 'looking_up' ? 'Tekshirilmoqda...' : 'Tekshirish va davom etish' }}</span>
@@ -95,14 +97,14 @@ async function handleSubmit() {
       </form>
 
       <!-- Synthetic Demo Hint -->
-      <div class="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2 text-xs text-slate-500">
+      <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/80 flex flex-col gap-2 text-xs text-slate-500 dark:text-slate-400">
         <div class="flex justify-between items-center">
           <span>Demo kodlar:</span>
-          <span class="font-mono font-semibold text-slate-700">STU-1101, STU-1102</span>
+          <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">STU-1101, STU-1102</span>
         </div>
-        <div class="flex justify-between items-center text-[11px] text-slate-400">
+        <div class="flex justify-between items-center text-[11px] text-slate-400 dark:text-slate-400">
           <span>Nofaol kod: <code class="font-mono">STU-1103</code></span>
-          <router-link :to="`/t/${tenantSlug}/teacher`" class="text-indigo-600 hover:underline">
+          <router-link :to="`/t/${tenantSlug}/teacher`" class="text-indigo-600 dark:text-indigo-400 hover:underline">
             O'qituvchi paneli
           </router-link>
         </div>

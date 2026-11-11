@@ -30,48 +30,50 @@ function cancel() {
 </script>
 
 <template>
-  <div class="w-full max-w-md bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm">
+  <div class="w-full max-w-md bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs transition-colors">
     <div v-if="admissionStore.currentMatch">
       <div class="mb-5 text-center">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-2">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 mb-2">
           ✓ Roster Qayd Mos Keldi
         </span>
-        <h2 class="text-lg font-bold text-slate-900">Shaxsingizni tasdiqlang</h2>
-        <p class="text-xs text-slate-500 mt-1">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Shaxsingizni tasdiqlang</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
           Iltimos, quyidagi ma'lumotlar to'g'riligini tasdiqlang.
         </p>
       </div>
 
       <!-- Identity confirmation card -->
-      <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 mb-6 space-y-2.5 text-xs sm:text-sm">
-        <div class="flex justify-between py-1 border-b border-slate-100">
-          <span class="text-slate-500">Ism-familiya:</span>
-          <span class="font-bold text-slate-900">{{ admissionStore.currentMatch.displayName }}</span>
+      <div class="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 border border-slate-200 dark:border-slate-700 mb-6 space-y-2.5 text-xs sm:text-sm">
+        <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
+          <span class="text-slate-500 dark:text-slate-400">Ism-familiya:</span>
+          <span class="font-bold text-slate-900 dark:text-white">{{ admissionStore.currentMatch.displayName }}</span>
         </div>
-        <div class="flex justify-between py-1 border-b border-slate-100">
-          <span class="text-slate-500">Sinf / Guruh:</span>
-          <span class="font-medium text-slate-800">{{ admissionStore.currentMatch.className }}</span>
+        <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
+          <span class="text-slate-500 dark:text-slate-400">Sinf / Guruh:</span>
+          <span class="font-medium text-slate-800 dark:text-slate-200">{{ admissionStore.currentMatch.className }}</span>
         </div>
-        <div class="flex justify-between py-1 border-b border-slate-100">
-          <span class="text-slate-500">Ta'lim muassasasi:</span>
-          <span class="font-medium text-slate-800">{{ admissionStore.currentMatch.schoolName }}</span>
+        <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
+          <span class="text-slate-500 dark:text-slate-400">Ta'lim muassasasi:</span>
+          <span class="font-medium text-slate-800 dark:text-slate-200">{{ admissionStore.currentMatch.schoolName }}</span>
         </div>
         <div class="flex justify-between py-1">
-          <span class="text-slate-500">Imtihon holati:</span>
-          <span class="font-semibold text-emerald-700">Ruxsat berilgan</span>
+          <span class="text-slate-500 dark:text-slate-400">Imtihon holati:</span>
+          <span class="font-semibold text-emerald-700 dark:text-emerald-400">Ruxsat berilgan</span>
         </div>
       </div>
 
       <div class="space-y-2">
         <button
           @click="confirmIdentity"
-          class="w-full py-2.5 px-4 bg-teal-800 hover:bg-teal-900 text-white font-medium rounded-lg transition shadow-xs cursor-pointer text-sm"
+          aria-label="Shaxsni tasdiqlash va imtihonga o'tish"
+          class="w-full py-2.5 px-4 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white font-medium rounded-xl transition shadow-xs cursor-pointer text-sm min-h-[42px]"
         >
           Ha, bu men — Imtihonga o'tish
         </button>
         <button
           @click="cancel"
-          class="w-full py-2 px-4 bg-transparent hover:bg-slate-100 text-slate-600 font-medium rounded-lg transition text-sm cursor-pointer"
+          aria-label="Kiritishni bekor qilish va qaytadan kiritish"
+          class="w-full py-2 px-4 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium rounded-xl transition text-sm cursor-pointer min-h-[40px]"
         >
           Bu men emas — Qaytadan kiritish
         </button>
@@ -80,8 +82,8 @@ function cancel() {
 
     <!-- Fallback if redirecting -->
     <div v-else class="text-center py-6">
-      <div class="w-6 h-6 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-      <p class="text-xs text-slate-500">Yo'naltirilmoqda...</p>
+      <div class="w-6 h-6 border-2 border-slate-400 dark:border-slate-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Yo'naltirilmoqda...</p>
     </div>
   </div>
 </template>
