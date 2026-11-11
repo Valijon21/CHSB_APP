@@ -138,7 +138,11 @@ describe('TASK-UIX.3: Teacher Sub-views Dark Mode & Accessibility Suite', () => 
     await tenantStore.loadTenant('al-xorazmiy');
     await teacherStore.loadTeacherData('tenant-al-xorazmiy');
 
-    const wrapper = mount(TeacherAnalyticsView);
+    const wrapper = mount(TeacherAnalyticsView, {
+      global: {
+        stubs: ['router-link'],
+      },
+    });
     await flushPromises();
 
     expect(wrapper.find('.bg-white.dark\\:bg-slate-800').exists()).toBe(true);
@@ -152,7 +156,11 @@ describe('TASK-UIX.3: Teacher Sub-views Dark Mode & Accessibility Suite', () => 
     await tenantStore.loadTenant('al-xorazmiy');
     await teacherStore.loadTeacherData('tenant-al-xorazmiy');
 
-    const wrapper = mount(TeacherReportsView);
+    const wrapper = mount(TeacherReportsView, {
+      global: {
+        stubs: ['router-link'],
+      },
+    });
     await flushPromises();
 
     expect(wrapper.find('.bg-white.dark\\:bg-slate-800').exists()).toBe(true);
