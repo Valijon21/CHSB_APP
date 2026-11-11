@@ -125,3 +125,4 @@ describe('TASK-AUTH.2: Pinia authStore & Session Management', () => {
     expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
   });
 });
+

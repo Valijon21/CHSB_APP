@@ -137,3 +137,4 @@ describe('TASK-AUTH.3: LoginView.vue UI & Interactions', () => {
     });
   });
 });
+
