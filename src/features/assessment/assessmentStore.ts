@@ -253,6 +253,25 @@ export const useAssessmentStore = defineStore('assessment', () => {
     return syncedCount;
   }
 
+  async function loadAssessmentOverview(tenantId: string, assessmentId: string): Promise<Assessment | null> {
+    errorMessage.value = null;
+    try {
+      let data = await api.assessment.getAssessmentById(tenantId, assessmentId);
+      if (!data) {
+        data = await offlineStorage.getCachedAssessment(assessmentId);
+      } else {
+        await offlineStorage.cacheAssessment(data);
+      }
+      if (data) {
+        assessment.value = data;
+      }
+      return data;
+    } catch {
+      errorMessage.value = "Imtihon ma'lumotlarini yuklashda xatolik yuz berdi.";
+      return null;
+    }
+  }
+
   return {
     assessment,
     attempt,
@@ -270,6 +289,7 @@ export const useAssessmentStore = defineStore('assessment', () => {
     receipt,
     result,
     offlineEmergencyCode,
+    loadAssessmentOverview,
     startAssessment,
     selectAnswer,
     nextQuestion,
