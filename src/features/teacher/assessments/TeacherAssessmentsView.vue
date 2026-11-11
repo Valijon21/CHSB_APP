@@ -22,16 +22,16 @@ onMounted(async () => {
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
       <div>
-        <h1 class="text-xl font-bold text-slate-900">Baholashlar Boshqaruvi (Assessments Catalog)</h1>
-        <p class="text-xs text-slate-500 mt-0.5">
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white">Baholashlar Boshqaruvi (Assessments Catalog)</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           CHSB choraklik imtihonlari va ularning faollik holatlari.
         </p>
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+        <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
           I Chorak Baholashlari Faol
         </span>
       </div>
@@ -40,7 +40,7 @@ onMounted(async () => {
     <!-- Loading State -->
     <div v-if="teacherStore.isLoading" class="text-center py-12">
       <div class="w-8 h-8 border-3 border-teal-800 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-      <p class="text-xs text-slate-500 font-medium">Baholashlar yuklanmoqda...</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Baholashlar yuklanmoqda...</p>
     </div>
 
     <!-- Assessments Cards -->
@@ -48,41 +48,41 @@ onMounted(async () => {
       <div
         v-for="asm in teacherStore.assessments"
         :key="asm.id"
-        class="bg-white rounded-xl border border-slate-200 shadow-xs p-6 hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-6"
+        class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs p-6 hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
       >
         <div class="space-y-2">
           <div class="flex items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200">
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
               {{ asm.grade }}-sinf
             </span>
-            <span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+            <span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
               {{ asm.quarter }}-chorak
             </span>
-            <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+            <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
               {{ asm.status === 'available' ? 'Faol / Ochiq' : 'Rejalashtirilgan' }}
             </span>
           </div>
 
-          <h2 class="text-lg font-bold text-slate-900">
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white">
             {{ asm.title }}
           </h2>
-          <p class="text-xs text-slate-500">
-            Fan: <span class="font-medium text-slate-700">{{ asm.subject }}</span> • Maksimal ball: <span class="font-bold text-teal-800">{{ asm.maxScore }} ball</span>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Fan: <span class="font-medium text-slate-700 dark:text-slate-300">{{ asm.subject }}</span> • Maksimal ball: <span class="font-bold text-teal-800 dark:text-teal-400">{{ asm.maxScore }} ball</span>
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-6 text-xs text-slate-600">
+        <div class="flex flex-wrap items-center gap-6 text-xs text-slate-600 dark:text-slate-300">
           <div class="text-center">
-            <span class="text-slate-400 block text-[11px]">Savollar</span>
-            <span class="font-bold text-slate-900 text-sm">{{ asm.questionCount }} ta</span>
+            <span class="text-slate-400 dark:text-slate-400 block text-[11px]">Savollar</span>
+            <span class="font-bold text-slate-900 dark:text-white text-sm">{{ asm.questionCount }} ta</span>
           </div>
           <div class="text-center">
-            <span class="text-slate-400 block text-[11px]">Vaqt</span>
-            <span class="font-bold text-slate-900 text-sm">{{ asm.durationMinutes }} daqiqa</span>
+            <span class="text-slate-400 dark:text-slate-400 block text-[11px]">Vaqt</span>
+            <span class="font-bold text-slate-900 dark:text-white text-sm">{{ asm.durationMinutes }} daqiqa</span>
           </div>
           <div class="text-center">
-            <span class="text-slate-400 block text-[11px]">Ishtirok</span>
-            <span class="font-bold text-indigo-700 text-sm">
+            <span class="text-slate-400 dark:text-slate-400 block text-[11px]">Ishtirok</span>
+            <span class="font-bold text-indigo-700 dark:text-indigo-400 text-sm">
               {{ teacherStore.results.length }} ta topshirildi
             </span>
           </div>
@@ -90,7 +90,8 @@ onMounted(async () => {
           <div class="flex items-center gap-2">
             <router-link
               :to="`/t/${tenantSlug}/teacher/assessments/${asm.id}/emaktab-sync`"
-              class="px-3 py-2 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg font-semibold transition flex items-center gap-1.5 shadow-2xs text-xs"
+              aria-label="Baholarni eMaktab jurnaliga o'tkazish"
+              class="px-3 py-2 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/80 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 rounded-lg font-semibold transition flex items-center gap-1.5 shadow-2xs text-xs min-h-[38px]"
               title="Baholarni eMaktab jurnaliga o'tkazish"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +102,8 @@ onMounted(async () => {
 
             <router-link
               :to="`/t/${tenantSlug}/teacher/assessments/${asm.id}/live`"
-              class="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-semibold transition flex items-center gap-1.5 shadow-2xs text-xs"
+              aria-label="Jonli nazorat xonasiga o'tish"
+              class="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-lg font-semibold transition flex items-center gap-1.5 shadow-2xs text-xs min-h-[38px]"
             >
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-ping"></span>
               <span>Jonli Nazorat</span>
@@ -109,7 +111,8 @@ onMounted(async () => {
 
             <router-link
               :to="`/t/${tenantSlug}/teacher/assessments/${asm.id}`"
-              class="px-3 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-lg font-semibold transition text-xs"
+              aria-label="Baholash tahlilini ko'rish"
+              class="px-3 py-2 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white rounded-lg font-semibold transition text-xs min-h-[38px] flex items-center"
             >
               Tahlilni ko'rish →
             </router-link>

@@ -53,10 +53,10 @@ function handleExportCSV() {
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
       <div>
-        <h1 class="text-xl font-bold text-slate-900">Natijalar Boshqaruvi (Results Management)</h1>
-        <p class="text-xs text-slate-500 mt-0.5">
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white">Natijalar Boshqaruvi (Results Management)</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           1-CHSB topshirgan o'quvchilar natijalari, ballari va baholash statusi.
         </p>
       </div>
@@ -65,7 +65,8 @@ function handleExportCSV() {
         <button
           @click="handleExportCSV"
           :disabled="isExporting"
-          class="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white font-medium rounded-lg text-xs transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:bg-slate-400"
+          aria-label="Excel va CSV formatida yuklab olish"
+          class="px-4 py-2 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white font-medium rounded-lg text-xs transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:bg-slate-400 min-h-[38px]"
         >
           <span>📥 Excel / CSV ga yuklab olish</span>
         </button>
@@ -73,18 +74,20 @@ function handleExportCSV() {
     </div>
 
     <!-- Filter Bar -->
-    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-wrap items-center justify-between gap-3 transition-colors">
       <div class="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
         <input
           v-model="searchQuery"
           type="text"
+          aria-label="O'quvchi ismi bo'yicha qidirish"
           placeholder="O'quvchi ismi bo'yicha qidirish..."
-          class="px-3.5 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-700 flex-1 min-w-[200px]"
+          class="px-3.5 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-teal-700 flex-1 min-w-[200px]"
         />
 
         <select
           v-model="selectedClass"
-          class="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-700 cursor-pointer"
+          aria-label="Sinf bo'yicha filtrlash"
+          class="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700 cursor-pointer min-h-[36px]"
         >
           <option value="">Barcha sinflar</option>
           <option v-for="cls in teacherStore.classes" :key="cls.id" :value="cls.name">
@@ -93,7 +96,7 @@ function handleExportCSV() {
         </select>
       </div>
 
-      <div class="text-xs font-semibold text-slate-500">
+      <div class="text-xs font-semibold text-slate-500 dark:text-slate-400">
         Topshirilgan ishlar: {{ filteredResults.length }} ta
       </div>
     </div>
@@ -101,14 +104,14 @@ function handleExportCSV() {
     <!-- Loading State -->
     <div v-if="teacherStore.isLoading" class="text-center py-12">
       <div class="w-8 h-8 border-3 border-teal-800 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-      <p class="text-xs text-slate-500 font-medium">Natijalar yuklanmoqda...</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Natijalar yuklanmoqda...</p>
     </div>
 
     <!-- Results Table -->
-    <div v-else class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+    <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs overflow-hidden transition-colors">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs sm:text-sm">
-          <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+          <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
             <tr>
               <th class="p-3.5">№</th>
               <th class="p-3.5">O'quvchi F.I.SH.</th>
@@ -120,34 +123,34 @@ function handleExportCSV() {
               <th class="p-3.5 text-right">O'quvchi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700/80">
             <tr
               v-for="(res, idx) in filteredResults"
               :key="res.attemptId"
-              class="hover:bg-slate-50/70"
+              class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
             >
               <td class="p-3.5 text-slate-400 font-mono">{{ idx + 1 }}</td>
-              <td class="p-3.5 font-bold text-slate-900">{{ res.studentName }}</td>
-              <td class="p-3.5 font-medium text-slate-700">{{ res.className }}</td>
+              <td class="p-3.5 font-bold text-slate-900 dark:text-white">{{ res.studentName }}</td>
+              <td class="p-3.5 font-medium text-slate-700 dark:text-slate-300">{{ res.className }}</td>
               <td class="p-3.5">
-                <span class="font-bold text-teal-800 text-sm">
+                <span class="font-bold text-teal-800 dark:text-teal-400 text-sm">
                   {{ res.score }}
                 </span>
-                <span class="text-slate-400 text-xs"> / {{ res.maxScore }}</span>
+                <span class="text-slate-400 dark:text-slate-400 text-xs"> / {{ res.maxScore }}</span>
               </td>
-              <td class="p-3.5 font-semibold text-slate-800">{{ res.percentage }}%</td>
-              <td class="p-3.5 text-slate-500 font-mono text-xs">
+              <td class="p-3.5 font-semibold text-slate-800 dark:text-slate-200">{{ res.percentage }}%</td>
+              <td class="p-3.5 text-slate-500 dark:text-slate-400 font-mono text-xs">
                 {{ res.submittedAt.slice(0, 16).replace('T', ' ') }}
               </td>
               <td class="p-3.5">
-                <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                   {{ res.verifiedByTeacher ? 'Tasdiqlangan' : 'Dastlabki' }}
                 </span>
               </td>
               <td class="p-3.5 text-right">
                 <router-link
                   :to="`/t/${tenantSlug}/teacher/students/${res.rosterRecordId}`"
-                  class="text-xs font-semibold text-teal-700 hover:underline"
+                  class="text-xs font-semibold text-teal-700 dark:text-teal-400 hover:underline min-h-[36px] inline-flex items-center"
                 >
                   Ko'rish →
                 </router-link>
@@ -157,7 +160,7 @@ function handleExportCSV() {
         </table>
       </div>
 
-      <div v-if="filteredResults.length === 0" class="text-center py-10 text-xs text-slate-500">
+      <div v-if="filteredResults.length === 0" class="text-center py-10 text-xs text-slate-500 dark:text-slate-400">
         Natijalar topilmadi.
       </div>
     </div>

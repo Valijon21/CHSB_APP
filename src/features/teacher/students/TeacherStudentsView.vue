@@ -89,10 +89,10 @@ async function handleBulkImport(inputs: StudentInput[]) {
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
       <div>
-        <h1 class="text-xl font-bold text-slate-900">O'quvchilar Boshqaruvi (Roster Directory)</h1>
-        <p class="text-xs text-slate-500 mt-0.5">
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white">O'quvchilar Boshqaruvi (Roster Directory)</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           Muassasadagi barcha biriktirilgan o'quvchilar va ularning imtihon ruxsatlari.
         </p>
       </div>
@@ -102,7 +102,8 @@ async function handleBulkImport(inputs: StudentInput[]) {
         <button
           type="button"
           @click="isCreateModalOpen = true"
-          class="px-3.5 py-2 bg-teal-800 hover:bg-teal-900 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+          aria-label="Yangi o'quvchi qo'shish"
+          class="px-3.5 py-2 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer min-h-[38px]"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -114,7 +115,8 @@ async function handleBulkImport(inputs: StudentInput[]) {
         <button
           type="button"
           @click="isBulkModalOpen = true"
-          class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+          aria-label="O'quvchilarni ommaviy import qilish"
+          class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer min-h-[38px]"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -124,7 +126,8 @@ async function handleBulkImport(inputs: StudentInput[]) {
 
         <router-link
           :to="`/t/${tenantSlug}/teacher/reports`"
-          class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition"
+          aria-label="Hisobotlar va eksport bo'limiga o'tish"
+          class="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-200 dark:border-slate-700 min-h-[38px] flex items-center"
         >
           CSV/Excel →
         </router-link>
@@ -132,7 +135,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
     </div>
 
     <!-- Filter and Search Bar -->
-    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-wrap items-center justify-between gap-3 transition-colors">
       <div class="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
         <!-- Search Input -->
         <div class="relative flex-1 min-w-[200px]">
@@ -140,15 +143,17 @@ async function handleBulkImport(inputs: StudentInput[]) {
             v-model="searchInput"
             @input="handleSearch"
             type="text"
+            aria-label="O'quvchi ismi yoki Roster kodi bo'yicha qidirish"
             placeholder="O'quvchi ismi yoki Roster kodi (masalan: STU-1101)..."
-            class="w-full px-3.5 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-700"
+            class="w-full px-3.5 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-teal-700"
           />
         </div>
 
         <!-- Class Filter -->
         <select
           @change="handleClassFilter"
-          class="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-700 cursor-pointer"
+          aria-label="Sinf bo'yicha filtrlash"
+          class="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700 cursor-pointer min-h-[36px]"
         >
           <option value="">Barcha sinflar</option>
           <option v-for="cls in teacherStore.classes" :key="cls.id" :value="cls.id">
@@ -159,7 +164,8 @@ async function handleBulkImport(inputs: StudentInput[]) {
         <!-- Status Filter -->
         <select
           v-model="statusFilter"
-          class="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-700 cursor-pointer"
+          aria-label="Status bo'yicha filtrlash"
+          class="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700 cursor-pointer min-h-[36px]"
         >
           <option value="all">Barcha statuslar</option>
           <option value="eligible">Ruxsat berilgan</option>
@@ -167,7 +173,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
         </select>
       </div>
 
-      <div class="text-xs font-semibold text-slate-500">
+      <div class="text-xs font-semibold text-slate-500 dark:text-slate-400">
         Jami: {{ teacherStore.filteredRoster.length }} nafar o'quvchi
       </div>
     </div>
@@ -175,14 +181,14 @@ async function handleBulkImport(inputs: StudentInput[]) {
     <!-- Loading State -->
     <div v-if="teacherStore.isLoading" class="text-center py-12">
       <div class="w-8 h-8 border-3 border-teal-800 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-      <p class="text-xs text-slate-500 font-medium">O'quvchilar ro'yxati yuklanmoqda...</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">O'quvchilar ro'yxati yuklanmoqda...</p>
     </div>
 
     <!-- Students Table -->
-    <div v-else class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+    <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs overflow-hidden transition-colors">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs sm:text-sm">
-          <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+          <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
             <tr>
               <th class="p-3.5">№</th>
               <th class="p-3.5">F.I.SH.</th>
@@ -193,18 +199,18 @@ async function handleBulkImport(inputs: StudentInput[]) {
               <th class="p-3.5 text-right">Profil</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700/80">
             <tr
               v-for="(stu, idx) in teacherStore.filteredRoster"
               :key="stu.id"
-              class="hover:bg-slate-50/70 transition"
+              class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
             >
               <td class="p-3.5 text-slate-400 font-mono">{{ idx + 1 }}</td>
-              <td class="p-3.5 font-bold text-slate-800">
+              <td class="p-3.5 font-bold text-slate-800 dark:text-white">
                 {{ stu.firstName }} {{ stu.lastName }} {{ stu.middleName || '' }}
               </td>
-              <td class="p-3.5 font-mono text-teal-800 font-semibold">{{ stu.rosterCode }}</td>
-              <td class="p-3.5 font-medium text-slate-700">
+              <td class="p-3.5 font-mono text-teal-800 dark:text-teal-400 font-semibold">{{ stu.rosterCode }}</td>
+              <td class="p-3.5 font-medium text-slate-700 dark:text-slate-300">
                 {{ teacherStore.classes.find((c) => c.id === stu.classGroupId)?.name || '11-sinf' }}
               </td>
               <td class="p-3.5">
@@ -212,20 +218,20 @@ async function handleBulkImport(inputs: StudentInput[]) {
                   :class="[
                     'px-2 py-0.5 rounded text-[11px] font-semibold',
                     stu.status === 'eligible'
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : 'bg-rose-50 text-rose-800 border border-rose-200'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                      : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                   ]"
                 >
                   {{ stu.status === 'eligible' ? 'Ruxsat berilgan' : 'Nofaol' }}
                 </span>
               </td>
-              <td class="p-3.5 font-medium text-slate-600">
+              <td class="p-3.5 font-medium text-slate-600 dark:text-slate-300">
                 {{ teacherStore.results.some((r) => r.rosterRecordId === stu.id) ? 'Topshirgan' : 'Kutilmoqda' }}
               </td>
               <td class="p-3.5 text-right">
                 <router-link
                   :to="`/t/${tenantSlug}/teacher/students/${stu.id}`"
-                  class="text-xs font-semibold text-teal-700 hover:underline"
+                  class="text-xs font-semibold text-teal-700 dark:text-teal-400 hover:underline min-h-[36px] inline-flex items-center"
                 >
                   Batafsil →
                 </router-link>
@@ -236,7 +242,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
       </div>
 
       <!-- Empty state if search finds nothing -->
-      <div v-if="teacherStore.filteredRoster.length === 0" class="text-center py-10 text-xs text-slate-500">
+      <div v-if="teacherStore.filteredRoster.length === 0" class="text-center py-10 text-xs text-slate-500 dark:text-slate-400">
         Qidiruv bo'yicha hech qanday o'quvchi topilmadi.
       </div>
     </div>
