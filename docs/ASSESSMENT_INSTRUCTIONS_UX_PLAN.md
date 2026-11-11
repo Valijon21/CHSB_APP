@@ -84,3 +84,4 @@ flowchart LR
   - `npx vitest run` (barcha testlar 100% yashil).
   - `npm run build` (Production yig'ilishi).
   - Barcha commitlarni GitHub `origin main` ga push qilish.
+
