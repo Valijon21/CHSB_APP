@@ -72,7 +72,7 @@ describe('TASK-UIX.5: Student Admission Journey Dark Mode & A11y Suite', () => {
       displayName: 'Alisher Zokirov',
       className: '11-A',
       schoolName: 'Al-Xorazmiy nomidagi AKT maktabi',
-      status: 'eligible',
+      eligibilityStatus: 'eligible',
       availableAssessmentIds: ['chsb-inf-11-q1'],
     };
 
