@@ -93,9 +93,12 @@ async function handleCreateClass(input: ClassGroupInput) {
                 type="button"
                 @click="isCreateClassModalOpen = true"
                 aria-label="Yangi sinf qo'shish"
-                class="text-[11px] px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/80 border border-teal-200 dark:border-teal-800 font-semibold transition cursor-pointer min-h-[30px]"
+                class="text-[11px] px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/80 border border-teal-200 dark:border-teal-800 font-semibold transition cursor-pointer min-h-[30px] inline-flex items-center gap-1"
               >
-                + Sinf qo'shish
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Sinf qo'shish</span>
               </button>
             </div>
           </div>
@@ -173,7 +176,7 @@ async function handleCreateClass(input: ClassGroupInput) {
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          + Yangi O'qituvchi Qo'shish
+          <span>Yangi O'qituvchi Qo'shish</span>
         </button>
       </div>
 
