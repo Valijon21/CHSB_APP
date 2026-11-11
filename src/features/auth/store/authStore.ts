@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { AuthUser, LoginCredentials, UserRole } from '../types';
+import type { AuthUser, LoginCredentialsInput, UserRole } from '../types';
 import { LoginCredentialsSchema, AuthUserSchema } from '../types';
 import { logger } from '../../../shared/services/logger/LoggerService';
 
@@ -71,7 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
   });
 
   // Actions
-  async function login(credentials: LoginCredentials): Promise<AuthUser> {
+  async function login(credentials: LoginCredentialsInput): Promise<AuthUser> {
     isLoading.value = true;
     errorMessage.value = null;
 
@@ -96,17 +96,25 @@ export const useAuthStore = defineStore('auth', () => {
       // Xotiraga saqlash
       saveSessionToStorage(currentUser.value, valid.rememberMe);
 
-      logger.info(`Foydalanuvchi tizimga kirdi: ${account.user.fullName} (${account.user.role})`, 'AUTH', {
-        userId: account.user.id,
-        role: account.user.role,
-        tenantSlug: account.user.tenantSlug,
-      });
+      logger.info(
+        `Foydalanuvchi tizimga kirdi: ${account.user.fullName} (${account.user.role})`,
+        {
+          userId: account.user.id,
+          role: account.user.role,
+          tenantSlug: account.user.tenantSlug,
+        },
+        'AUTH'
+      );
 
       return currentUser.value;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Tizimga kirishda xatolik yuz berdi.";
       errorMessage.value = msg;
-      logger.warn(`Kirishda xatolik: ${msg}`, 'AUTH', { username: credentials.username });
+      logger.warn(
+        `Kirishda xatolik: ${msg}`,
+        { username: credentials.username },
+        'AUTH'
+      );
       throw err;
     } finally {
       isLoading.value = false;
@@ -122,9 +130,11 @@ export const useAuthStore = defineStore('auth', () => {
     clearSessionFromStorage();
 
     if (user) {
-      logger.info(`Foydalanuvchi tizimdan chiqdi: ${user.fullName}`, 'AUTH', {
-        userId: user.id,
-      });
+      logger.info(
+        `Foydalanuvchi tizimdan chiqdi: ${user.fullName}`,
+        { userId: user.id },
+        'AUTH'
+      );
     }
   }
 
