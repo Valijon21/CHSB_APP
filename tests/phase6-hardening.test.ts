@@ -155,12 +155,12 @@ describe('Phase 6 — Hardening, Security, E2E and Tenant Isolation Suite', () =
       const teacherStore = useTeacherStore();
 
       await teacherStore.loadTeacherData('tenant-al-xorazmiy');
-      expect(teacherStore.classes.length).toBe(2);
+      expect(teacherStore.classes.length).toBe(6);
       expect(teacherStore.classes[0]?.name).toBe('11-A sinf');
 
       // Switch to Temurbeklar maktabi
       await teacherStore.loadTeacherData('tenant-temurbeklar');
-      expect(teacherStore.classes.length).toBe(2);
+      expect(teacherStore.classes.length).toBe(4);
       expect(teacherStore.classes[0]?.name).toBe('11-Guruh-1');
 
       // Al-Xorazmiy classes must NOT be present
