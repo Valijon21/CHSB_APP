@@ -30,6 +30,10 @@ import TeacherReportsView from '../../features/teacher/reports/TeacherReportsVie
 import TeacherProfileView from '../../features/teacher/profile/TeacherProfileView.vue';
 import RegionalOversightView from '../../features/regional-oversight/RegionalOversightView.vue';
 import SchoolDirectoryView from '../../features/organization/views/SchoolDirectoryView.vue';
+import LoginView from '../../features/auth/views/LoginView.vue';
+import { useAuthStore } from '../../features/auth/store/authStore';
+import type { UserRole } from '../../features/auth/types';
+import { getActivePinia } from 'pinia';
 
 // Views - Tenant Admin & Shared
 import TenantAdminView from '../../features/tenant-admin/TenantAdminView.vue';
@@ -39,6 +43,12 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: '/t/al-xorazmiy/student',
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: LoginView,
+    meta: { guestOnly: true },
   },
   // Tenant Route Hierarchy
   {
@@ -110,6 +120,10 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'teacher',
         component: StaffLayout,
+        meta: {
+          requiresAuth: true,
+          roles: ['TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN'] as UserRole[],
+        },
         children: [
           {
             path: '',
@@ -184,6 +198,10 @@ const routes: RouteRecordRaw[] = [
             path: 'regional-oversight',
             name: 'RegionalOversight',
             component: RegionalOversightView,
+            meta: {
+              requiresAuth: true,
+              roles: ['SUPER_ADMIN'] as UserRole[],
+            },
           },
         ],
       },
@@ -191,6 +209,10 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'admin',
         component: StaffLayout,
+        meta: {
+          requiresAuth: true,
+          roles: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] as UserRole[],
+        },
         children: [
           {
             path: '',
@@ -214,6 +236,10 @@ const routes: RouteRecordRaw[] = [
     path: '/schools',
     name: 'SchoolDirectory',
     component: SchoolDirectoryView,
+    meta: {
+      requiresAuth: true,
+      roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] as UserRole[],
+    },
   },
   // Catch-all 404 Not Found
   {
@@ -226,4 +252,59 @@ const routes: RouteRecordRaw[] = [
 export const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+// ==========================================
+// NAVIGATION GUARD (RBAC & AUTHENTICATION)
+// ==========================================
+router.beforeEach((to, _from, next) => {
+  // Unit testlarda Pinia faol bo'lmasa xavfsiz o'tkazib yuborish
+  if (!getActivePinia()) {
+    return next();
+  }
+
+  const authStore = useAuthStore();
+
+  // Sessiyani xotiradan tiklashga urinish
+  if (!authStore.isAuthenticated) {
+    authStore.restoreSession();
+  }
+
+  const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth);
+  const guestOnly = to.matched.some((record) => record.meta?.guestOnly);
+  const requiredRoles = to.meta?.roles as UserRole[] | undefined;
+
+  // 1. Agar sahifa faqat mehmonlar uchun bo'lsa (masalan: /login) va foydalanuvchi allaqachon kirgan bo'lsa
+  if (guestOnly && authStore.isAuthenticated) {
+    if (authStore.currentRole === 'SUPER_ADMIN') {
+      return next('/regional/oversight');
+    } else if (authStore.currentRole === 'SCHOOL_ADMIN') {
+      return next(`/t/${authStore.currentTenantSlug || 'al-xorazmiy'}/admin`);
+    } else {
+      return next(`/t/${authStore.currentTenantSlug || 'al-xorazmiy'}/teacher/dashboard`);
+    }
+  }
+
+  // 2. Agar sahifa autentifikatsiya talab qilsa va foydalanuvchi tizimga kirmagan bo'lsa
+  if (requiresAuth && !authStore.isAuthenticated) {
+    return next({
+      path: '/login',
+      query: { redirect: to.fullPath },
+    });
+  }
+
+  // 3. Agar maxsus ruxsatlar (roles) talab qilinsa va foydalanuvchi roli yetarli bo'lmasa
+  if (requiresAuth && requiredRoles && requiredRoles.length > 0) {
+    if (!authStore.hasRole(requiredRoles)) {
+      if (authStore.currentRole === 'TEACHER') {
+        return next(`/t/${authStore.currentTenantSlug || 'al-xorazmiy'}/teacher/dashboard`);
+      } else if (authStore.currentRole === 'SCHOOL_ADMIN') {
+        return next(`/t/${authStore.currentTenantSlug || 'al-xorazmiy'}/admin`);
+      } else {
+        return next('/login');
+      }
+    }
+  }
+
+  next();
 });
