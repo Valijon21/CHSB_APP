@@ -7,6 +7,8 @@ import CertificateModal from '../src/features/results/CertificateModal.vue';
 import NotFoundView from '../src/shared/components/NotFoundView.vue';
 import { useAssessmentStore } from '../src/features/assessment/assessmentStore';
 import { useTenantStore } from '../src/features/tenant-context/tenantStore';
+import type { AssessmentResult } from '../src/entities/result/model';
+import type { SubmissionReceipt } from '../src/entities/attempt/model';
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({
@@ -20,6 +22,34 @@ vi.mock('vue-router', () => ({
   }),
 }));
 
+const mockResult: AssessmentResult = {
+  attemptId: 'att-ax-101-q1',
+  tenantId: 'tenant-al-xorazmiy',
+  assessmentId: 'chsb-inf-11-q1',
+  studentName: 'Alisher Zokirov',
+  className: '11-A',
+  rosterRecordId: 'rec-ax-101',
+  score: 37.5,
+  maxScore: 40,
+  percentage: 93.8,
+  status: 'verified',
+  submittedAt: new Date().toISOString(),
+  verifiedByTeacher: true,
+  answeredQuestions: 15,
+  totalQuestions: 15,
+};
+
+const mockReceipt: SubmissionReceipt = {
+  attemptId: 'att-ax-101-q1',
+  tenantId: 'tenant-al-xorazmiy',
+  assessmentId: 'chsb-inf-11-q1',
+  rosterRecordId: 'rec-ax-101',
+  status: 'received',
+  submittedAt: new Date().toISOString(),
+  message: 'Topshirildi',
+  receiptCode: 'RCP-12345',
+};
+
 describe('TASK-UIX.7: Results, Receipt, Certificate & 404 Dark Mode Suite', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -27,13 +57,7 @@ describe('TASK-UIX.7: Results, Receipt, Certificate & 404 Dark Mode Suite', () =
 
   it('renders SubmissionReceiptView with dark mode styles and receipt data', async () => {
     const assessmentStore = useAssessmentStore();
-    assessmentStore.receipt = {
-      attemptId: 'att-ax-101-q1',
-      assessmentId: 'chsb-inf-11-q1',
-      studentName: 'Alisher Zokirov',
-      submittedAt: new Date().toISOString(),
-      integrityHash: 'hash-12345',
-    };
+    assessmentStore.receipt = mockReceipt;
 
     const wrapper = mount(SubmissionReceiptView);
     await flushPromises();
@@ -48,19 +72,7 @@ describe('TASK-UIX.7: Results, Receipt, Certificate & 404 Dark Mode Suite', () =
     const assessmentStore = useAssessmentStore();
     await tenantStore.loadTenant('al-xorazmiy');
 
-    assessmentStore.result = {
-      attemptId: 'att-ax-101-q1',
-      studentName: 'Alisher Zokirov',
-      className: '11-A',
-      rosterRecordId: 'rec-ax-101',
-      score: 37.5,
-      maxScore: 40,
-      percentage: 93.8,
-      submittedAt: new Date().toISOString(),
-      verifiedByTeacher: true,
-      answeredQuestions: 15,
-      totalQuestions: 15,
-    };
+    assessmentStore.result = mockResult;
 
     const wrapper = mount(AssessmentResultView, {
       global: {
@@ -78,20 +90,6 @@ describe('TASK-UIX.7: Results, Receipt, Certificate & 404 Dark Mode Suite', () =
   });
 
   it('renders CertificateModal with accessible print and close buttons', () => {
-    const mockResult = {
-      attemptId: 'att-ax-101-q1',
-      studentName: 'Alisher Zokirov',
-      className: '11-A',
-      rosterRecordId: 'rec-ax-101',
-      score: 37.5,
-      maxScore: 40,
-      percentage: 93.8,
-      submittedAt: new Date().toISOString(),
-      verifiedByTeacher: true,
-      answeredQuestions: 15,
-      totalQuestions: 15,
-    };
-
     const wrapper = mount(CertificateModal, {
       props: {
         isOpen: true,
