@@ -23,9 +23,10 @@ export const LoginCredentialsSchema = z.object({
   password: z
     .string()
     .min(4, "Parol kamida 4 ta belgidan iborat bo'lishi kerak"),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean().optional().default(false),
 });
 
+export type LoginCredentialsInput = z.input<typeof LoginCredentialsSchema>;
 export type LoginCredentials = z.infer<typeof LoginCredentialsSchema>;
 
 // ==========================================
