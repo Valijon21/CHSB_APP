@@ -67,7 +67,8 @@ function handlePrint() {
             <button
               type="button"
               @click="handlePrint"
-              class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs"
+              aria-label="Sertifikatni chop etish yoki PDF sifatida saqlash"
+              class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs min-h-[34px]"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -78,7 +79,8 @@ function handlePrint() {
             <button
               type="button"
               @click="emit('close')"
-              class="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
+              aria-label="Sertifikat modal oynasini yopish"
+              class="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer min-h-[34px] flex items-center justify-center"
               title="Yopish"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
