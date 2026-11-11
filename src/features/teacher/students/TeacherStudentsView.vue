@@ -20,6 +20,13 @@ const statusFilter = ref<'all' | 'eligible' | 'inactive'>('all');
 const isCreateModalOpen = ref(false);
 const isBulkModalOpen = ref(false);
 
+const displayedRoster = computed(() => {
+  return teacherStore.filteredRoster.filter((stu) => {
+    if (statusFilter.value === 'all') return true;
+    return stu.status === statusFilter.value;
+  });
+});
+
 const availableClassRecords = computed<ClassGroupRecord[]>(() => {
   return teacherStore.classes.map((c) => ({
     id: c.id,
@@ -174,7 +181,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
       </div>
 
       <div class="text-xs font-semibold text-slate-500 dark:text-slate-400">
-        Jami: {{ teacherStore.filteredRoster.length }} nafar o'quvchi
+        Jami: {{ displayedRoster.length }} nafar o'quvchi
       </div>
     </div>
 
@@ -201,7 +208,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700/80">
             <tr
-              v-for="(stu, idx) in teacherStore.filteredRoster"
+              v-for="(stu, idx) in displayedRoster"
               :key="stu.id"
               class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
             >
@@ -242,7 +249,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
       </div>
 
       <!-- Empty state if search finds nothing -->
-      <div v-if="teacherStore.filteredRoster.length === 0" class="text-center py-10 text-xs text-slate-500 dark:text-slate-400">
+      <div v-if="displayedRoster.length === 0" class="text-center py-10 text-xs text-slate-500 dark:text-slate-400">
         Qidiruv bo'yicha hech qanday o'quvchi topilmadi.
       </div>
     </div>

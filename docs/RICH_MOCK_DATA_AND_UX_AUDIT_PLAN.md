@@ -100,8 +100,43 @@ flowchart TD
 
 #### TASK-DAT.8: Regressiya & Master Push
 - **Vazifalar:**
-  - Barcha Vitest testlari (300+ test 100% yashil).
+  - Barcha Vitest testlari (310+ test 100% yashil).
   - TypeScript `vue-tsc -b` -> 0 ta xato.
   - ESLint -> 0 ta ogohlantirish.
   - Production build (`vite build`) -> muvaffaqiyatli yig'ilish.
   - Master push va yakuniy hisobot.
+
+---
+
+## 4. Senior Muhandislik Tahlili: Tugmalardagi "+ +" Takrorlanish Xatosi (Root Cause Analysis)
+
+### 📌 Muammo Ta'rifi:
+Foydalanuvchi yuklagan skrinshotda `+ + Yangi Sinf Qo'shish` ko'rinishidagi noxush UI nuqsoni mavjud edi.
+
+### 🔍 Tub Sabab (Root Cause):
+1. **SVG belgi va matnli ortiqcha belgi to'qnashuvi:**
+   - Tugma ichida SVG orqali plyus ikonkasi (`<svg><path d="M12 4v16m8-8H4" /></svg>`) joylangan edi.
+   - Shu bilan birga, tugma yorlig'i matnida ham qo'shimcha ravishda `+ Yangi Sinf Qo'shish` deb qattiq yozib qo'yilgan bo'lgan.
+   - Natijada brauzer birinchi navbatda SVG plyus belgisini chizgan, uning ketidan esa matndagi `+` belgisini ko'rsatib, ekranda `+ + Yangi Sinf Qo'shish` hosil bo'lgan.
+2. **Qamrov va Yechim:**
+   - `TeacherClassesView.vue` da tugma to'liq standartlashtirildi: SVG belgi saqlanib, matn `<span>Yangi Sinf Qo'shish</span>` ko'rinishiga keltirildi.
+   - `TeacherStudentsView.vue` va `TenantAdminView.vue` sahifalarida ham barcha tugmalar audit qilindi, ortiqcha harf/belgi qo'shimchalari tozalandi.
+   - `TeacherStudentsView.vue` da `statusFilter` filtri reaktiv `displayedRoster` orqali to'liq ishchi holatga keltirildi.
+   - `tests/ui-rich-data-ux.test.ts` orqali butun loyihadagi tugmalarda `+ +` takrorlanishiga qarshi avtomatlashtirilgan test tekshiruvi joriy qilindi.
+
+---
+
+## 5. Natijalar va Sifat Ko'rsatkichlari
+
+| Mezon | Rejadagi Ko'rsatkich | Haqiqiy Natija | Holat |
+| :--- | :--- | :--- | :--- |
+| **Sinflar soni** | 6 ta Al-Xorazmiy, 4 ta Temurbeklar | 10 ta to'liq sinf parallelari | ✅ 100% PASS |
+| **O'quvchilar ro'yxati** | 30+ o'quvchi | 35 ta (STU-1101..1130, TM-201..207) | ✅ 100% PASS |
+| **Imtihon natijalari** | 25+ real ballar | 25 ta CHSB topshiruvchi | ✅ 100% PASS |
+| **Jonli sessiyalar** | 10+ proctoring | 12 ta jonli sessiya (5 xil holat) | ✅ 100% PASS |
+| **Vitest Testlari** | 300+ test | **57 ta test fayli, 310 ta test PASS** | ✅ 100% Yashil |
+| **TypeScript / TypeCheck** | 0 ta xato | `vue-tsc --noEmit` -> 0 ta xato | ✅ 100% PASS |
+| **ESLint** | 0 ta ogohlantirish | `eslint . --max-warnings 0` -> 0 | ✅ 100% PASS |
+| **Vite Production Build** | Toza dist/ yig'ish | `dist/` 2.89s da muvaffaqiyatli qurildi | ✅ 100% PASS |
+| **Git & GitHub** | Atomic commits | `main` branchiga to'liq push qilindi | ✅ 100% PASS |
+

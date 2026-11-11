@@ -216,3 +216,4 @@ function getBarWidth() {
     </div>
   </div>
 </template>
+

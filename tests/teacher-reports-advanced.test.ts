@@ -124,3 +124,4 @@ describe('TASK-REP: Official Reporting Suite & Dossier Templates', () => {
     expect(wrapper.find('.max-w-4xl').exists()).toBe(true);
   });
 });
+
