@@ -77,3 +77,4 @@ describe('TASK-ARC.1..3: Dynamic Route-Level Code Splitting & Chunk Architecture
     expect(router.currentRoute.value.name).toBe('AssessmentAttempt');
   });
 });
+

@@ -186,7 +186,29 @@ export const useTeacherStore = defineStore('teacher', () => {
   }
 
   function addClass(newCls: ClassGroup): void {
-    classes.value.push(newCls);
+    const existing = classes.value.find((c) => c.id === newCls.id);
+    if (!existing) {
+      classes.value.push(newCls);
+    }
+  }
+
+  function addRosterRecord(record: StudentRosterRecord): void {
+    const existingIdx = roster.value.findIndex((r) => r.id === record.id || r.rosterCode === record.rosterCode);
+    if (existingIdx !== -1) {
+      roster.value[existingIdx] = record;
+    } else {
+      roster.value.push(record);
+    }
+  }
+
+  function addRosterRecords(records: StudentRosterRecord[]): void {
+    for (const rec of records) {
+      addRosterRecord(rec);
+    }
+  }
+
+  function removeRosterRecord(id: string): void {
+    roster.value = roster.value.filter((r) => r.id !== id && r.rosterCode !== id);
   }
 
   return {
@@ -194,6 +216,9 @@ export const useTeacherStore = defineStore('teacher', () => {
     classes,
     addClass,
     roster,
+    addRosterRecord,
+    addRosterRecords,
+    removeRosterRecord,
     selectedClassId,
     studentSearchQuery,
     assessments,

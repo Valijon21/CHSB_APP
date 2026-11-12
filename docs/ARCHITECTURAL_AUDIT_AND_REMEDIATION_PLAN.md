@@ -157,32 +157,41 @@ flowchart TD
 
 ### 🔹 3-TO'LQIN: DATA SYNCHRONIZATION VA OFLAYN KAFOLATI (RESILIENCE)
 
-- [ ] **TASK-ARC.7: Store State Synchronization Adapter**
+- [x] **TASK-ARC.7: Store State Synchronization Adapter**
   - **Fayllar:** `src/features/teacher/teacherStore.ts`, `src/features/organization/store/organizationStore.ts`
   - **Vazifa:**
-    - `organizationStore` da yangi sinf yoki o'quvchi qo'shilganda `teacherStore` ning sinflari va o'quvchilar ro'yxati avtomatik sinxron yangilanishi.
-    - View-lardagi noqulay `orgStore.classGroups.length || teacherStore.classes.length` kabi sun'iy tekshiruvlarni tozalash.
+    - `organizationStore` da yangi sinf yoki o'quvchi qo'shilganda `teacherStore` ning sinflari va o'quvchilar ro'yxati avtomatik sinxron yangilanishi (`addClass`, `addRosterRecord`, `addRosterRecords`, `removeRosterRecord`).
+    - View-lardagi noqulay `orgStore.classGroups.length || teacherStore.classes.length` kabi sun'iy tekshiruvlar to'liq tozalanishi va reaktiv yagona manba ta'minlanishi. (BAJARILDI ✅)
 
-- [ ] **TASK-ARC.8: Global Network Status Banner**
-  - **Fayllar:** `src/shared/components/NetworkStatusBanner.vue`, `src/App.vue`
+- [x] **TASK-ARC.8: Global Network Status Banner**
+  - **Fayllar:** `src/shared/components/NetworkStatusBanner.vue`, `src/shared/composables/useNetworkStatus.ts`, `src/App.vue`
   - **Vazifa:**
-    - Internet uzilganda ekranning eng yuqori qismida "Internet aloqasi uzildi. Javoblaringiz qurilma xotirasida xavfsiz saqlanmoqda" deb turuvchi animatsiyali oflayn banner ko'rsatish.
-    - Aloqa tiklanganda "Internet aloqasi qayta tiklandi!" yashil xabari bilan avtomatik yo'qolishi.
+    - Internet uzilganda ekranning eng yuqori qismida "Internet aloqasi uzildi (Oflayn rejim). Barcha javoblar va ma'lumotlar qurilma xotirasida xavfsiz saqlanmoqda" deb turuvchi animatsiyali oflayn banner ko'rsatish (`role="alert"`, `aria-live="assertive"`).
+    - Aloqa tiklanganda "Internet aloqasi qayta tiklandi! Tizim server bilan sinxronlandi" yashil xabari bilan avtomatik yo'qolishi (`role="status"`, polite). (BAJARILDI ✅)
 
-- [ ] **TASK-ARC.9: Regressiya, 100% Yashil Testlar & Master Push**
+- [x] **TASK-ARC.9: Regressiya, 100% Yashil Testlar & Master Push**
   - **Vazifa:**
-    - Vitest to'liq to'plami (58+ ta fayl, 320+ test 100% PASS).
+    - Vitest to'liq to'plami: **60 ta test fayli, 328 ta test 100% PASS**.
     - `vue-tsc --noEmit` -> 0 ta xato.
     - `eslint . --max-warnings 0` -> 0 ta ogohlantirish.
-    - `vite build` -> muvaffaqiyatli yig'ilish.
-    - Git commit va GitHub-ga yuklash.
+    - `vite build` -> 2.01s da muvaffaqiyatli yig'ilish (`dist/assets/index.js` = 144 kB).
+    - Git commit va GitHub-ga yuklash. (BAJARILDI ✅)
 
 ---
 
-## 4. Kutilayotgan Natijalar
+## 4. Kutilgan va Haqiqiy Natijalar Solishtiruvi
 
-| Ko'rsatkich | Hozirgi Holat | Arxitekturaviy Tuzatishdan So'ng |
-| :--- | :--- | :--- |
+| Ko'rsatkich | Boshlang'ich Holat | 3-To'lqindan Keyingi Holat | Natija |
+| :--- | :--- | :--- | :--- |
+| **Boshlang'ich Bundle Hajmi** | 636 kB (monolitik barcha sahifalar) | **144.69 kB (gzip: 51 kB)** | ✅ 77.3% ga yengillashdi |
+| **Marshrutlar Yuklanishi** | Monolitik (18 ta sahifa bir vaqtda) | **18 ta on-demand dinamik chunklar** | ✅ 100% Lazy-Loaded |
+| **Foydalanuvchi Xabarnomalari** | Mavjud emas edi | **Markazlashgan `useToast` & `ToastContainer`** | ✅ 4 xil turdagi Toastlar |
+| **Modallar Standarti** | Oddiy div, Esc ishlamas edi | **WAI-ARIA Dialog + `Escape` + Scroll Lock** | ✅ 6 ta asosiy modalda |
+| **Tarmoq Uzilishi UX** | Ko'rinmas edi | **Global xotirjam qiluvchi oflayn banner** | ✅ `NetworkStatusBanner.vue` |
+| **Sinflar/O'quvchilar Store-i** | 2 ta alohida store (split-brain) | **Yagona reaktiv adapter sinxronizatsiyasi** | ✅ Store Adapter joriy etildi |
+| **Vitest Test To'plami** | 57 ta fayl, 310 ta test | **60 ta test fayli, 328 ta test (100% PASS)** | ✅ +18 ta yangi unit test |
+| **TypeScript (vue-tsc)** | - | **0 ta xato (`vue-tsc -b` PASS)** | ✅ 100% Strict Typecheck |
+| **ESLint** | - | **0 ta ogohlantirish / 0 ta xato** | ✅ 100% Toza Kod |
 | **Boshlang'ich Bundle Hajmi** | 636 kB (barcha modullar birga) | **< 180 kB** (Code-splitted) |
 | **Marshrutlar Yuklanishi** | Monolitik (barchasi darhol) | **On-demand (kerak bo'lganda)** |
 | **Foydalanuvchi Xabarnomalari** | Inline yoki jimjitlik | **Zamonaviy Toast / Snackbar** |

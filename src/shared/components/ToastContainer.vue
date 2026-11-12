@@ -105,3 +105,4 @@ function getToastStyles(type: ToastType) {
     </transition-group>
   </div>
 </template>
+
