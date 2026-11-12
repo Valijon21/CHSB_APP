@@ -62,37 +62,11 @@ function handleClassFilter(e: Event) {
 
 async function handleCreateStudent(input: StudentInput) {
   const created = await orgStore.createStudent(input);
-  teacherStore.roster.push({
-    id: created.id,
-    tenantId: tenantStore.currentTenant?.tenantId || 'tenant-al-xorazmiy',
-    schoolId: input.schoolId,
-    classGroupId: input.classGroupId,
-    rosterCode: created.rosterCode,
-    firstName: created.firstName,
-    lastName: created.lastName,
-    middleName: created.middleName,
-    status: 'eligible',
-    availableAssessmentIds: [],
-  });
   toast.success(`${created.firstName} ${created.lastName} muvaffaqiyatli qo'shildi!`, "O'quvchi qo'shildi");
 }
 
 async function handleBulkImport(inputs: StudentInput[]) {
   const createdList = await orgStore.bulkImportStudents(inputs);
-  for (const created of createdList) {
-    teacherStore.roster.push({
-      id: created.id,
-      tenantId: tenantStore.currentTenant?.tenantId || 'tenant-al-xorazmiy',
-      schoolId: created.schoolId,
-      classGroupId: created.classGroupId,
-      rosterCode: created.rosterCode,
-      firstName: created.firstName,
-      lastName: created.lastName,
-      middleName: created.middleName,
-      status: 'eligible',
-      availableAssessmentIds: [],
-    });
-  }
   toast.success(`${createdList.length} nafar o'quvchi muvaffaqiyatli import qilindi!`, 'Ommaviy import');
 }
 </script>

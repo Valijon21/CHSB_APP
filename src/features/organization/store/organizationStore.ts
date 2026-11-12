@@ -11,6 +11,7 @@ import type {
   ClassGroupRecord,
 } from '../../../entities/organization/model';
 import { api } from '../../../shared/api';
+import { useTeacherStore } from '../../teacher/teacherStore';
 
 export const useOrganizationStore = defineStore('organization', () => {
   // State
@@ -180,6 +181,25 @@ export const useOrganizationStore = defineStore('organization', () => {
       }
       const sch = schools.value.find((s) => s.slug === input.tenantSlug);
       if (sch) sch.studentCount++;
+
+      try {
+        const teacherStore = useTeacherStore();
+        teacherStore.addRosterRecord({
+          id: created.id,
+          tenantId: created.tenantSlug,
+          schoolId: created.schoolId,
+          classGroupId: created.classGroupId,
+          rosterCode: created.rosterCode,
+          firstName: created.firstName,
+          lastName: created.lastName,
+          middleName: created.middleName,
+          status: created.status === 'eligible' ? 'eligible' : 'inactive',
+          availableAssessmentIds: [],
+        });
+      } catch {
+        // TeacherStore sync non-blocking fallback
+      }
+
       return created;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "O'quvchi qo'shishda xatolik yuz berdi.";
@@ -202,6 +222,26 @@ export const useOrganizationStore = defineStore('organization', () => {
       }
       const sch = activeSchool.value;
       if (sch) sch.studentCount += createdList.length;
+
+      try {
+        const teacherStore = useTeacherStore();
+        const records = createdList.map((st) => ({
+          id: st.id,
+          tenantId: st.tenantSlug,
+          schoolId: st.schoolId,
+          classGroupId: st.classGroupId,
+          rosterCode: st.rosterCode,
+          firstName: st.firstName,
+          lastName: st.lastName,
+          middleName: st.middleName,
+          status: st.status === 'eligible' ? ('eligible' as const) : ('inactive' as const),
+          availableAssessmentIds: [],
+        }));
+        teacherStore.addRosterRecords(records);
+      } catch {
+        // TeacherStore sync non-blocking fallback
+      }
+
       return createdList;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ommaviy yuklashda xatolik yuz berdi.";
@@ -220,6 +260,13 @@ export const useOrganizationStore = defineStore('organization', () => {
         students.value = students.value.filter((s) => s.id !== id);
         const sch = activeSchool.value;
         if (sch && sch.studentCount > 0) sch.studentCount--;
+
+        try {
+          const teacherStore = useTeacherStore();
+          teacherStore.removeRosterRecord(id);
+        } catch {
+          // TeacherStore sync non-blocking fallback
+        }
       }
     } finally {
       isLoading.value = false;
@@ -233,6 +280,22 @@ export const useOrganizationStore = defineStore('organization', () => {
       if (input.tenantSlug === activeSchoolSlug.value) {
         classGroups.value.push(created);
       }
+
+      try {
+        const teacherStore = useTeacherStore();
+        teacherStore.addClass({
+          id: created.id,
+          tenantId: created.tenantSlug,
+          schoolId: created.schoolId,
+          name: created.name,
+          grade: created.gradeLevel,
+          academicYear: created.academicYear,
+          studentCount: created.studentCount,
+        });
+      } catch {
+        // TeacherStore sync non-blocking fallback
+      }
+
       return created;
     } finally {
       isLoading.value = false;

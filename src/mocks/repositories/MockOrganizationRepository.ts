@@ -420,6 +420,7 @@ export class MockOrganizationRepository implements OrganizationRepository {
 
     const newStudent: StudentRecord = {
       ...input,
+      status: input.status ?? 'eligible',
       id: `stu-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       rosterCode,
       fullName,

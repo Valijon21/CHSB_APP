@@ -36,16 +36,7 @@ async function handleDeleteTeacher(id: string) {
 }
 
 async function handleCreateClass(input: ClassGroupInput) {
-  const created = await orgStore.createClassGroup(input);
-  teacherStore.addClass({
-    id: created.id,
-    tenantId: input.tenantSlug,
-    schoolId: input.schoolId,
-    name: created.name,
-    grade: created.gradeLevel,
-    academicYear: created.academicYear,
-    studentCount: 0,
-  });
+  await orgStore.createClassGroup(input);
 }
 </script>
 
