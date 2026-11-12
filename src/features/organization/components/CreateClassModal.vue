@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, toRef } from 'vue';
+import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import {
   ClassGroupInputSchema,
   type ClassGroupInput,
@@ -17,6 +18,8 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'create', input: ClassGroupInput): void;
 }>();
+
+useModalA11y(toRef(props, 'isOpen'), handleClose);
 
 const name = ref('');
 const gradeLevel = ref<number>(9);
@@ -81,6 +84,9 @@ function handleSubmit() {
 <template>
   <div
     v-if="isOpen"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="create-class-modal-title"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
     @click.self="handleClose"
   >
@@ -88,7 +94,7 @@ function handleSubmit() {
       <!-- Modal Header -->
       <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80">
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white">Yangi Sinf Guruhini Ochish</h3>
+          <h3 id="create-class-modal-title" class="text-base font-bold text-slate-900 dark:text-white">Yangi Sinf Guruhini Ochish</h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Maktabda yangi sinf parallelini shakllantirish va sinf rahbarini biriktirish
           </p>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, toRef } from 'vue';
+import { useModalA11y } from '../../../../shared/composables/useModalA11y';
 import type { LiveStudentSession, ProctorActionType } from '../../../../entities/proctor/model';
 
 const props = defineProps<{
@@ -15,6 +16,8 @@ const emit = defineEmits<{
   ): void;
   (e: 'close'): void;
 }>();
+
+useModalA11y(toRef(props, 'isOpen'), () => emit('close'));
 
 const selectedMinutes = ref(5);
 const warningText = ref('Iltimos, imtihon oynasidan chiqmang!');
@@ -74,12 +77,13 @@ function handleConfirm() {
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in"
     role="dialog"
     aria-modal="true"
+    aria-labelledby="proctor-action-modal-title"
   >
     <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
       <!-- Header -->
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700 mb-4">
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white">
+          <h3 id="proctor-action-modal-title" class="text-base font-bold text-slate-900 dark:text-white">
             {{ modalTitle }}
           </h3>
           <p class="text-xs text-slate-500 dark:text-slate-400">

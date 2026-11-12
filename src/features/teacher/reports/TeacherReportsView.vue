@@ -3,10 +3,12 @@ import { onMounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
+import { useToast } from '../../../shared/composables/useToast';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
 const teacherStore = useTeacherStore();
+const toast = useToast();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 
@@ -221,6 +223,8 @@ function downloadCSV() {
   });
   link.click();
   document.body.removeChild(link);
+
+  toast.success('CHSB rasmiy qaydnomasi Excel/CSV formatida yuklab olindi!', 'Eksport muvaffaqiyatli');
 
   setTimeout(() => {
     isDownloading.value = false;

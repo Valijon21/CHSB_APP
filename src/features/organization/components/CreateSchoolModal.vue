@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, toRef } from 'vue';
+import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import type { SchoolInput, SchoolType } from '../../../entities/organization/model';
 
-defineProps<{
+const props = defineProps<{
   isOpen: boolean;
 }>();
 
@@ -10,6 +11,13 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'create', input: SchoolInput): void;
 }>();
+
+function handleClose() {
+  resetForm();
+  emit('close');
+}
+
+useModalA11y(toRef(props, 'isOpen'), handleClose);
 
 const DISTRICTS = [
   { id: 'dist-urganch-shahar', name: 'Urganch shahri' },
@@ -106,6 +114,9 @@ function resetForm() {
 <template>
   <div
     v-if="isOpen"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="create-school-modal-title"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
   >
     <div
@@ -113,7 +124,7 @@ function resetForm() {
     >
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h3 id="create-school-modal-title" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <svg class="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
@@ -236,7 +247,7 @@ function resetForm() {
         <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
           <button
             type="button"
-            @click="$emit('close')"
+            @click="handleClose"
             class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
           >
             Bekor qilish

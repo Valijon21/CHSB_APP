@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, toRef } from 'vue';
+import { useModalA11y } from '../../shared/composables/useModalA11y';
 import type { AssessmentResult } from '../../entities/result/model';
 import QrCodeRenderer from '../../shared/components/QrCodeRenderer.vue';
 
@@ -12,6 +13,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void;
 }>();
+
+useModalA11y(toRef(props, 'isOpen'), () => emit('close'));
 
 const certificateSerial = computed(() => {
   const cleanId = props.result.attemptId.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase();
@@ -45,7 +48,7 @@ function handlePrint() {
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="certificate-modal-title">
     <!-- Backdrop (hidden on print) -->
     <div
       class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs transition-opacity print:hidden"
@@ -58,7 +61,7 @@ function handlePrint() {
         <div class="bg-slate-900 text-white px-6 py-3.5 flex items-center justify-between print:hidden">
           <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-            <span class="text-xs sm:text-sm font-semibold tracking-wide">
+            <span id="certificate-modal-title" class="text-xs sm:text-sm font-semibold tracking-wide">
               Rasmiy A4 Sertifikat Ko'rinishi
             </span>
           </div>

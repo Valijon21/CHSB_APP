@@ -126,14 +126,14 @@ flowchart TD
 
 ### 🔹 2-TO'LQIN: TOAST XABARNOMALARI VA MODALLAR A11Y (UX HARDENING)
 
-- [ ] **TASK-ARC.4: Global Toast Tizimi (`useToast` & `ToastContainer.vue`)**
+- [x] **TASK-ARC.4: Global Toast Tizimi (`useToast` & `ToastContainer.vue`)**
   - **Fayllar:** `src/shared/composables/useToast.ts`, `src/shared/components/ToastContainer.vue`, `src/App.vue`
   - **Vazifa:**
     - `useToast()` orqali `toast.success()`, `toast.error()`, `toast.warning()`, `toast.info()` metodlarini taqdim etish.
     - 4 soniyalik avtomatik o'chish (auto-dismiss), qo'lda yopish tugmasi, Dark Mode va WCAG 2.1 AA `role="status"` / `aria-live="polite"` standartlari.
-    - Amallar bajarilganda (sinf yaratish, o'quvchi import qilish, CSV ko'chirib olish) toast bildirishnomasini ko'rsatish.
+    - Amallar bajarilganda (sinf yaratish, o'quvchi import qilish, CSV ko'chirib olish) toast bildirishnomasini ko'rsatish. (BAJARILDI ✅)
 
-- [ ] **TASK-ARC.5: Modal Dialog A11y & Escape Key Support (`useModalA11y`)**
+- [x] **TASK-ARC.5: Modal Dialog A11y & Escape Key Support (`useModalA11y`)**
   - **Fayllar:** 
     - `src/shared/composables/useModalA11y.ts`
     - `src/features/organization/components/CreateClassModal.vue`
@@ -142,14 +142,15 @@ flowchart TD
     - `src/features/organization/components/BulkStudentImportModal.vue`
     - `src/features/teacher/proctor/components/ProctorActionModal.vue`
     - `src/features/results/CertificateModal.vue`
+    - `src/features/organization/components/CreateSchoolModal.vue`
   - **Vazifa:**
     - Har bir modal ochilganda klaviaturadagi `Escape` tugmasi bosilishi bilan modalni yopish.
     - `role="dialog"`, `aria-modal="true"`, `aria-labelledby` semantik atributlarini o'rnatish.
-    - Modal ochilganda sahifaning asosiy qismi skroll bo'lishini to'xtatish (`overflow: hidden`).
+    - Modal ochilganda sahifaning asosiy qismi skroll bo'lishini to'xtatish (`overflow: hidden`). (BAJARILDI ✅)
 
-- [ ] **TASK-ARC.6: Toast & Modal A11y Sinov Testlari & Git Push**
+- [x] **TASK-ARC.6: Toast & Modal A11y Sinov Testlari & Git Push**
   - **Fayl:** `tests/toast-modal-a11y.test.ts`
-  - **Vazifa:** Toast xabarlari to'g'ri qo'shilishi va avtomatik o'chishi, modal `Esc` hodisasida `@close` ni chaqirishi va WAI-ARIA atributlari tekshirilishi.
+  - **Vazifa:** Toast xabarlari to'g'ri qo'shilishi va avtomatik o'chishi, modal `Esc` hodisasida `@close` ni chaqirishi va WAI-ARIA atributlari tekshirilishi (7 ta test PASS). (BAJARILDI ✅)
   - **Git Commit:** `feat(ux): implement global toast notification system and accessible modal dialogs with escape handler`
 
 ---

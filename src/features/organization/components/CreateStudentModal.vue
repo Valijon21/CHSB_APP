@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, toRef } from 'vue';
+import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import type { StudentInput, StudentGender } from '../../../entities/organization/model';
 import type { ClassGroupRecord } from '../../../entities/organization/model';
 
@@ -14,6 +15,13 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'create', input: StudentInput): void;
 }>();
+
+function handleClose() {
+  resetForm();
+  emit('close');
+}
+
+useModalA11y(toRef(props, 'isOpen'), handleClose);
 
 const firstName = ref('');
 const lastName = ref('');
@@ -81,6 +89,9 @@ function resetForm() {
 <template>
   <div
     v-if="isOpen"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="create-student-modal-title"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
   >
     <div
@@ -88,7 +99,7 @@ function resetForm() {
     >
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h3 id="create-student-modal-title" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <svg class="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
@@ -202,7 +213,7 @@ function resetForm() {
         <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
           <button
             type="button"
-            @click="$emit('close')"
+            @click="handleClose"
             class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
           >
             Bekor qilish

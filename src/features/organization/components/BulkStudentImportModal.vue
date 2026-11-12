@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, toRef } from 'vue';
+import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import type { StudentInput, StudentGender } from '../../../entities/organization/model';
 import type { ClassGroupRecord } from '../../../entities/organization/model';
 
@@ -14,6 +15,11 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'bulk-import', students: StudentInput[]): void;
 }>();
+
+useModalA11y(toRef(props, 'isOpen'), () => {
+  reset();
+  emit('close');
+});
 
 const selectedClassId = ref(props.availableClasses[0]?.id || '');
 const rawText = ref('');
@@ -117,6 +123,9 @@ function downloadSample() {
 <template>
   <div
     v-if="isOpen"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="bulk-student-import-modal-title"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
   >
     <div
@@ -124,7 +133,7 @@ function downloadSample() {
     >
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h3 id="bulk-student-import-modal-title" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <svg class="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
