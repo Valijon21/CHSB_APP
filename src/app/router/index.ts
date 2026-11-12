@@ -6,38 +6,10 @@ import StudentLayout from '../layouts/StudentLayout.vue';
 import ExamLayout from '../layouts/ExamLayout.vue';
 import StaffLayout from '../layouts/StaffLayout.vue';
 
-// Views - Student & Assessment
-import StudentEntryView from '../../features/student-admission/StudentEntryView.vue';
-import StudentVerifyView from '../../features/student-admission/StudentVerifyView.vue';
-import AssessmentInstructionsView from '../../features/assessment/AssessmentInstructionsView.vue';
-import AssessmentWorkspaceView from '../../features/assessment/AssessmentWorkspaceView.vue';
-import SubmissionReceiptView from '../../features/results/SubmissionReceiptView.vue';
-import AssessmentResultView from '../../features/results/AssessmentResultView.vue';
-
-// Views - Teacher Workspace
-import TeacherDashboardView from '../../features/teacher/dashboard/TeacherDashboardView.vue';
-import TeacherClassesView from '../../features/teacher/classes/TeacherClassesView.vue';
-import TeacherClassDetailView from '../../features/teacher/classes/TeacherClassDetailView.vue';
-import TeacherStudentsView from '../../features/teacher/students/TeacherStudentsView.vue';
-import TeacherStudentDetailView from '../../features/teacher/students/TeacherStudentDetailView.vue';
-import TeacherAssessmentsView from '../../features/teacher/assessments/TeacherAssessmentsView.vue';
-import TeacherAssessmentDetailView from '../../features/teacher/assessments/TeacherAssessmentDetailView.vue';
-import TeacherLiveRoomView from '../../features/teacher/proctor/TeacherLiveRoomView.vue';
-import EmaktabSyncView from '../../features/emaktab/views/EmaktabSyncView.vue';
-import TeacherResultsView from '../../features/teacher/results/TeacherResultsView.vue';
-import TeacherAnalyticsView from '../../features/teacher/analytics/TeacherAnalyticsView.vue';
-import TeacherReportsView from '../../features/teacher/reports/TeacherReportsView.vue';
-import TeacherProfileView from '../../features/teacher/profile/TeacherProfileView.vue';
-import RegionalOversightView from '../../features/regional-oversight/RegionalOversightView.vue';
-import SchoolDirectoryView from '../../features/organization/views/SchoolDirectoryView.vue';
-import LoginView from '../../features/auth/views/LoginView.vue';
+// Auth Store & Types
 import { useAuthStore } from '../../features/auth/store/authStore';
 import type { UserRole } from '../../features/auth/types';
 import { getActivePinia } from 'pinia';
-
-// Views - Tenant Admin & Shared
-import TenantAdminView from '../../features/tenant-admin/TenantAdminView.vue';
-import NotFoundView from '../../shared/components/NotFoundView.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -47,7 +19,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
-    component: LoginView,
+    component: () => import('../../features/auth/views/LoginView.vue'),
     meta: { guestOnly: true },
   },
   // Tenant Route Hierarchy
@@ -62,12 +34,12 @@ const routes: RouteRecordRaw[] = [
           {
             path: '',
             name: 'StudentEntry',
-            component: StudentEntryView,
+            component: () => import('../../features/student-admission/StudentEntryView.vue'),
           },
           {
             path: 'verify',
             name: 'StudentVerify',
-            component: StudentVerifyView,
+            component: () => import('../../features/student-admission/StudentVerifyView.vue'),
           },
         ],
       },
@@ -82,7 +54,7 @@ const routes: RouteRecordRaw[] = [
               {
                 path: '',
                 name: 'AssessmentInstructions',
-                component: AssessmentInstructionsView,
+                component: () => import('../../features/assessment/AssessmentInstructionsView.vue'),
               },
             ],
           },
@@ -93,7 +65,7 @@ const routes: RouteRecordRaw[] = [
               {
                 path: '',
                 name: 'AssessmentAttempt',
-                component: AssessmentWorkspaceView,
+                component: () => import('../../features/assessment/AssessmentWorkspaceView.vue'),
               },
             ],
           },
@@ -107,12 +79,12 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'receipt',
             name: 'SubmissionReceipt',
-            component: SubmissionReceiptView,
+            component: () => import('../../features/results/SubmissionReceiptView.vue'),
           },
           {
             path: 'result',
             name: 'AssessmentResult',
-            component: AssessmentResultView,
+            component: () => import('../../features/results/AssessmentResultView.vue'),
           },
         ],
       },
@@ -132,72 +104,72 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'dashboard',
             name: 'TeacherDashboard',
-            component: TeacherDashboardView,
+            component: () => import('../../features/teacher/dashboard/TeacherDashboardView.vue'),
           },
           {
             path: 'classes',
             name: 'TeacherClasses',
-            component: TeacherClassesView,
+            component: () => import('../../features/teacher/classes/TeacherClassesView.vue'),
           },
           {
             path: 'classes/:classId',
             name: 'TeacherClassDetail',
-            component: TeacherClassDetailView,
+            component: () => import('../../features/teacher/classes/TeacherClassDetailView.vue'),
           },
           {
             path: 'students',
             name: 'TeacherStudents',
-            component: TeacherStudentsView,
+            component: () => import('../../features/teacher/students/TeacherStudentsView.vue'),
           },
           {
             path: 'students/:studentId',
             name: 'TeacherStudentDetail',
-            component: TeacherStudentDetailView,
+            component: () => import('../../features/teacher/students/TeacherStudentDetailView.vue'),
           },
           {
             path: 'assessments',
             name: 'TeacherAssessments',
-            component: TeacherAssessmentsView,
+            component: () => import('../../features/teacher/assessments/TeacherAssessmentsView.vue'),
           },
           {
             path: 'assessments/:assessmentId',
             name: 'TeacherAssessmentDetail',
-            component: TeacherAssessmentDetailView,
+            component: () => import('../../features/teacher/assessments/TeacherAssessmentDetailView.vue'),
           },
           {
             path: 'assessments/:assessmentId/live',
             name: 'TeacherLiveRoom',
-            component: TeacherLiveRoomView,
+            component: () => import('../../features/teacher/proctor/TeacherLiveRoomView.vue'),
           },
           {
             path: 'assessments/:assessmentId/emaktab-sync',
             name: 'TeacherEmaktabSync',
-            component: EmaktabSyncView,
+            component: () => import('../../features/emaktab/views/EmaktabSyncView.vue'),
           },
           {
             path: 'results',
             name: 'TeacherResults',
-            component: TeacherResultsView,
+            component: () => import('../../features/teacher/results/TeacherResultsView.vue'),
           },
           {
             path: 'analytics',
             name: 'TeacherAnalytics',
-            component: TeacherAnalyticsView,
+            component: () => import('../../features/teacher/analytics/TeacherAnalyticsView.vue'),
           },
           {
             path: 'reports',
             name: 'TeacherReports',
-            component: TeacherReportsView,
+            component: () => import('../../features/teacher/reports/TeacherReportsView.vue'),
           },
           {
             path: 'profile',
             name: 'TeacherProfile',
-            component: TeacherProfileView,
+            component: () => import('../../features/teacher/profile/TeacherProfileView.vue'),
           },
           {
             path: 'regional-oversight',
             name: 'RegionalOversight',
-            component: RegionalOversightView,
+            component: () => import('../../features/regional-oversight/RegionalOversightView.vue'),
             meta: {
               requiresAuth: true,
               roles: ['SUPER_ADMIN'] as UserRole[],
@@ -217,7 +189,7 @@ const routes: RouteRecordRaw[] = [
           {
             path: '',
             name: 'TenantAdmin',
-            component: TenantAdminView,
+            component: () => import('../../features/tenant-admin/TenantAdminView.vue'),
           },
         ],
       },
@@ -235,7 +207,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/schools',
     name: 'SchoolDirectory',
-    component: SchoolDirectoryView,
+    component: () => import('../../features/organization/views/SchoolDirectoryView.vue'),
     meta: {
       requiresAuth: true,
       roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] as UserRole[],
@@ -245,7 +217,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: NotFoundView,
+    component: () => import('../../shared/components/NotFoundView.vue'),
   },
 ];
 
