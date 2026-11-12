@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
 import { useOrganizationStore } from '../../organization/store/organizationStore';
+import { useToast } from '../../../shared/composables/useToast';
 import CreateStudentModal from '../../organization/components/CreateStudentModal.vue';
 import BulkStudentImportModal from '../../organization/components/BulkStudentImportModal.vue';
 import type { StudentInput, ClassGroupRecord } from '../../../entities/organization/model';
@@ -12,6 +13,7 @@ const route = useRoute();
 const tenantStore = useTenantStore();
 const teacherStore = useTeacherStore();
 const orgStore = useOrganizationStore();
+const toast = useToast();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const searchInput = ref('');
@@ -72,6 +74,7 @@ async function handleCreateStudent(input: StudentInput) {
     status: 'eligible',
     availableAssessmentIds: [],
   });
+  toast.success(`${created.firstName} ${created.lastName} muvaffaqiyatli qo'shildi!`, "O'quvchi qo'shildi");
 }
 
 async function handleBulkImport(inputs: StudentInput[]) {
@@ -90,6 +93,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
       availableAssessmentIds: [],
     });
   }
+  toast.success(`${createdList.length} nafar o'quvchi muvaffaqiyatli import qilindi!`, 'Ommaviy import');
 }
 </script>
 
