@@ -1,5 +1,5 @@
-import type { AttemptRepository } from '../../shared/api/repositories/AttemptRepository';
-import type { AnswerDraft, AssessmentAttempt, SubmissionReceipt } from '../../entities/attempt/model';
+import type { AttemptRepository } from '@/shared/api/repositories/AttemptRepository';
+import type { AnswerDraft, AssessmentAttempt, SubmissionReceipt } from '@/entities/attempt/model';
 
 export class MockAttemptRepository implements AttemptRepository {
   private attempts: Map<string, AssessmentAttempt> = new Map();

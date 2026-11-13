@@ -1,5 +1,5 @@
-import type { TenantRepository } from '../../shared/api/repositories/TenantRepository';
-import type { Tenant, TenantPublicContext } from '../../entities/tenant/model';
+import type { TenantRepository } from '@/shared/api/repositories/TenantRepository';
+import type { Tenant, TenantPublicContext } from '@/entities/tenant/model';
 import { mockTenants, toTenantPublicContext } from '../fixtures/tenants';
 
 export class MockTenantRepository implements TenantRepository {

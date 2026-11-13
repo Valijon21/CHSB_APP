@@ -1,5 +1,5 @@
-import type { ResultRepository } from '../../shared/api/repositories/ResultRepository';
-import type { AssessmentResult } from '../../entities/result/model';
+import type { ResultRepository } from '@/shared/api/repositories/ResultRepository';
+import type { AssessmentResult } from '@/entities/result/model';
 
 export class MockResultRepository implements ResultRepository {
   private results: Map<string, AssessmentResult> = new Map();

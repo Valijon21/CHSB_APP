@@ -1,5 +1,5 @@
-import type { AssessmentRepository } from '../../shared/api/repositories/AssessmentRepository';
-import type { Assessment, AssessmentSummary } from '../../entities/assessment/model';
+import type { AssessmentRepository } from '@/shared/api/repositories/AssessmentRepository';
+import type { Assessment, AssessmentSummary } from '@/entities/assessment/model';
 import { mockAssessments } from '../fixtures/tenants';
 
 export class MockAssessmentRepository implements AssessmentRepository {

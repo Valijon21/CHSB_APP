@@ -32,6 +32,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    setupFiles: ['./tests/setupApiMock.ts'],
     include: ['tests/**/*.{test,spec}.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.agents/**'],
   },

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MockOrganizationRepository } from '../src/mocks/repositories/MockOrganizationRepository';
+import { MockOrganizationRepository } from './mocks/repositories/MockOrganizationRepository';
 
 describe('TASK-MS.2: MockOrganizationRepository (Multi-School & Users CRUD)', () => {
   let repo: MockOrganizationRepository;

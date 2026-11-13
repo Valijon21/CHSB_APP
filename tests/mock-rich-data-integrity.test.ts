@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { MockTeacherRepository } from '../src/mocks/repositories/MockTeacherRepository';
-import { MockOrganizationRepository } from '../src/mocks/repositories/MockOrganizationRepository';
+import { MockTeacherRepository } from './mocks/repositories/MockTeacherRepository';
+import { MockOrganizationRepository } from './mocks/repositories/MockOrganizationRepository';
 import { setActivePinia, createPinia } from 'pinia';
 import { useLiveProctorStore } from '../src/features/teacher/proctor/liveProctorStore';
 

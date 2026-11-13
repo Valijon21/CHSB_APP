@@ -1,4 +1,4 @@
-import type { Question, QuestionBlock, QuestionOption } from '../../entities/assessment/model';
+import type { Question, QuestionBlock, QuestionOption } from '@/entities/assessment/model';
 import rawQuestionsData from './raw_questions.json';
 
 interface RawQuestion {

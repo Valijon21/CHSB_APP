@@ -35,3 +35,12 @@ test-results
 .env.*
 !.env.example
 
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.hypothesis/
+backend/__pycache__/
+backend/tests/__pycache__/

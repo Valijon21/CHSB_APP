@@ -1,9 +1,9 @@
-import type { RosterRepository } from '../../shared/api/repositories/RosterRepository';
+import type { RosterRepository } from '@/shared/api/repositories/RosterRepository';
 import type {
   RosterLookupRequest,
   RosterLookupResult,
   StudentRosterRecord,
-} from '../../entities/roster/model';
+} from '@/entities/roster/model';
 import {
   mockTenants,
   mockSchools,

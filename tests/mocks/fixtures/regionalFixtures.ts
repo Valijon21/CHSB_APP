@@ -3,7 +3,7 @@ import type {
   SchoolRankingItem,
   IntegrityAnomaly,
   RegionalOverviewStats,
-} from '../../entities/regional/model';
+} from '@/entities/regional/model';
 
 export const mockDistricts: DistrictSummary[] = [
   {

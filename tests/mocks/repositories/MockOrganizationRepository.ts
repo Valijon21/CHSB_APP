@@ -1,4 +1,4 @@
-import type { OrganizationRepository } from '../../shared/api/repositories/OrganizationRepository';
+import type { OrganizationRepository } from '@/shared/api/repositories/OrganizationRepository';
 import type {
   SchoolInput,
   SchoolRecord,
@@ -8,7 +8,7 @@ import type {
   StudentRecord,
   ClassGroupInput,
   ClassGroupRecord,
-} from '../../entities/organization/model';
+} from '@/entities/organization/model';
 
 export class MockOrganizationRepository implements OrganizationRepository {
   private schools: SchoolRecord[] = [];

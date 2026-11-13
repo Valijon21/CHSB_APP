@@ -4,9 +4,9 @@ import { useTenantStore } from '../src/features/tenant-context/tenantStore';
 import { useStudentAdmissionStore } from '../src/features/student-admission/admissionStore';
 import { useAssessmentStore } from '../src/features/assessment/assessmentStore';
 import { useTeacherStore } from '../src/features/teacher/teacherStore';
-import rawQuestions from '../src/mocks/fixtures/raw_questions.json';
-import { chsbAssessmentQuestions } from '../src/mocks/fixtures/questions';
-import { mockTenants } from '../src/mocks/fixtures/tenants';
+import rawQuestions from './mocks/fixtures/raw_questions.json';
+import { chsbAssessmentQuestions } from './mocks/fixtures/questions';
+import { mockTenants } from './mocks/fixtures/tenants';
 
 describe('Phase 6 — Hardening, Security, E2E and Tenant Isolation Suite', () => {
   beforeEach(() => {
