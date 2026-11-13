@@ -101,3 +101,4 @@ async def get_regional_overview(db: Prisma = Depends(get_prisma)):
         "overallQualityRate": 78.4,
         "topPerformingDistrict": "Mirzo Ulug'bek tumani",
     }
+

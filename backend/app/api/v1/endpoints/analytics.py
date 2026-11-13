@@ -88,3 +88,4 @@ async def get_tenant_analytics(tenant_slug: str, db: Prisma = Depends(get_prisma
             {"order": 6, "cognitiveLevel": "(T)", "points": 2.5, "correctRate": 68},
         ],
     }
+

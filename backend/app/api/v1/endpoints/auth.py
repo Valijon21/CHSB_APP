@@ -122,3 +122,4 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
 @router.post("/logout")
 async def logout():
     return {"success": True, "message": "Tizimdan muvaffaqiyatli chiqildi."}
+

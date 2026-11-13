@@ -21,3 +21,4 @@ async def get_db():
         await db.connect()
     async with db.pool.acquire() as connection:
         yield connection
+

@@ -27,3 +27,4 @@ class AdmissionVerifyResponse(BaseModel):
     student: dict | None = None
     availableAssessmentIds: list[str] = []
     message: str | None = None
+
