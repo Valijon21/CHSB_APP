@@ -151,3 +151,4 @@ async def get_class_detail(class_id: str, db: Prisma = Depends(get_prisma)):
         "averageScore": average_score,
         "participationRate": participation_rate,
     }
+

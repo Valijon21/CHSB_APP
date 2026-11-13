@@ -116,3 +116,4 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
 async def delete_student(student_id: str, db: Prisma = Depends(get_prisma)):
     await db.student.delete(where={"id": student_id})
     return {"success": True, "message": "O'quvchi muvaffaqiyatli o'chirildi."}
+

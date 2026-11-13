@@ -87,3 +87,4 @@ async def generate_student_remediation(payload: StudentRemediationRequest):
         ],
         "pedagogicalAdvice": f"{payload.studentName} uchun nazariy bilimlarni amaliy dasturlash muhiti bilan bog'lash tavsiya etiladi.",
     }
+
