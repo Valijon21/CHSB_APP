@@ -1,8 +1,8 @@
-import type { TeacherRepository } from '../../shared/api/repositories/TeacherRepository';
-import type { ClassGroup } from '../../entities/class-group/model';
-import type { StudentRosterRecord } from '../../entities/roster/model';
-import type { AssessmentSummary } from '../../entities/assessment/model';
-import type { AssessmentResult } from '../../entities/result/model';
+import type { TeacherRepository } from '@/shared/api/repositories/TeacherRepository';
+import type { ClassGroup } from '@/entities/class-group/model';
+import type { StudentRosterRecord } from '@/entities/roster/model';
+import type { AssessmentSummary } from '@/entities/assessment/model';
+import type { AssessmentResult } from '@/entities/result/model';
 import type {
   TeacherProfile,
   ClassDetail,
@@ -10,7 +10,7 @@ import type {
   AssessmentDetail,
   AnalyticsData,
   ReportItem,
-} from '../../entities/teacher/model';
+} from '@/entities/teacher/model';
 import {
   mockClassGroups,
   mockRosterRecords,

@@ -1,10 +1,10 @@
-import type { RegionalRepository } from '../../shared/api/repositories/RegionalRepository';
+import type { RegionalRepository } from '@/shared/api/repositories/RegionalRepository';
 import type {
   DistrictSummary,
   SchoolRankingItem,
   IntegrityAnomaly,
   RegionalOverviewStats,
-} from '../../entities/regional/model';
+} from '@/entities/regional/model';
 import {
   mockDistricts,
   mockSchoolRankings,

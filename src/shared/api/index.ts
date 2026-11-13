@@ -7,14 +7,16 @@ import type { TeacherRepository } from './repositories/TeacherRepository';
 import type { RegionalRepository } from './repositories/RegionalRepository';
 import type { OrganizationRepository } from './repositories/OrganizationRepository';
 
-import { MockTenantRepository } from '../../mocks/repositories/MockTenantRepository';
-import { MockRosterRepository } from '../../mocks/repositories/MockRosterRepository';
-import { MockAssessmentRepository } from '../../mocks/repositories/MockAssessmentRepository';
-import { MockAttemptRepository } from '../../mocks/repositories/MockAttemptRepository';
-import { MockResultRepository } from '../../mocks/repositories/MockResultRepository';
-import { MockTeacherRepository } from '../../mocks/repositories/MockTeacherRepository';
-import { MockRegionalRepository } from '../../mocks/repositories/MockRegionalRepository';
-import { MockOrganizationRepository } from '../../mocks/repositories/MockOrganizationRepository';
+import {
+  RealTenantRepository,
+  RealRosterRepository,
+  RealAssessmentRepository,
+  RealAttemptRepository,
+  RealResultRepository,
+  RealTeacherRepository,
+  RealRegionalRepository,
+  RealOrganizationRepository,
+} from './realApi';
 
 export interface ApiServices {
   tenant: TenantRepository;
@@ -27,15 +29,14 @@ export interface ApiServices {
   organization: OrganizationRepository;
 }
 
-// In this frontend-only phase, instantiate mock repositories
+// Enterprise Real PostgreSQL 18 & FastAPI API Services (Mocks eliminated)
 export const api: ApiServices = {
-  tenant: new MockTenantRepository(),
-  roster: new MockRosterRepository(),
-  assessment: new MockAssessmentRepository(),
-  attempt: new MockAttemptRepository(),
-  result: new MockResultRepository(),
-  teacher: new MockTeacherRepository(),
-  regional: new MockRegionalRepository(),
-  organization: new MockOrganizationRepository(),
+  tenant: new RealTenantRepository(),
+  roster: new RealRosterRepository(),
+  assessment: new RealAssessmentRepository(),
+  attempt: new RealAttemptRepository(),
+  result: new RealResultRepository(),
+  teacher: new RealTeacherRepository(),
+  regional: new RealRegionalRepository(),
+  organization: new RealOrganizationRepository(),
 };
-

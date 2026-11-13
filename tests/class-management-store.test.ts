@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
-import { MockOrganizationRepository } from '../src/mocks/repositories/MockOrganizationRepository';
+import { MockOrganizationRepository } from './mocks/repositories/MockOrganizationRepository';
 import { useOrganizationStore } from '../src/features/organization/store/organizationStore';
 import { useTeacherStore } from '../src/features/teacher/teacherStore';
 import type { ClassGroupInput } from '../src/entities/organization/model';

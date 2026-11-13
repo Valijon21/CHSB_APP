@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { MockTenantRepository } from '../src/mocks/repositories/MockTenantRepository';
-import { MockRosterRepository } from '../src/mocks/repositories/MockRosterRepository';
-import { MockAssessmentRepository } from '../src/mocks/repositories/MockAssessmentRepository';
-import { MockAttemptRepository } from '../src/mocks/repositories/MockAttemptRepository';
-import { MockTeacherRepository } from '../src/mocks/repositories/MockTeacherRepository';
+import { MockTenantRepository } from './mocks/repositories/MockTenantRepository';
+import { MockRosterRepository } from './mocks/repositories/MockRosterRepository';
+import { MockAssessmentRepository } from './mocks/repositories/MockAssessmentRepository';
+import { MockAttemptRepository } from './mocks/repositories/MockAttemptRepository';
+import { MockTeacherRepository } from './mocks/repositories/MockTeacherRepository';
 
 describe('Mock Repositories and Tenant Isolation', () => {
   const tenantRepo = new MockTenantRepository();

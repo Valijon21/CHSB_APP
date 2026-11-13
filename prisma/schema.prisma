@@ -1,0 +1,204 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator client_py {
+  provider  = "prisma-client-py"
+  interface = "asyncio"
+}
+
+enum Role {
+  TEACHER
+  SCHOOL_ADMIN
+  REGIONAL_INSPECTOR
+  STUDENT
+}
+
+enum StudentStatus {
+  ELIGIBLE
+  INACTIVE
+  AMBIGUOUS
+}
+
+enum BloomLevel {
+  KNOWLEDGE
+  COMPREHENSION
+  APPLICATION
+  ANALYSIS
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  regionId  String   @map("region_id")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  schools     School[]
+  users       User[]
+  classGroups ClassGroup[]
+  students    Student[]
+
+  @@map("tenants")
+}
+
+model School {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  name         String
+  districtId   String   @map("district_id")
+  schoolType   String   @default("comprehensive") @map("school_type")
+  studentCount Int      @default(0) @map("student_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  classGroups ClassGroup[]
+  students    Student[]
+
+  @@map("schools")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("tenant_id")
+  username       String   @unique
+  email          String?
+  hashedPassword String   @map("hashed_password")
+  fullName       String   @map("full_name")
+  role           Role     @default(TEACHER)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model ClassGroup {
+  id           String   @id @default(uuid())
+  schoolId     String   @map("school_id")
+  tenantId     String   @map("tenant_id")
+  name         String
+  gradeLevel   Int      @map("grade_level")
+  shift        Int      @default(1)
+  academicYear String   @default("2026-2027") @map("academic_year")
+  studentCount Int      @default(0) @map("student_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  students Student[]
+
+  @@map("class_groups")
+}
+
+model Student {
+  id           String        @id @default(uuid())
+  schoolId     String        @map("school_id")
+  classGroupId String        @map("class_group_id")
+  tenantId     String        @map("tenant_id")
+  rosterCode   String        @unique @map("roster_code")
+  firstName    String        @map("first_name")
+  lastName     String        @map("last_name")
+  middleName   String?       @map("middle_name")
+  gender       String        @default("M")
+  birthDate    DateTime      @map("birth_date")
+  status       StudentStatus @default(ELIGIBLE)
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  school   School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classGroup ClassGroup        @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  tenant   Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  attempts AssessmentAttempt[]
+  results  AssessmentResult[]
+
+  @@map("students")
+}
+
+model Assessment {
+  id              String   @id @default(uuid())
+  code            String   @unique
+  title           String
+  subject         String
+  gradeLevel      Int      @map("grade_level")
+  durationMinutes Int      @default(45) @map("duration_minutes")
+  totalQuestions  Int      @default(15) @map("total_questions")
+  maxScore        Float    @default(40.0) @map("max_score")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  questions Question[]
+  attempts  AssessmentAttempt[]
+
+  @@map("assessments")
+}
+
+model Question {
+  id              String     @id @default(uuid())
+  assessmentId    String     @map("assessment_id")
+  questionNumber  Int        @map("question_number")
+  prompt          String
+  optionsJson     Json       @map("options_json")
+  correctOptionId String     @map("correct_option_id")
+  bloomLevel      BloomLevel @default(KNOWLEDGE) @map("bloom_level")
+  difficulty      String     @default("medium")
+  points          Float      @default(2.5)
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@map("questions")
+}
+
+model AssessmentAttempt {
+  id               String    @id @default(uuid())
+  assessmentId     String    @map("assessment_id")
+  studentId        String    @map("student_id")
+  startedAt        DateTime  @default(now()) @map("started_at")
+  submittedAt      DateTime? @map("submitted_at")
+  answersJson      Json      @default("{}") @map("answers_json")
+  timeSpentSeconds Int       @default(0) @map("time_spent_seconds")
+  status           String    @default("in_progress")
+
+  assessment Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student    Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  result     AssessmentResult?
+
+  @@map("assessment_attempts")
+}
+
+model AssessmentResult {
+  id          String   @id @default(uuid())
+  attemptId   String   @unique @map("attempt_id")
+  studentId   String   @map("student_id")
+  score       Float
+  maxScore    Float    @map("max_score")
+  percentage  Float
+  grade       String
+  status      String   @default("verified")
+  submittedAt DateTime @default(now()) @map("submitted_at")
+
+  attempt AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  student Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("assessment_results")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  action      String
+  detailsJson Json?    @map("details_json")
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+

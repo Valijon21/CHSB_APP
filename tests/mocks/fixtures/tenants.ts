@@ -1,8 +1,8 @@
-import type { Tenant, TenantPublicContext } from '../../entities/tenant/model';
-import type { School } from '../../entities/school/model';
-import type { ClassGroup } from '../../entities/class-group/model';
-import type { StudentRosterRecord } from '../../entities/roster/model';
-import type { Assessment } from '../../entities/assessment/model';
+import type { Tenant, TenantPublicContext } from '@/entities/tenant/model';
+import type { School } from '@/entities/school/model';
+import type { ClassGroup } from '@/entities/class-group/model';
+import type { StudentRosterRecord } from '@/entities/roster/model';
+import type { Assessment } from '@/entities/assessment/model';
 import { chsbAssessmentQuestions } from './questions';
 
 export const mockTenants: Tenant[] = [
