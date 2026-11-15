@@ -1,4 +1,4 @@
-import { PrismaClient, Role, StudentStatus, BloomLevel } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -78,7 +78,7 @@ async function main() {
         email: 'teacher@al-xorazmiy.uz',
         fullName: 'Dilmurod Ustoz',
         hashedPassword,
-        role: Role.TEACHER,
+        role: 'TEACHER',
         isActive: true,
       },
       {
@@ -88,7 +88,7 @@ async function main() {
         email: 'admin@al-xorazmiy.uz',
         fullName: 'Al-Xorazmiy Administrator',
         hashedPassword,
-        role: Role.SCHOOL_ADMIN,
+        role: 'SCHOOL_ADMIN',
         isActive: true,
       },
       {
@@ -98,7 +98,7 @@ async function main() {
         email: 'inspector@toshkent-xtb.uz',
         fullName: 'Shavkat Rahimov (ShHTB)',
         hashedPassword,
-        role: Role.REGIONAL_INSPECTOR,
+        role: 'REGIONAL_INSPECTOR',
         isActive: true,
       },
       {
@@ -108,7 +108,7 @@ async function main() {
         email: 'alisher@student.uz',
         fullName: 'Alisher Zokirov',
         hashedPassword,
-        role: Role.STUDENT,
+        role: 'STUDENT',
         isActive: true,
       },
     ],
@@ -146,30 +146,30 @@ async function main() {
   // 7. Create Students
   const studentsRaw = [
     // 11-A sinf
-    { id: 'rec-ax-101', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1101', firstName: 'Alisher', lastName: 'Zokirov', middleName: 'Bahrom o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-102', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1102', firstName: 'Madina', lastName: 'Rustamova', middleName: 'Ilhom qizi', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-103', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1103', firstName: 'Jasur', lastName: 'Bekmurodov', middleName: 'Olim o‘g‘li', status: StudentStatus.INACTIVE },
-    { id: 'rec-ax-104', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1104', firstName: 'Dilnoza', lastName: 'Karimova', middleName: 'Sobir qizi', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-105', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1105', firstName: 'Shaxzod', lastName: 'Rahimov', middleName: 'Murod o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-106', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1106', firstName: 'Nilufar', lastName: 'Qodirova', middleName: 'Farhod qizi', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-107', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1107', firstName: 'Bobur', lastName: 'Mirzayev', middleName: 'Akmal o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-108', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1108', firstName: 'Sevara', lastName: 'Mahmudova', middleName: 'Rustam qizi', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-109', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1109', firstName: 'Azizbek', lastName: 'Umarov', middleName: 'Shuhrat o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-110', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1110', firstName: 'Kamola', lastName: 'Yusupova', middleName: 'Doniyor qizi', status: StudentStatus.ELIGIBLE },
+    { id: 'rec-ax-101', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1101', firstName: 'Alisher', lastName: 'Zokirov', middleName: 'Bahrom o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-ax-102', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1102', firstName: 'Madina', lastName: 'Rustamova', middleName: 'Ilhom qizi', status: 'ELIGIBLE' },
+    { id: 'rec-ax-103', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1103', firstName: 'Jasur', lastName: 'Bekmurodov', middleName: 'Olim o‘g‘li', status: 'INACTIVE' },
+    { id: 'rec-ax-104', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1104', firstName: 'Dilnoza', lastName: 'Karimova', middleName: 'Sobir qizi', status: 'ELIGIBLE' },
+    { id: 'rec-ax-105', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1105', firstName: 'Shaxzod', lastName: 'Rahimov', middleName: 'Murod o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-ax-106', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1106', firstName: 'Nilufar', lastName: 'Qodirova', middleName: 'Farhod qizi', status: 'ELIGIBLE' },
+    { id: 'rec-ax-107', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1107', firstName: 'Bobur', lastName: 'Mirzayev', middleName: 'Akmal o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-ax-108', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1108', firstName: 'Sevara', lastName: 'Mahmudova', middleName: 'Rustam qizi', status: 'ELIGIBLE' },
+    { id: 'rec-ax-109', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1109', firstName: 'Azizbek', lastName: 'Umarov', middleName: 'Shuhrat o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-ax-110', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1110', firstName: 'Kamola', lastName: 'Yusupova', middleName: 'Doniyor qizi', status: 'ELIGIBLE' },
 
     // 11-B sinf
-    { id: 'rec-ax-111', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1111', firstName: 'Sardorbek', lastName: 'Aliyev', middleName: 'Mansur o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-112', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1112', firstName: 'Gulnoza', lastName: 'Xoliqova', middleName: 'Ulug‘bek qizi', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-113', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1113', firstName: 'Sanjarbek', lastName: 'Normatov', middleName: 'Qodir o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-114', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1114', firstName: 'Dildora', lastName: 'Tursunova', middleName: 'Bekzod qizi', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-ax-115', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1115', firstName: 'Farrux', lastName: 'Ergashev', middleName: 'Ravshan o‘g‘li', status: StudentStatus.ELIGIBLE },
+    { id: 'rec-ax-111', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1111', firstName: 'Sardorbek', lastName: 'Aliyev', middleName: 'Mansur o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-ax-112', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1112', firstName: 'Gulnoza', lastName: 'Xoliqova', middleName: 'Ulug‘bek qizi', status: 'ELIGIBLE' },
+    { id: 'rec-ax-113', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1113', firstName: 'Sanjarbek', lastName: 'Normatov', middleName: 'Qodir o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-ax-114', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1114', firstName: 'Dildora', lastName: 'Tursunova', middleName: 'Bekzod qizi', status: 'ELIGIBLE' },
+    { id: 'rec-ax-115', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1115', firstName: 'Farrux', lastName: 'Ergashev', middleName: 'Ravshan o‘g‘li', status: 'ELIGIBLE' },
 
     // Temurbeklar Maktabi
-    { id: 'rec-tm-201', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-201', firstName: 'Sardor', lastName: 'Rahimov', middleName: 'G‘ayrat o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-tm-202', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-202', firstName: 'Otabek', lastName: 'Boboyev', middleName: 'Mansur o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-tm-203', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-203', firstName: 'Dilshod', lastName: 'Karimov', middleName: 'Shavkat o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-tm-204', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-204', firstName: 'Sherzodbek', lastName: 'Mansurov', middleName: 'Nodir o‘g‘li', status: StudentStatus.ELIGIBLE },
-    { id: 'rec-tm-205', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g2', rosterCode: 'TM-205', firstName: 'Xurshid', lastName: 'Normurodov', middleName: 'Qobil o‘g‘li', status: StudentStatus.ELIGIBLE },
+    { id: 'rec-tm-201', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-201', firstName: 'Sardor', lastName: 'Rahimov', middleName: 'G‘ayrat o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-tm-202', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-202', firstName: 'Otabek', lastName: 'Boboyev', middleName: 'Mansur o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-tm-203', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-203', firstName: 'Dilshod', lastName: 'Karimov', middleName: 'Shavkat o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-tm-204', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-204', firstName: 'Sherzodbek', lastName: 'Mansurov', middleName: 'Nodir o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-tm-205', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g2', rosterCode: 'TM-205', firstName: 'Xurshid', lastName: 'Normurodov', middleName: 'Qobil o‘g‘li', status: 'ELIGIBLE' },
   ];
 
   for (const s of studentsRaw) {
@@ -205,21 +205,21 @@ async function main() {
 
   // 9. Create 15 Questions
   const bloomLevels = [
-    BloomLevel.KNOWLEDGE,
-    BloomLevel.KNOWLEDGE,
-    BloomLevel.COMPREHENSION,
-    BloomLevel.KNOWLEDGE,
-    BloomLevel.APPLICATION,
-    BloomLevel.KNOWLEDGE,
-    BloomLevel.COMPREHENSION,
-    BloomLevel.APPLICATION,
-    BloomLevel.ANALYSIS,
-    BloomLevel.COMPREHENSION,
-    BloomLevel.KNOWLEDGE,
-    BloomLevel.APPLICATION,
-    BloomLevel.ANALYSIS,
-    BloomLevel.COMPREHENSION,
-    BloomLevel.APPLICATION,
+    'KNOWLEDGE',
+    'KNOWLEDGE',
+    'COMPREHENSION',
+    'KNOWLEDGE',
+    'APPLICATION',
+    'KNOWLEDGE',
+    'COMPREHENSION',
+    'APPLICATION',
+    'ANALYSIS',
+    'COMPREHENSION',
+    'KNOWLEDGE',
+    'APPLICATION',
+    'ANALYSIS',
+    'COMPREHENSION',
+    'APPLICATION',
   ];
 
   for (let i = 1; i <= 15; i++) {
@@ -229,14 +229,14 @@ async function main() {
         assessmentId: assessment.id,
         questionNumber: i,
         prompt: `${i}-savol: Informatika va zamonaviy dasturlash asoslari bo'yicha test topshirig'i.`,
-        optionsJson: [
+        optionsJson: JSON.stringify([
           { id: 'opt-a', label: 'A', text: 'To\'g\'ri javob varianti' },
           { id: 'opt-b', label: 'B', text: 'Noto\'g\'ri chalg\'ituvchi variant 1' },
           { id: 'opt-c', label: 'C', text: 'Noto\'g\'ri chalg\'ituvchi variant 2' },
           { id: 'opt-d', label: 'D', text: 'Noto\'g\'ri chalg\'ituvchi variant 3' },
-        ],
+        ]),
         correctOptionId: 'opt-a',
-        bloomLevel: bloomLevels[i - 1] || BloomLevel.KNOWLEDGE,
+        bloomLevel: bloomLevels[i - 1] || 'KNOWLEDGE',
         difficulty: i > 10 ? 'hard' : i > 5 ? 'medium' : 'easy',
         points: 2.5,
       },
@@ -280,7 +280,7 @@ async function main() {
         studentId: res.stuId,
         status: 'submitted',
         timeSpentSeconds: 1800 + (idx * 30),
-        answersJson: { 'q-inf-11-1': 'opt-a', 'q-inf-11-2': 'opt-a' },
+        answersJson: JSON.stringify({ 'q-inf-11-1': 'opt-a', 'q-inf-11-2': 'opt-a' }),
       },
     });
 

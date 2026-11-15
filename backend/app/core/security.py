@@ -1,7 +1,8 @@
+from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 import bcrypt
-from jose import jwt
+import jwt
 from backend.app.core.config import settings
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

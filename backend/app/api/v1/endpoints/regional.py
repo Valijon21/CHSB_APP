@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma

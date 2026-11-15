@@ -15,6 +15,14 @@
     "test": "npm --prefix frontend run test",
     "test:frontend": "npm --prefix frontend run test",
     "test:watch": "npm --prefix frontend run test:watch",
-    "test:backend": "pytest backend/tests"
+    "test:backend": "pytest backend/tests",
+    "db:push": "npx prisma db push",
+    "db:generate": "npx prisma generate"
+  },
+  "devDependencies": {
+    "prisma": "^6.4.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.4.1"
   }
 }

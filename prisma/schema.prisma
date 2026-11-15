@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -10,26 +10,6 @@ generator client {
 generator client_py {
   provider  = "prisma-client-py"
   interface = "asyncio"
-}
-
-enum Role {
-  TEACHER
-  SCHOOL_ADMIN
-  REGIONAL_INSPECTOR
-  STUDENT
-}
-
-enum StudentStatus {
-  ELIGIBLE
-  INACTIVE
-  AMBIGUOUS
-}
-
-enum BloomLevel {
-  KNOWLEDGE
-  COMPREHENSION
-  APPLICATION
-  ANALYSIS
 }
 
 model Tenant {
@@ -71,7 +51,7 @@ model User {
   email          String?
   hashedPassword String   @map("hashed_password")
   fullName       String   @map("full_name")
-  role           Role     @default(TEACHER)
+  role           String   @default("TEACHER")
   isActive       Boolean  @default(true) @map("is_active")
   createdAt      DateTime @default(now()) @map("created_at")
 
@@ -100,24 +80,24 @@ model ClassGroup {
 }
 
 model Student {
-  id           String        @id @default(uuid())
-  schoolId     String        @map("school_id")
-  classGroupId String        @map("class_group_id")
-  tenantId     String        @map("tenant_id")
-  rosterCode   String        @unique @map("roster_code")
-  firstName    String        @map("first_name")
-  lastName     String        @map("last_name")
-  middleName   String?       @map("middle_name")
-  gender       String        @default("M")
-  birthDate    DateTime      @map("birth_date")
-  status       StudentStatus @default(ELIGIBLE)
-  createdAt    DateTime      @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  schoolId     String   @map("school_id")
+  classGroupId String   @map("class_group_id")
+  tenantId     String   @map("tenant_id")
+  rosterCode   String   @unique @map("roster_code")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  middleName   String?  @map("middle_name")
+  gender       String   @default("M")
+  birthDate    DateTime @map("birth_date")
+  status       String   @default("ELIGIBLE")
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  school   School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  classGroup ClassGroup        @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
-  tenant   Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  attempts AssessmentAttempt[]
-  results  AssessmentResult[]
+  school     School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classGroup ClassGroup          @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  attempts   AssessmentAttempt[]
+  results    AssessmentResult[]
 
   @@map("students")
 }
@@ -140,15 +120,15 @@ model Assessment {
 }
 
 model Question {
-  id              String     @id @default(uuid())
-  assessmentId    String     @map("assessment_id")
-  questionNumber  Int        @map("question_number")
+  id              String @id @default(uuid())
+  assessmentId    String @map("assessment_id")
+  questionNumber  Int    @map("question_number")
   prompt          String
-  optionsJson     Json       @map("options_json")
-  correctOptionId String     @map("correct_option_id")
-  bloomLevel      BloomLevel @default(KNOWLEDGE) @map("bloom_level")
-  difficulty      String     @default("medium")
-  points          Float      @default(2.5)
+  optionsJson     String @map("options_json")
+  correctOptionId String @map("correct_option_id")
+  bloomLevel      String @default("KNOWLEDGE") @map("bloom_level")
+  difficulty      String @default("medium")
+  points          Float  @default(2.5)
 
   assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
 
@@ -161,7 +141,7 @@ model AssessmentAttempt {
   studentId        String    @map("student_id")
   startedAt        DateTime  @default(now()) @map("started_at")
   submittedAt      DateTime? @map("submitted_at")
-  answersJson      Json      @default("{}") @map("answers_json")
+  answersJson      String    @default("{}") @map("answers_json")
   timeSpentSeconds Int       @default(0) @map("time_spent_seconds")
   status           String    @default("in_progress")
 
@@ -193,7 +173,7 @@ model AuditLog {
   id          String   @id @default(uuid())
   userId      String?  @map("user_id")
   action      String
-  detailsJson Json?    @map("details_json")
+  detailsJson String?  @map("details_json")
   ipAddress   String?  @map("ip_address")
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -201,4 +181,3 @@ model AuditLog {
 
   @@map("audit_logs")
 }
-

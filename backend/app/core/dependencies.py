@@ -1,7 +1,8 @@
+from __future__ import annotations
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import jwt
 from backend.app.core.config import settings
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
@@ -25,7 +26,7 @@ async def get_current_user(
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except JWTError:
+    except jwt.PyJWTError:
         raise credentials_exception
 
     user = await db.user.find_unique(where={"username": username})

@@ -1,5 +1,10 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Root directory of the repository
+BASE_DIR = Path(__file__).resolve().parents[3]
+DEFAULT_DB_FILE = BASE_DIR / "prisma" / "dev.db"
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "CHSB Assessment Platform API"
@@ -8,7 +13,7 @@ class Settings(BaseSettings):
     
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
-        "postgresql://postgres@localhost:5432/chsb_db?schema=public"
+        f"file:{DEFAULT_DB_FILE}"
     )
     
     JWT_SECRET: str = os.getenv("JWT_SECRET", "chsb-super-secure-jwt-key-2026-production")

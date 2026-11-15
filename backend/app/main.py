@@ -7,11 +7,23 @@ from backend.app.db.prisma import prisma
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Connecting Prisma Client to PostgreSQL 18...")
+    print("🚀 Connecting Prisma Client to Database...")
     if not prisma.is_connected():
         await prisma.connect()
+
+    # Self-bootstrapping / auto-seed check: if DB is fresh, automatically populate test data!
+    try:
+        tenant_count = await prisma.tenant.count()
+        if tenant_count == 0:
+            print("🌱 Database is empty! Automatically bootstrapping initial data...")
+            from backend.app.db.seed import auto_seed_db
+            await auto_seed_db(prisma)
+            print("✅ Database successfully bootstrapped!")
+    except Exception as e:
+        print(f"⚠️ Auto-seed bootstrap warning: {e}")
+
     yield
-    print("🛑 Disconnecting Prisma Client from PostgreSQL...")
+    print("🛑 Disconnecting Prisma Client...")
     if prisma.is_connected():
         await prisma.disconnect()
 
@@ -36,7 +48,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 async def health_check():
     return {
         "status": "healthy",
-        "database": "postgresql-18",
+        "database": "sqlite-prisma",
         "orm": "prisma-client-py",
         "version": settings.VERSION,
     }
@@ -48,4 +60,3 @@ async def root():
         "docs": "/docs",
         "health": "/health",
     }
-
