@@ -185,9 +185,15 @@ python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ---
 
 ### 4-Qadam: Vue 3 Frontendni Ishga Tushirish
-Yangi terminal oynasida:
+Ildizdan (root) yoki `frontend/` ichidan:
 ```bash
+# Ildiz katalogidan:
 npm run dev
+# yoki
+npm run dev:frontend
+
+# Yoki to'g'ridan-to'g'ri frontend papkasidan:
+cd frontend && npm run dev
 ```
 * Frontend Ilova: [http://localhost:5173](http://localhost:5173)
 
@@ -257,22 +263,26 @@ CHSB_APP/
 │   │   └── main.py               # FastAPI ilovasi va CORS sozlamalari
 │   ├── tests/                    # Pytest backend test to'plami
 │   └── requirements.txt          # Python bog'liqliklari
-├── prisma/
-│   ├── schema.prisma             # PostgreSQL deklarativ 10-model relyatsion sxemasi
+├── frontend/                      # Vue 3 Frontend Ilovasi (Alohida va Mustaqil)
+│   ├── src/                      # Feature-Sliced Design (app, entities, features, shared)
+│   │   ├── app/                  # Router, provayderlar va global sozlamalar
+│   │   ├── entities/             # Domen modellari va Zod sxemalari
+│   │   ├── features/             # Biznes mantiq (auth, admission, teacher, live...)
+│   │   └── shared/               # HTTP Client, umumiy UI komponentlar, xizmatlar
+│   ├── public/                   # Statik fayllar (favicon, rasmlar)
+│   ├── tests/                    # Vitest frontend unit va integratsiya testlari (62 ta fayl)
+│   ├── index.html                # Single Page Application HTML kirish nuqtasi
+│   ├── vite.config.ts            # Vite va Vitest konfiguratsiyasi
+│   ├── tsconfig.json             # TypeScript konfiguratsiyalari
+│   ├── eslint.config.js          # ESLint kod sifati qoidalari
+│   └── package.json              # Frontend kutubxonalari va skriptlari
+├── prisma/                        # Yagona Relyatsion Sxema (Shared DB Layer)
+│   ├── schema.prisma             # PostgreSQL deklarativ 10-model sxemasi
 │   └── seed.ts                   # Real ma'lumotlar seeder skripti
-├── src/                          # Vue 3 Frontend Ilovasi (Zero Mocks)
-│   ├── app/                      # Router, provayderlar va global sozlamalar
-│   ├── entities/                 # Domen modellari va Zod sxemalari
-│   ├── features/                 # Biznes mantiq (auth, admission, teacher, live...)
-│   ├── shared/                   # HTTP Client, umumiy UI komponentlar, xizmatlar
-│   └── views/                    # Asosiy sahifa ko'rinishlari
-├── tests/                        # Vitest frontend unit va integratsiya testlari (61 ta fayl)
-│   ├── mocks/                    # Faqat unit testlar uchun ajratilgan fakes/fixtures
-│   └── setupApiMock.ts           # Vitest CI test adapteri
-├── docs/                         # Loyiha arxitekturasi va spetsifikatsiyalari
-├── package.json                  # Node.js paket konfiguratsiyasi
-├── vite.config.ts                # Vite va Vitest konfiguratsiyasi
-└── README.md                     # Ushbu bosh hujjat
+├── docs/                          # Loyiha arxitekturasi va spetsifikatsiyalari (38+ hujjat)
+├── package.json                   # Universal Root Monorepo Orchestrator skriptlari
+├── README.md                      # Loyihaning to'liq bosh qo'llanmasi
+└── .gitignore                     # Git istisnolar ro'yxati
 ```
 
 ---

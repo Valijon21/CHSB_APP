@@ -7,11 +7,16 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Node dependencies
-node_modules
-dist
-dist-ssr
+# Node dependencies & outputs (Root & Frontend)
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+dist-ssr/
+frontend/dist-ssr/
 *.local
+.vite/
+frontend/.vite/
 
 # Editor directories and files
 .vscode/*
@@ -25,9 +30,10 @@ dist-ssr
 *.sw?
 
 # Testing & Coverage
-coverage
-playwright-report
-test-results
+coverage/
+frontend/coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
 
 # Environment
@@ -35,12 +41,17 @@ test-results
 .env.*
 !.env.example
 
-
-# Python
+# Python & Backend
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
 .hypothesis/
 backend/__pycache__/
+backend/*/__pycache__/
+backend/*/*/__pycache__/
 backend/tests/__pycache__/
+.venv/
+backend/.venv/
+env/
+venv/
