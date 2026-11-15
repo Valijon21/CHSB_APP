@@ -6,9 +6,11 @@ import { useTeacherStore } from '../teacher/teacherStore';
 import { useOrganizationStore } from '../organization/store/organizationStore';
 import CreateTeacherModal from '../organization/components/CreateTeacherModal.vue';
 import CreateClassModal from '../organization/components/CreateClassModal.vue';
+import CreateSubjectModal from '../organization/components/CreateSubjectModal.vue';
 import TeacherRosterTable from '../organization/components/TeacherRosterTable.vue';
+import SubjectRosterTable from '../organization/components/SubjectRosterTable.vue';
 import SystemLogViewer from './components/SystemLogViewer.vue';
-import type { TeacherInput, ClassGroupInput } from '../../entities/organization/model';
+import type { TeacherInput, ClassGroupInput, SubjectInput } from '../../entities/organization/model';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
@@ -18,7 +20,10 @@ const orgStore = useOrganizationStore();
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const isCreateTeacherModalOpen = ref(false);
 const isCreateClassModalOpen = ref(false);
-const activeTab = ref<'teachers' | 'logs'>(route.query.tab === 'logs' ? 'logs' : 'teachers');
+const isCreateSubjectModalOpen = ref(false);
+const activeTab = ref<'teachers' | 'subjects' | 'logs'>(
+  route.query.tab === 'logs' ? 'logs' : route.query.tab === 'subjects' ? 'subjects' : 'teachers'
+);
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
@@ -37,6 +42,14 @@ async function handleDeleteTeacher(id: string) {
 
 async function handleCreateClass(input: ClassGroupInput) {
   await orgStore.createClassGroup(input);
+}
+
+async function handleCreateSubject(input: SubjectInput) {
+  await orgStore.createSubject(input);
+}
+
+async function handleDeleteSubject(id: string) {
+  await orgStore.deleteSubject(id);
 }
 </script>
 
@@ -138,6 +151,17 @@ async function handleCreateClass(input: ClassGroupInput) {
 
       <button
         type="button"
+        @click="activeTab = 'subjects'"
+        aria-label="Fanlar boshqaruvi varag'i"
+        class="pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+        :class="activeTab === 'subjects' ? 'border-teal-700 dark:border-teal-400 text-teal-800 dark:text-teal-300' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
+      >
+        <span>📚</span>
+        <span>Fanlar Boshqaruvi ({{ orgStore.subjects.length }})</span>
+      </button>
+
+      <button
+        type="button"
         @click="activeTab = 'logs'"
         aria-label="Tizim loglari va audit xatolar konsoli"
         class="pb-2.5 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer min-h-[38px]"
@@ -177,10 +201,48 @@ async function handleCreateClass(input: ClassGroupInput) {
       />
     </div>
 
+    <!-- Fanlar Boshqaruvi Bo'limi -->
+    <div v-else-if="activeTab === 'subjects'" class="space-y-4 pt-1">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Muassasa Fanlari Boshqaruvi</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Maktab o'quv dasturi fanlarini shakllantirish, sinflar qamrovi va yangi fanlarni ro'yxatga olish
+          </p>
+        </div>
+
+        <button
+          type="button"
+          @click="isCreateSubjectModalOpen = true"
+          aria-label="Yangi fan qo'shish"
+          class="px-3.5 py-2 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer min-h-[38px]"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Yangi Fan Qo'shish</span>
+        </button>
+      </div>
+
+      <SubjectRosterTable
+        :subjects="orgStore.subjects"
+        :is-loading="orgStore.isLoading"
+        @delete="handleDeleteSubject"
+      />
+    </div>
+
     <!-- Tizim Loglari & Audit Bo'limi -->
     <div v-else-if="activeTab === 'logs'" class="space-y-4 pt-1">
       <SystemLogViewer />
     </div>
+
+    <!-- Yangi Fan Modal -->
+    <CreateSubjectModal
+      :is-open="isCreateSubjectModalOpen"
+      :tenant-slug="tenantSlug"
+      @close="isCreateSubjectModalOpen = false"
+      @create="handleCreateSubject"
+    />
 
     <!-- Yangi O'qituvchi Modal -->
     <CreateTeacherModal

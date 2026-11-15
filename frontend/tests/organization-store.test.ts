@@ -141,5 +141,31 @@ describe('TASK-MS.3: Organization & Multi-School Pinia Store', () => {
     await store.deleteStudent(student.id);
     expect(store.students.some((s) => s.id === student.id)).toBe(false);
   });
+
+  it('manages subjects (load, create, delete) via organization store', async () => {
+    const store = useOrganizationStore();
+    await store.loadSchoolContext('al-xorazmiy');
+
+    expect(store.subjects.length).toBeGreaterThanOrEqual(3);
+
+    // Create subject
+    const newSub = await store.createSubject({
+      tenantSlug: 'al-xorazmiy',
+      name: 'Suniy Intellekt Asoslari',
+      code: 'AI_BASICS',
+      gradeLevels: '10,11',
+      description: 'Machine Learning va Python',
+      isActive: true,
+    });
+
+    expect(newSub.id).toBeDefined();
+    expect(store.subjects.some((s) => s.code === 'AI_BASICS')).toBe(true);
+
+    // Delete subject
+    const deleted = await store.deleteSubject(newSub.id);
+    expect(deleted).toBe(true);
+    expect(store.subjects.some((s) => s.id === newSub.id)).toBe(false);
+  });
 });
+
 

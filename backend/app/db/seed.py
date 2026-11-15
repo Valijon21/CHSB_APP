@@ -3,6 +3,39 @@ from datetime import datetime, timezone
 import bcrypt
 from prisma import Prisma
 
+STANDARD_SUBJECTS = [
+    {"name": "Matematika", "code": "MATH", "gradeLevels": "5,6,7,8,9,10,11", "description": "Algebra, geometriya va amaliy matematika"},
+    {"name": "Informatika va AT", "code": "INF", "gradeLevels": "5,6,7,8,9,10,11", "description": "Dasturlash, kompyuter savodxonligi va axborot texnologiyalari"},
+    {"name": "Fizika", "code": "PHYS", "gradeLevels": "7,8,9,10,11", "description": "Mexanika, termodinamika va elektrodinamika"},
+    {"name": "Kimyo", "code": "CHEM", "gradeLevels": "7,8,9,10,11", "description": "Umumiy va organik kimyo"},
+    {"name": "Biologiya", "code": "BIO", "gradeLevels": "5,6,7,8,9,10,11", "description": "Botanika, zoologiya va umumiy biologiya"},
+    {"name": "Ona tili va adabiyot", "code": "UZB", "gradeLevels": "5,6,7,8,9,10,11", "description": "Grammatika, adabiyot va matn bilan ishlash"},
+    {"name": "Ingliz tili", "code": "ENG", "gradeLevels": "5,6,7,8,9,10,11", "description": "Xorijiy til: grammatika, leksika va tinglab tushunish"},
+    {"name": "Tarix", "code": "HIST", "gradeLevels": "5,6,7,8,9,10,11", "description": "O'zbekiston tarixi va jahon tarixi"},
+    {"name": "Geografiya", "code": "GEO", "gradeLevels": "5,6,7,8,9,10", "description": "Tabiiy va iqtisodiy geografiya"},
+]
+
+async def seed_subjects_if_empty(db: Prisma):
+    """
+    Populates subjects for all existing tenants if they have none.
+    """
+    tenants = await db.tenant.find_many()
+    for t in tenants:
+        count = await db.subject.count(where={"tenantId": t.id})
+        if count == 0:
+            for s in STANDARD_SUBJECTS:
+                await db.subject.create(
+                    data={
+                        "tenantId": t.id,
+                        "name": s["name"],
+                        "code": s["code"],
+                        "gradeLevels": s["gradeLevels"],
+                        "description": s["description"],
+                        "isActive": True,
+                    }
+                )
+            print(f"✅ Seeded {len(STANDARD_SUBJECTS)} subjects for tenant '{t.slug}'")
+
 async def auto_seed_db(db: Prisma):
     """
     Automatic self-bootstrapping seed function.
@@ -17,7 +50,8 @@ async def auto_seed_db(db: Prisma):
     # 2. Check if Tenants exist
     existing = await db.tenant.count()
     if existing > 0:
-        print("ℹ️ Database already has records, skipping seed.")
+        print("ℹ️ Database already has records, verifying subjects...")
+        await seed_subjects_if_empty(db)
         return
 
     # 3. Create Tenants
@@ -270,5 +304,7 @@ async def auto_seed_db(db: Prisma):
                 "status": "verified",
             }
         )
+
+    await seed_subjects_if_empty(db)
 
     print(f"✅ Auto-seed completed: 2 tenants, 2 schools, {len(classes_data)} classes, {len(students_raw)} students, 15 questions, {len(results_data)} results.")

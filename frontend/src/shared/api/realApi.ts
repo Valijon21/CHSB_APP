@@ -41,6 +41,8 @@ import type {
   StudentRecord,
   ClassGroupInput,
   ClassGroupRecord,
+  SubjectInput,
+  SubjectRecord,
 } from '../../entities/organization/model';
 
 interface BackendTenantContext {
@@ -914,4 +916,22 @@ export class RealOrganizationRepository implements OrganizationRepository {
   async getClassGroupsBySchool(_tenantSlug: string): Promise<ClassGroupRecord[]> {
     return [];
   }
+
+  async getSubjects(tenantSlug: string): Promise<SubjectRecord[]> {
+    return httpClient.get<SubjectRecord[]>(`/subjects?tenantSlug=${encodeURIComponent(tenantSlug)}`);
+  }
+
+  async createSubject(input: SubjectInput): Promise<SubjectRecord> {
+    return httpClient.post<SubjectRecord>('/subjects', input);
+  }
+
+  async deleteSubject(id: string): Promise<boolean> {
+    interface DeleteResponse {
+      success: boolean;
+      message?: string;
+    }
+    const res = await httpClient.delete<DeleteResponse>(`/subjects/${id}`);
+    return res.success;
+  }
 }
+

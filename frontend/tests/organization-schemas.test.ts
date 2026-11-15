@@ -8,6 +8,8 @@ import {
   StudentRecordSchema,
   ClassGroupInputSchema,
   ClassGroupRecordSchema,
+  SubjectInputSchema,
+  SubjectRecordSchema,
 } from '../src/entities/organization/model';
 
 describe('TASK-MS.1: Organization, Multi-School, Teacher and Student Schemas', () => {
@@ -218,5 +220,52 @@ describe('TASK-MS.1: Organization, Multi-School, Teacher and Student Schemas', (
       expect(parsed.studentCount).toBe(34);
     });
   });
+
+  describe('SubjectInputSchema & SubjectRecordSchema', () => {
+    it('validates a valid subject input', () => {
+      const input = {
+        tenantSlug: 'al-xorazmiy',
+        name: 'Robototexnika',
+        code: 'ROBOT',
+        gradeLevels: '7,8,9,10,11',
+        description: 'Lego va Arduino asoslari',
+        isActive: true,
+      };
+
+      const parsed = SubjectInputSchema.parse(input);
+      expect(parsed.name).toBe('Robototexnika');
+      expect(parsed.code).toBe('ROBOT');
+      expect(parsed.isActive).toBe(true);
+    });
+
+    it('rejects an invalid subject code with symbols or spaces', () => {
+      expect(() =>
+        SubjectInputSchema.parse({
+          tenantSlug: 'al-xorazmiy',
+          name: 'Suniy Intellekt',
+          code: 'AI @ 2026', // invalid symbols and spaces
+        })
+      ).toThrow();
+    });
+
+    it('validates SubjectRecordSchema with id and timestamps', () => {
+      const record = {
+        id: 'sub-99',
+        tenantId: 'tenant-al-xorazmiy',
+        tenantSlug: 'al-xorazmiy',
+        name: 'Kiberxavfsizlik',
+        code: 'CYBER',
+        gradeLevels: '10,11',
+        isActive: true,
+        createdAt: '2026-11-15T10:00:00Z',
+        updatedAt: '2026-11-15T10:00:00Z',
+      };
+
+      const parsed = SubjectRecordSchema.parse(record);
+      expect(parsed.id).toBe('sub-99');
+      expect(parsed.code).toBe('CYBER');
+    });
+  });
 });
+
 

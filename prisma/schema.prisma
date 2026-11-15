@@ -24,6 +24,7 @@ model Tenant {
   users       User[]
   classGroups ClassGroup[]
   students    Student[]
+  subjects    Subject[]
 
   @@map("tenants")
 }
@@ -180,4 +181,21 @@ model AuditLog {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  code        String
+  description String?
+  gradeLevels String   @default("5,6,7,8,9,10,11") @map("grade_levels")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@map("subjects")
 }

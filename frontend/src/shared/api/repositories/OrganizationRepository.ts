@@ -7,6 +7,8 @@ import type {
   StudentRecord,
   ClassGroupInput,
   ClassGroupRecord,
+  SubjectInput,
+  SubjectRecord,
 } from '../../../entities/organization/model';
 
 export interface OrganizationRepository {
@@ -31,5 +33,10 @@ export interface OrganizationRepository {
   // Sinflar (Class Groups)
   createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord>;
   getClassGroupsBySchool(tenantSlug: string): Promise<ClassGroupRecord[]>;
+
+  // Fanlar (Subjects)
+  getSubjects(tenantSlug: string): Promise<SubjectRecord[]>;
+  createSubject(input: SubjectInput): Promise<SubjectRecord>;
+  deleteSubject(id: string): Promise<boolean>;
 }
 

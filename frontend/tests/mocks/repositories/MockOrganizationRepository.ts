@@ -8,6 +8,8 @@ import type {
   StudentRecord,
   ClassGroupInput,
   ClassGroupRecord,
+  SubjectInput,
+  SubjectRecord,
 } from '@/entities/organization/model';
 
 export class MockOrganizationRepository implements OrganizationRepository {
@@ -15,6 +17,7 @@ export class MockOrganizationRepository implements OrganizationRepository {
   private teachers: TeacherRecord[] = [];
   private students: StudentRecord[] = [];
   private classGroups: ClassGroupRecord[] = [];
+  private subjects: SubjectRecord[] = [];
   private nextRosterSeq = 1100;
 
   constructor() {
@@ -316,7 +319,15 @@ export class MockOrganizationRepository implements OrganizationRepository {
         createdAt: '2026-09-01T08:00:00Z',
       },
     ];
+
+    // 5. Dastlabki Fanlar
+    this.subjects = [
+      { id: 'sub-1', tenantSlug: 'al-xorazmiy', tenantId: 'tenant-al-xorazmiy', name: 'Matematika', code: 'MATH', gradeLevels: '5,6,7,8,9,10,11', isActive: true, createdAt: '2026-09-01T08:00:00Z', updatedAt: '2026-09-01T08:00:00Z' },
+      { id: 'sub-2', tenantSlug: 'al-xorazmiy', tenantId: 'tenant-al-xorazmiy', name: 'Informatika va AT', code: 'INF', gradeLevels: '5,6,7,8,9,10,11', isActive: true, createdAt: '2026-09-01T08:00:00Z', updatedAt: '2026-09-01T08:00:00Z' },
+      { id: 'sub-3', tenantSlug: 'al-xorazmiy', tenantId: 'tenant-al-xorazmiy', name: 'Fizika', code: 'PHYS', gradeLevels: '7,8,9,10,11', isActive: true, createdAt: '2026-09-01T08:00:00Z', updatedAt: '2026-09-01T08:00:00Z' },
+    ];
   }
+
 
   // --- MAKTABLAR (SCHOOLS) ---
   async createSchool(input: SchoolInput): Promise<SchoolRecord> {
@@ -516,5 +527,37 @@ export class MockOrganizationRepository implements OrganizationRepository {
   async getClassGroupsBySchool(tenantSlug: string): Promise<ClassGroupRecord[]> {
     return this.classGroups.filter((c) => c.tenantSlug === tenantSlug);
   }
+
+  // --- FANLAR (SUBJECTS) ---
+  async getSubjects(tenantSlug: string): Promise<SubjectRecord[]> {
+    return this.subjects.filter((s) => s.tenantSlug === tenantSlug);
+  }
+
+  async createSubject(input: SubjectInput): Promise<SubjectRecord> {
+    const existing = this.subjects.find((s) => s.tenantSlug === input.tenantSlug && s.code === input.code.toUpperCase());
+    if (existing) {
+      throw new Error(`Ushbu kodli fan allaqachon mavjud: ${input.code}`);
+    }
+    const newSubject: SubjectRecord = {
+      ...input,
+      code: input.code.toUpperCase(),
+      id: `sub-${Date.now()}`,
+      tenantId: `tenant-${input.tenantSlug}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.subjects.push(newSubject);
+    return newSubject;
+  }
+
+  async deleteSubject(id: string): Promise<boolean> {
+    const idx = this.subjects.findIndex((s) => s.id === id);
+    if (idx !== -1) {
+      this.subjects.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
 }
+
 

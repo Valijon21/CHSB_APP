@@ -195,5 +195,59 @@ describe('TASK-MS.2: MockOrganizationRepository (Multi-School & Users CRUD)', ()
       expect(classes.some((c) => c.id === newClass.id)).toBe(true);
     });
   });
+
+  describe('Subjects (Fanlar) Management', () => {
+    it('retrieves seeded subjects for a tenant', async () => {
+      const subjects = await repo.getSubjects('al-xorazmiy');
+      expect(subjects.length).toBeGreaterThanOrEqual(3);
+      expect(subjects.some((s) => s.code === 'MATH')).toBe(true);
+      expect(subjects.some((s) => s.code === 'INF')).toBe(true);
+    });
+
+    it('creates a new subject and prevents duplicate codes', async () => {
+      const newSubject = await repo.createSubject({
+        tenantSlug: 'al-xorazmiy',
+        name: 'Robototexnika',
+        code: 'ROBOT',
+        gradeLevels: '7,8,9,10,11',
+        description: 'Lego va Arduino',
+        isActive: true,
+      });
+
+      expect(newSubject.id).toBeDefined();
+      expect(newSubject.code).toBe('ROBOT');
+
+      const subjects = await repo.getSubjects('al-xorazmiy');
+      expect(subjects.some((s) => s.code === 'ROBOT')).toBe(true);
+
+      // Duplicate code check
+      await expect(
+        repo.createSubject({
+          tenantSlug: 'al-xorazmiy',
+          name: 'Robototexnika 2',
+          code: 'ROBOT',
+          gradeLevels: '5,6',
+          isActive: true,
+        })
+      ).rejects.toThrow();
+    });
+
+    it('deletes an existing subject by id', async () => {
+      const created = await repo.createSubject({
+        tenantSlug: 'al-xorazmiy',
+        name: 'Astronomiya',
+        code: 'ASTRO',
+        gradeLevels: '11',
+        isActive: true,
+      });
+
+      const deleted = await repo.deleteSubject(created.id);
+      expect(deleted).toBe(true);
+
+      const subjects = await repo.getSubjects('al-xorazmiy');
+      expect(subjects.some((s) => s.id === created.id)).toBe(false);
+    });
+  });
 });
+
 

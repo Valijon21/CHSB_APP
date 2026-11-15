@@ -141,3 +141,32 @@ export const ClassGroupRecordSchema = ClassGroupInputSchema.extend({
 });
 
 export type ClassGroupRecord = z.infer<typeof ClassGroupRecordSchema>;
+
+// ==========================================
+// 5. FAN (SUBJECT) MODELLARI
+// ==========================================
+
+export const SubjectInputSchema = z.object({
+  tenantSlug: z.string().default('al-xorazmiy'),
+  name: z.string().min(2, "Fan nomi kamida 2 ta belgidan iborat bo'lishi kerak"),
+  code: z
+    .string()
+    .min(2, "Fan kodi kamida 2 ta belgidan iborat bo'lishi kerak")
+    .max(20, "Fan kodi 20 belgidan oshmasligi kerak")
+    .regex(/^[A-Za-z0-9_-]+$/, "Kod faqat harf, raqam va defisdan iborat bo'lishi kerak"),
+  gradeLevels: z.string().default('5,6,7,8,9,10,11'),
+  description: z.string().optional().or(z.literal('')),
+  isActive: z.boolean().default(true),
+});
+
+export type SubjectInput = z.infer<typeof SubjectInputSchema>;
+
+export const SubjectRecordSchema = SubjectInputSchema.extend({
+  id: z.string().min(1),
+  tenantId: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type SubjectRecord = z.infer<typeof SubjectRecordSchema>;
+

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, toRef } from 'vue';
+import { ref, computed, toRef } from 'vue';
+import { getActivePinia } from 'pinia';
 import { useModalA11y } from '../../../shared/composables/useModalA11y';
+import { useOrganizationStore } from '../store/organizationStore';
 import type { TeacherInput, TeacherQualification } from '../../../entities/organization/model';
 import type { ClassGroupRecord } from '../../../entities/organization/model';
 
@@ -23,20 +25,29 @@ function handleClose() {
 
 useModalA11y(toRef(props, 'isOpen'), handleClose);
 
-const SUBJECTS = [
+const orgStore = getActivePinia() ? useOrganizationStore() : null;
+
+const DEFAULT_SUBJECTS = [
   'Matematika',
-  'Algebra va geometriya',
-  'Informatika va axborot texnologiyalari',
+  'Informatika va AT',
   'Fizika',
   'Kimyo',
   'Biologiya',
   'Ingliz tili',
   'Ona tili va adabiyot',
   'Tarix',
+  'Geografiya',
 ];
 
+const availableSubjects = computed(() => {
+  if (orgStore?.subjects && orgStore.subjects.length > 0) {
+    return orgStore.subjects.filter((s) => s.isActive).map((s) => s.name);
+  }
+  return DEFAULT_SUBJECTS;
+});
+
 const fullName = ref('');
-const subject = ref(SUBJECTS[0] || 'Matematika');
+const subject = ref(DEFAULT_SUBJECTS[0] || 'Matematika');
 const qualification = ref<TeacherQualification>('oliy');
 const selectedClassIds = ref<string[]>([]);
 const phone = ref('+998');
@@ -77,7 +88,7 @@ function handleSubmit() {
 
 function resetForm() {
   fullName.value = '';
-  subject.value = SUBJECTS[0] || 'Matematika';
+  subject.value = DEFAULT_SUBJECTS[0] || 'Matematika';
   qualification.value = 'oliy';
   selectedClassIds.value = [];
   phone.value = '+998';
@@ -154,7 +165,7 @@ function toggleClassSelection(classId: string) {
               v-model="subject"
               class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
             >
-              <option v-for="s in SUBJECTS" :key="s" :value="s">{{ s }}</option>
+              <option v-for="s in availableSubjects" :key="s" :value="s">{{ s }}</option>
             </select>
           </div>
 

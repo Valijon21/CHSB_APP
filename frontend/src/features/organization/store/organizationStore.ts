@@ -9,6 +9,8 @@ import type {
   StudentRecord,
   ClassGroupInput,
   ClassGroupRecord,
+  SubjectInput,
+  SubjectRecord,
 } from '../../../entities/organization/model';
 import { api } from '../../../shared/api';
 import { useTeacherStore } from '../../teacher/teacherStore';
@@ -20,6 +22,7 @@ export const useOrganizationStore = defineStore('organization', () => {
   const teachers = ref<TeacherRecord[]>([]);
   const students = ref<StudentRecord[]>([]);
   const classGroups = ref<ClassGroupRecord[]>([]);
+  const subjects = ref<SubjectRecord[]>([]);
 
   const selectedDistrictId = ref<string>('all');
   const searchQuery = ref<string>('');
@@ -91,15 +94,17 @@ export const useOrganizationStore = defineStore('organization', () => {
     activeSchoolSlug.value = slug;
 
     try {
-      const [tList, sList, cList] = await Promise.all([
+      const [tList, sList, cList, subList] = await Promise.all([
         api.organization.getTeachersBySchool(slug),
         api.organization.getStudentsBySchool(slug),
         api.organization.getClassGroupsBySchool(slug),
+        api.organization.getSubjects(slug),
       ]);
 
       teachers.value = tList;
       students.value = sList;
       classGroups.value = cList;
+      subjects.value = subList;
     } catch {
       errorMessage.value = "Maktab ma'lumotlarini yuklashda xatolik yuz berdi.";
     } finally {
@@ -302,6 +307,56 @@ export const useOrganizationStore = defineStore('organization', () => {
     }
   }
 
+  async function loadSubjects(tenantSlug?: string): Promise<SubjectRecord[]> {
+    const slug = tenantSlug || activeSchoolSlug.value;
+    isLoading.value = true;
+    try {
+      const res = await api.organization.getSubjects(slug);
+      subjects.value = res;
+      return res;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Fanlarni yuklashda xatolik yuz berdi.";
+      errorMessage.value = msg;
+      return [];
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function createSubject(input: SubjectInput): Promise<SubjectRecord> {
+    isLoading.value = true;
+    errorMessage.value = null;
+    try {
+      const created = await api.organization.createSubject(input);
+      subjects.value.push(created);
+      return created;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Fan qo'shishda xatolik yuz berdi.";
+      errorMessage.value = msg;
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function deleteSubject(id: string): Promise<boolean> {
+    isLoading.value = true;
+    errorMessage.value = null;
+    try {
+      const ok = await api.organization.deleteSubject(id);
+      if (ok) {
+        subjects.value = subjects.value.filter((s) => s.id !== id);
+      }
+      return ok;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Fanni o'chirishda xatolik yuz berdi.";
+      errorMessage.value = msg;
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   function setDistrictFilter(districtId: string): void {
     selectedDistrictId.value = districtId;
   }
@@ -317,6 +372,7 @@ export const useOrganizationStore = defineStore('organization', () => {
     teachers,
     students,
     classGroups,
+    subjects,
     selectedDistrictId,
     searchQuery,
     isLoading,
@@ -338,8 +394,12 @@ export const useOrganizationStore = defineStore('organization', () => {
     bulkImportStudents,
     deleteStudent,
     createClassGroup,
+    loadSubjects,
+    createSubject,
+    deleteSubject,
     setDistrictFilter,
     setSearchQuery,
   };
 });
+
 
