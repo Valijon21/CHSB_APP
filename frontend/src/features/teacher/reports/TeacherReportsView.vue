@@ -3,11 +3,16 @@ import { onMounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
+import { useAuthStore } from '../../auth/store/authStore';
+import { useOrganizationStore } from '../../organization/store/organizationStore';
 import { useToast } from '../../../shared/composables/useToast';
+import { getActivePinia } from 'pinia';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
 const teacherStore = useTeacherStore();
+const authStore = useAuthStore();
+const orgStore = getActivePinia() ? useOrganizationStore() : null;
 const toast = useToast();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
@@ -20,6 +25,7 @@ const activeTemplate = ref<'roster' | 'summary' | 'matrix'>('roster');
 
 // Filters & Controls
 const selectedClass = ref<string>('');
+const selectedAssessment = ref<string>('');
 const selectedGradeTier = ref<'ALL' | '5' | '4' | '3' | '2'>('ALL');
 const searchQuery = ref<string>('');
 const isPrintPreview = ref<boolean>(false);
@@ -36,7 +42,39 @@ onMounted(async () => {
     (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
 
   await teacherStore.loadTeacherData(tenantId);
-  await teacherStore.loadAssessmentDetail(tenantId, 'chsb-inf-11-q1');
+  const qAsm = (route.query?.assessmentId as string) || '';
+  if (qAsm) {
+    selectedAssessment.value = qAsm;
+    await teacherStore.loadAssessmentDetail(tenantId, qAsm);
+  } else if (teacherStore.assessments[0]) {
+    await teacherStore.loadAssessmentDetail(tenantId, teacherStore.assessments[0].id);
+  }
+  if (orgStore) {
+    await orgStore.loadSchoolContext(tenantSlug);
+  }
+});
+
+const currentAssessment = computed(() => {
+  if (selectedAssessment.value) {
+    return teacherStore.assessments.find((a) => a.id === selectedAssessment.value) || null;
+  }
+  return teacherStore.assessments[0] || null;
+});
+
+const currentAssessmentSubject = computed(() => {
+  return currentAssessment.value?.subject || 'Informatika va AT';
+});
+
+const currentAssessmentGrade = computed(() => {
+  if (selectedClass.value) {
+    const match = selectedClass.value.match(/(\d+)/);
+    if (match && match[1]) return match[1];
+  }
+  return currentAssessment.value?.grade || 11;
+});
+
+const currentAssessmentQuarter = computed(() => {
+  return currentAssessment.value?.quarter || 1;
 });
 
 // Grade 5-point mapping helper
@@ -94,7 +132,21 @@ const processedRecords = computed(() => {
 
   // Filter by Class
   if (selectedClass.value) {
-    list = list.filter((r) => r.className === selectedClass.value);
+    list = list.filter((r) => r.className === selectedClass.value || r.className?.startsWith(selectedClass.value) || selectedClass.value.startsWith(r.className));
+  }
+
+  // Filter by Assessment
+  if (selectedAssessment.value) {
+    const targetAsm = teacherStore.assessments.find((a) => a.id === selectedAssessment.value);
+    if (targetAsm) {
+      const subjRoot = (targetAsm.subject || '').toLowerCase().split(' ')[0] || '';
+      list = list.filter(
+        (r) =>
+          r.assessmentTitle.toLowerCase().includes(targetAsm.subject.toLowerCase()) ||
+          r.assessmentTitle.includes(targetAsm.title) ||
+          (subjRoot && r.assessmentTitle.toLowerCase().includes(subjRoot))
+      );
+    }
   }
 
   // Filter by Grade Tier
@@ -366,6 +418,21 @@ function printReport() {
           </select>
         </div>
 
+        <!-- Assessment Select -->
+        <div class="flex items-center gap-1.5 text-xs">
+          <span class="text-slate-500 dark:text-slate-400 text-[11px] font-semibold">Imtihon:</span>
+          <select
+            v-model="selectedAssessment"
+            aria-label="Imtihonni tanlash"
+            class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700 min-h-[34px]"
+          >
+            <option value="">Barcha imtihonlar</option>
+            <option v-for="asm in teacherStore.assessments" :key="asm.id" :value="asm.id">
+              {{ asm.title }}
+            </option>
+          </select>
+        </div>
+
         <!-- Grade Tier Select -->
         <div class="flex items-center gap-1.5 text-xs">
           <span class="text-slate-500 dark:text-slate-400 text-[11px] font-semibold">Baho:</span>
@@ -426,7 +493,7 @@ function printReport() {
           </h4>
 
           <p class="text-xs text-slate-600 dark:text-slate-300 print:text-black font-medium">
-            Fan: Informatika va axborot texnologiyalari • 11-Sinf • 1-CHSB (2026-2027 o'quv yili)
+            Fan: {{ currentAssessmentSubject }} • {{ currentAssessmentGrade }}-Sinf • {{ currentAssessmentQuarter }}-CHSB (2026-2027 o'quv yili)
           </p>
           <p class="text-[11px] text-slate-400 print:text-slate-600 font-mono mt-0.5">
             Hujjat raqami: CHSB-DOC-{{ tenantSlug.toUpperCase() }}-{{ new Date().getFullYear() }} • Sana: {{ new Date().toLocaleDateString('uz-UZ') }}
@@ -540,7 +607,7 @@ function printReport() {
       <div v-else-if="activeTemplate === 'summary'" class="space-y-6 text-xs sm:text-sm">
         <div class="prose dark:prose-invert max-w-none space-y-4">
           <p class="leading-relaxed text-slate-700 dark:text-slate-300 print:text-black">
-            <strong>CHSB O'tkazilishi to'g'risida:</strong> Mazkur baholash Al-Xorazmiy nomidagi ixtisoslashtirilgan maktabining 11-sinf o'quvchilari o'rtasida informatika va axborot texnologiyalari fani bo'yicha I chorak yakunlariga ko'ra raqamli test platformasi vositasida to'liq avtomatlashtirilgan hamda real vaqtli anti-cheat nazorati ostida o'tkazildi.
+            <strong>CHSB O'tkazilishi to'g'risida:</strong> Mazkur baholash {{ tenantStore.currentTenant?.displayName || 'Al-Xorazmiy nomidagi IT-maktab' }} muassasasida {{ selectedClass || (currentAssessmentGrade + '-sinf') }} o'quvchilari o'rtasida {{ currentAssessmentSubject }} fani bo'yicha I chorak yakunlariga ko'ra raqamli test platformasi vositasida to'liq avtomatlashtirilgan hamda real vaqtli anti-cheat nazorati ostida o'tkazildi.
           </p>
 
           <!-- Top Achievers & Needs Support Grid -->
@@ -665,7 +732,7 @@ function printReport() {
         <div>
           <span class="block text-slate-400 dark:text-slate-400 print:text-black font-semibold">Fan o'qituvchisi:</span>
           <span class="font-bold text-slate-900 dark:text-white print:text-black block mt-1">
-            {{ teacherStore.profile?.fullName || 'Dilmurod Ustoz' }}
+            {{ authStore.currentUser?.fullName || teacherStore.profile?.fullName || 'Dilmurod Ustoz' }}
           </span>
           <div class="flex items-center gap-2 mt-4">
             <span class="text-[10px] text-slate-400 print:text-black">Imzo:</span>
@@ -676,7 +743,7 @@ function printReport() {
         <div>
           <span class="block text-slate-400 dark:text-slate-400 print:text-black font-semibold">O'quv ishlari bo'yicha direktor o'rinbosari:</span>
           <span class="font-bold text-slate-900 dark:text-white print:text-black block mt-1">
-            Sh. A. Rustamov
+            {{ orgStore?.activeSchool ? 'B. Sh. Maxmudov' : 'Sh. A. Rustamov' }}
           </span>
           <div class="flex items-center gap-2 mt-4">
             <span class="text-[10px] text-slate-400 print:text-black">Imzo:</span>
@@ -687,7 +754,7 @@ function printReport() {
         <div class="sm:text-right">
           <span class="block text-slate-400 dark:text-slate-400 print:text-black font-semibold">Tasdiqlayman (Maktab Direktori):</span>
           <span class="font-bold text-slate-900 dark:text-white print:text-black block mt-1">
-            M. U. Alimov
+            {{ orgStore?.activeSchool?.directorName || 'M. U. Alimov' }}
           </span>
           <div class="flex items-center gap-2 mt-4 sm:justify-end">
             <span class="text-[10px] text-slate-400 print:text-black">M.O'. (Muhr):</span>

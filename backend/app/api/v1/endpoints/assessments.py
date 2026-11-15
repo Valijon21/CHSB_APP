@@ -19,6 +19,17 @@ class SaveDraftPayload(BaseModel):
 class SubmitAttemptPayload(BaseModel):
     idempotencyKey: str | None = None
 
+class AssessmentCreate(BaseModel):
+    title: str = Field(..., min_length=3)
+    subject: str = Field(..., min_length=2)
+    gradeLevel: int = Field(default=9, ge=1, le=11)
+    quarter: int = Field(default=1, ge=1, le=4)
+    durationMinutes: int = Field(default=40, ge=10, le=180)
+    totalQuestions: int = Field(default=15, ge=1, le=100)
+    maxScore: float = Field(default=40.0, ge=1.0)
+    code: str | None = None
+    questions: list[dict] | None = None
+
 @router.get("/assessments")
 async def get_assessments(tenantId: str | None = None, db: Prisma = Depends(get_prisma)):
     assessments = await db.assessment.find_many(
@@ -38,6 +49,67 @@ async def get_assessments(tenantId: str | None = None, db: Prisma = Depends(get_
         }
         for a in assessments
     ]
+
+@router.post("/assessments")
+async def create_assessment(payload: AssessmentCreate, db: Prisma = Depends(get_prisma)):
+    # Generate unique code if not provided
+    code = payload.code
+    if not code:
+        subject_prefix = payload.subject[:3].upper().replace(" ", "")
+        code = f"CHSB-{subject_prefix}-{payload.gradeLevel}-Q{payload.quarter}-{int(datetime.now().timestamp()) % 10000}"
+
+    assessment_id = f"asm-{code.lower()}"
+
+    created = await db.assessment.create(
+        data={
+            "id": assessment_id,
+            "code": code,
+            "title": payload.title,
+            "subject": payload.subject,
+            "gradeLevel": payload.gradeLevel,
+            "durationMinutes": payload.durationMinutes,
+            "totalQuestions": payload.totalQuestions,
+            "maxScore": payload.maxScore,
+        }
+    )
+
+    # Seed default questions if none provided
+    points_per_q = round(payload.maxScore / max(1, payload.totalQuestions), 1)
+    bloom_cycle = ["KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ANALYSIS"]
+    if not payload.questions:
+        for i in range(1, payload.totalQuestions + 1):
+            bloom = bloom_cycle[(i - 1) % len(bloom_cycle)]
+            options = [
+                {"id": "opt-a", "label": "A", "text": f"{payload.subject} fani bo'yicha to'g'ri javob varianti"},
+                {"id": "opt-b", "label": "B", "text": "Noto'g'ri chalg'ituvchi variant 1"},
+                {"id": "opt-c", "label": "C", "text": "Noto'g'ri chalg'ituvchi variant 2"},
+                {"id": "opt-d", "label": "D", "text": "Noto'g'ri chalg'ituvchi variant 3"},
+            ]
+            await db.question.create(
+                data={
+                    "id": f"q-{created.id}-{i}",
+                    "assessmentId": created.id,
+                    "questionNumber": i,
+                    "prompt": f"{i}-savol: {payload.subject} {payload.gradeLevel}-sinf uchun test topshirig'i.",
+                    "optionsJson": json.dumps(options),
+                    "correctOptionId": "opt-a",
+                    "bloomLevel": bloom,
+                    "difficulty": "hard" if i > 10 else "medium" if i > 5 else "easy",
+                    "points": points_per_q,
+                }
+            )
+
+    return {
+        "id": created.id,
+        "code": created.code,
+        "title": created.title,
+        "subject": created.subject,
+        "gradeLevel": created.gradeLevel,
+        "durationMinutes": created.durationMinutes,
+        "totalQuestions": created.totalQuestions,
+        "maxScore": created.maxScore,
+        "status": "published",
+    }
 
 @router.get("/assessments/{assessment_id}")
 async def get_assessment_by_id(assessment_id: str, db: Prisma = Depends(get_prisma)):
@@ -258,13 +330,18 @@ async def get_results_by_tenant(tenant_id: str, db: Prisma = Depends(get_prisma)
                 {"student": {"tenant": {"slug": tenant_id}}},
             ]
         },
-        include={"student": {"include": {"classGroup": True}}},
+        include={
+            "student": {"include": {"classGroup": True}},
+            "attempt": {"include": {"assessment": True}},
+        },
         order={"submittedAt": "desc"},
     )
     return [
         {
             "id": r.id,
             "attemptId": r.attemptId,
+            "assessmentId": r.attempt.assessmentId if r.attempt else "",
+            "assessmentTitle": r.attempt.assessment.title if (r.attempt and r.attempt.assessment) else "CHSB Baholash",
             "studentId": r.studentId,
             "studentName": f"{r.student.firstName} {r.student.lastName}",
             "className": r.student.classGroup.name if r.student.classGroup else "",
@@ -277,3 +354,4 @@ async def get_results_by_tenant(tenant_id: str, db: Prisma = Depends(get_prisma)
         }
         for r in results
     ]
+

@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
+import { useToast } from '../../../shared/composables/useToast';
+import CreateAssessmentModal from './CreateAssessmentModal.vue';
+import type { CreateAssessmentInput } from '../../../entities/assessment/model';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
 const teacherStore = useTeacherStore();
+const toast = useToast();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
+const isCreateModalOpen = ref(false);
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
@@ -17,6 +22,16 @@ onMounted(async () => {
     (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
   await teacherStore.loadTeacherData(tenantId);
 });
+
+async function handleCreateAssessment(input: CreateAssessmentInput) {
+  try {
+    const created = await teacherStore.createAssessment(input);
+    toast.success(`"${created.title}" muvaffaqiyatli yaratildi!`, 'Imtihon yaratildi');
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message || "Imtihon yaratishda xatolik yuz berdi.";
+    toast.error(msg, 'Xatolik');
+  }
+}
 </script>
 
 <template>
@@ -31,6 +46,18 @@ onMounted(async () => {
       </div>
 
       <div class="flex items-center gap-2">
+        <button
+          type="button"
+          @click="isCreateModalOpen = true"
+          aria-label="Yangi imtihon qo'shish"
+          class="px-4 py-2 bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white font-bold rounded-lg text-xs transition shadow-xs flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Yangi Imtihon Qo'shish</span>
+        </button>
+
         <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
           I Chorak Baholashlari Faol
         </span>
@@ -120,6 +147,14 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- Create Assessment Modal -->
+    <CreateAssessmentModal
+      :is-open="isCreateModalOpen"
+      @close="isCreateModalOpen = false"
+      @create="handleCreateAssessment"
+    />
   </div>
 </template>
+
 

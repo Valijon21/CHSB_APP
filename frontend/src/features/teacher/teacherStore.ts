@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { ClassGroup } from '../../entities/class-group/model';
 import type { StudentRosterRecord } from '../../entities/roster/model';
-import type { AssessmentSummary } from '../../entities/assessment/model';
+import type { AssessmentSummary, CreateAssessmentInput } from '../../entities/assessment/model';
 import type { AssessmentResult } from '../../entities/result/model';
 import type {
   TeacherProfile,
@@ -211,6 +211,22 @@ export const useTeacherStore = defineStore('teacher', () => {
     roster.value = roster.value.filter((r) => r.id !== id && r.rosterCode !== id);
   }
 
+  async function createAssessment(input: CreateAssessmentInput): Promise<AssessmentSummary> {
+    isLoading.value = true;
+    errorMessage.value = null;
+    try {
+      const created = await api.teacher.createAssessment(input);
+      assessments.value.unshift(created);
+      return created;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Imtihon yaratishda xatolik yuz berdi.";
+      errorMessage.value = msg;
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     currentTenantId,
     classes,
@@ -222,6 +238,7 @@ export const useTeacherStore = defineStore('teacher', () => {
     selectedClassId,
     studentSearchQuery,
     assessments,
+    createAssessment,
     results,
     profile,
     classDetail,
@@ -245,3 +262,4 @@ export const useTeacherStore = defineStore('teacher', () => {
     exportResultsCSV,
   };
 });
+

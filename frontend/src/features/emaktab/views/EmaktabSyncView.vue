@@ -2,29 +2,32 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useEmaktabSyncStore } from '../store/emaktabSyncStore';
+import { useTeacherStore } from '../../teacher/teacherStore';
+import { useTenantStore } from '../../tenant-context/tenantStore';
 import RosterUploadCard from '../components/RosterUploadCard.vue';
 import ReconciliationGrid from '../components/ReconciliationGrid.vue';
 import GradeThresholdsModal from '../components/GradeThresholdsModal.vue';
 import SyncActionsBar from '../components/SyncActionsBar.vue';
-import type { MatchStatus, AbsenceReason, GradeScaleThresholds } from '../../../entities/emaktab/model';
+import type { MatchStatus, AbsenceReason, GradeScaleThresholds, AssessmentCandidate } from '../../../entities/emaktab/model';
 
 const route = useRoute();
 const router = useRouter();
 const store = useEmaktabSyncStore();
+const teacherStore = useTeacherStore();
+const tenantStore = useTenantStore();
 
 const isThresholdsModalOpen = ref<boolean>(false);
 
-onMounted(() => {
-  const assessmentId = (route?.params?.assessmentId as string) || 'asm-001';
-  store.setAssessmentContext({
-    assessmentId,
-    className: '9-A',
-    subjectName: 'Matematika',
-    quarter: 2,
-  });
-
-  // Agar roster bo'sh bo'lsa, o'qituvchiga qulay bo'lishi uchun namuna ro'yxat yuklanadi
+onMounted(async () => {
+  const initialAsmId = (route?.params?.assessmentId as string) || 'asm-algebra-01';
+  // Boshlang'ich shablonni o'rnatish
   if (store.emaktabStudents.length === 0) {
+    store.setAssessmentContext({
+      assessmentId: initialAsmId,
+      className: '9-A',
+      subjectName: 'Matematika',
+      quarter: 2,
+    });
     const defaultRoster = `T/r,eMaktab ID,O'quvchi F.I.SH,Jinsi
 1,EMK-1001,O'ktamov Jasurbek,M
 2,EMK-1002,Aliyeva Madina,F
@@ -32,6 +35,49 @@ onMounted(() => {
 4,EMK-1004,G'aniyeva Dilnoza,F
 5,EMK-1005,Yo'ldoshev Bekzod,M`;
     store.importRosterFromText(defaultRoster, '9-A');
+  }
+
+  const tenantSlug = (route?.params?.tenantSlug as string) || 'al-xorazmiy';
+  try {
+    await tenantStore.loadTenant(tenantSlug);
+    const tenantId =
+      tenantStore.currentTenant?.tenantId ||
+      (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
+
+    await teacherStore.loadTeacherData(tenantId);
+
+    const assessmentId = (route?.params?.assessmentId as string) || 'chsb-inf-11-q1';
+    const asm = teacherStore.assessments.find((a) => a.id === assessmentId || a.title.includes(assessmentId));
+
+    // Real assessment results
+    const matchingResults = teacherStore.results.filter((r) => r.assessmentId === assessmentId);
+    const effectiveResults = matchingResults.length > 0 ? matchingResults : teacherStore.results;
+
+    if (effectiveResults.length > 0) {
+      const realCandidates: AssessmentCandidate[] = effectiveResults.map((r) => ({
+        candidateId: r.attemptId,
+        fullName: r.studentName,
+        normalizedName: r.studentName.toLowerCase().replace(/['`ʻ’]/g, ''),
+        score: r.score,
+        maxScore: r.maxScore,
+        percentage: r.percentage,
+        status: 'submitted',
+      }));
+
+      const activeClassName = asm ? `${asm.grade}-sinf` : '11-sinf';
+      const activeSubject = asm ? asm.subject : 'Informatika va AT';
+      const activeQuarter = asm ? asm.quarter : 1;
+
+      store.setAssessmentContext({
+        assessmentId,
+        className: activeClassName,
+        subjectName: activeSubject,
+        quarter: activeQuarter,
+        initialCandidates: realCandidates,
+      });
+    }
+  } catch {
+    // Keep initialized fallback
   }
 });
 

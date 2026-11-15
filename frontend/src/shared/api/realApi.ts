@@ -14,7 +14,7 @@ import type {
   RosterLookupResult,
   StudentRosterRecord,
 } from '../../entities/roster/model';
-import type { Assessment, AssessmentSummary } from '../../entities/assessment/model';
+import type { Assessment, AssessmentSummary, CreateAssessmentInput } from '../../entities/assessment/model';
 import type { AnswerDraft, AssessmentAttempt, SubmissionReceipt } from '../../entities/attempt/model';
 import type { AssessmentResult } from '../../entities/result/model';
 import type {
@@ -526,6 +526,24 @@ export class RealTeacherRepository implements TeacherRepository {
     }
   }
 
+  async createAssessment(input: CreateAssessmentInput): Promise<AssessmentSummary> {
+    const res = await httpClient.post<BackendAssessmentItem>('/assessments', input);
+    return {
+      id: res.id,
+      tenantId: 'tenant-al-xorazmiy',
+      title: res.title,
+      subject: res.subject,
+      grade: res.gradeLevel || input.gradeLevel,
+      quarter: input.quarter || 1,
+      assessmentNumber: 1,
+      durationMinutes: res.durationMinutes || input.durationMinutes,
+      durationSeconds: (res.durationMinutes || input.durationMinutes) * 60,
+      questionCount: res.totalQuestions || input.totalQuestions,
+      maxScore: res.maxScore || input.maxScore,
+      status: 'available' as const,
+    };
+  }
+
   async getResults(tenantId: string): Promise<AssessmentResult[]> {
     try {
       return await httpClient.get<AssessmentResult[]>(`/results/tenant/${tenantId}`);
@@ -688,6 +706,8 @@ export class RealTeacherRepository implements TeacherRepository {
         studentName?: string;
         className?: string;
         studentId?: string;
+        assessmentId?: string;
+        assessmentTitle?: string;
         score: number;
         maxScore?: number;
         percentage: number;
@@ -700,7 +720,7 @@ export class RealTeacherRepository implements TeacherRepository {
         studentName: r.studentName || "O'quvchi",
         className: r.className || '11-sinf',
         rosterCode: r.studentId?.slice(0, 8) || 'STU-0001',
-        assessmentTitle: '11-sinf Informatika CHSB - 1-chorak',
+        assessmentTitle: r.assessmentTitle || 'CHSB Choraklik Baholash',
         score: r.score,
         maxScore: r.maxScore || 40,
         percentage: r.percentage,

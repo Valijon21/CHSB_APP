@@ -72,3 +72,15 @@ export type Assessment = z.infer<typeof AssessmentSchema>;
 export const AssessmentSummarySchema = AssessmentSchema.omit({ questions: true });
 export type AssessmentSummary = z.infer<typeof AssessmentSummarySchema>;
 
+export interface CreateAssessmentInput {
+  title: string;
+  subject: string;
+  gradeLevel: number;
+  quarter: number;
+  durationMinutes: number;
+  totalQuestions: number;
+  maxScore: number;
+  code?: string;
+}
+
+

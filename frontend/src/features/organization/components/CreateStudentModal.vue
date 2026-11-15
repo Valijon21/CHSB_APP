@@ -14,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'create', input: StudentInput): void;
+  (e: 'open-bulk'): void;
 }>();
 
 function handleClose() {
@@ -110,15 +111,24 @@ function resetForm() {
           </p>
         </div>
 
-        <button
-          type="button"
-          @click="$emit('close')"
-          class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            @click="$emit('open-bulk')"
+            class="text-xs px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 font-semibold hover:bg-teal-100 dark:hover:bg-teal-900 transition flex items-center gap-1 cursor-pointer"
+          >
+            <span>📊 Excel / CSV orqali</span>
+          </button>
+          <button
+            type="button"
+            @click="$emit('close')"
+            class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div v-if="errorMessage" class="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs rounded-xl font-medium">

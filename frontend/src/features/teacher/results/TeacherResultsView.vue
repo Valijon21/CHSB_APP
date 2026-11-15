@@ -24,7 +24,7 @@ onMounted(async () => {
 const filteredResults = computed(() => {
   let list = teacherStore.results;
   if (selectedClass.value) {
-    list = list.filter((r) => r.className === selectedClass.value);
+    list = list.filter((r) => r.className === selectedClass.value || r.className?.startsWith(selectedClass.value) || selectedClass.value.startsWith(r.className));
   }
   const q = searchQuery.value.trim().toLowerCase();
   if (q) {
@@ -40,7 +40,8 @@ function handleExportCSV() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `CHSB_11_Sinf_Natijalari_${tenantSlug}.csv`);
+  const classLabel = selectedClass.value ? selectedClass.value.replace(/\s+/g, '_') : 'Barcha_Sinflar';
+  link.setAttribute('download', `CHSB_${classLabel}_Natijalari_${tenantSlug}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

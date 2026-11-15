@@ -63,6 +63,24 @@ export class MockTeacherRepository implements TeacherRepository {
       }));
   }
 
+  async createAssessment(input: import('@/entities/assessment/model').CreateAssessmentInput): Promise<AssessmentSummary> {
+    await this.delay();
+    return {
+      id: `asm-${Date.now()}`,
+      tenantId: 'tenant-al-xorazmiy',
+      title: input.title,
+      subject: input.subject,
+      grade: input.gradeLevel,
+      quarter: input.quarter,
+      assessmentNumber: 1,
+      durationMinutes: input.durationMinutes,
+      durationSeconds: input.durationMinutes * 60,
+      questionCount: input.totalQuestions,
+      maxScore: input.maxScore,
+      status: 'available',
+    };
+  }
+
   async getResults(tenantId: string): Promise<AssessmentResult[]> {
     await this.delay();
 
@@ -770,14 +788,16 @@ export class MockTeacherRepository implements TeacherRepository {
     await this.delay();
     const results = await this.getResults(tenantId);
     const roster = await this.getRoster(tenantId, options?.classGroupId);
+    const assessments = await this.getAssessments(tenantId);
 
     return results.map((r) => {
       const student = roster.find((s) => s.id === r.rosterRecordId);
+      const asm = assessments.find((a) => a.id === r.assessmentId);
       return {
         studentName: r.studentName,
         className: r.className,
         rosterCode: student?.rosterCode ?? 'STU-DEMO',
-        assessmentTitle: '1-CHSB Informatika va AT (11-sinf)',
+        assessmentTitle: asm?.title ?? 'Informatika va axborot texnologiyalari, 11-sinf. I chorak 1-ChSB',
         score: r.score,
         maxScore: r.maxScore,
         percentage: r.percentage,

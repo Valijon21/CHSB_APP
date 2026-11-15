@@ -53,7 +53,8 @@ const navigationItems = computed(() => {
   items.push({ name: 'Profil & Sozlamalar', path: '/teacher/profile', icon: '👤' });
 
   if (authStore.hasRole(['SCHOOL_ADMIN', 'SUPER_ADMIN'])) {
-    items.push({ name: 'Tenant Admin', path: '/admin', icon: '⚙️' });
+    const adminLabel = authStore.currentRole === 'SCHOOL_ADMIN' ? 'Maktab Boshqaruvi' : 'Tenant Admin';
+    items.push({ name: adminLabel, path: '/admin', icon: '⚙️' });
   }
 
   return items;
@@ -89,7 +90,8 @@ function handleLogout() {
         <div class="text-xs font-semibold text-slate-200 truncate">
           {{ tenantStore.currentTenant?.displayName || (tenantSlug === 'temurbeklar-maktabi' ? 'Temurbeklar Maktabi' : 'Al-Xorazmiy IT Maktabi') }}
         </div>
-        <div class="mt-2 flex flex-col gap-1 text-[11px]">
+        <!-- Only SUPER_ADMIN can browse the global multi-school catalog -->
+        <div v-if="authStore.hasRole(['SUPER_ADMIN'])" class="mt-2 flex flex-col gap-1 text-[11px]">
           <router-link
             to="/schools"
             class="text-teal-400 hover:text-teal-300 underline font-medium flex items-center gap-1"

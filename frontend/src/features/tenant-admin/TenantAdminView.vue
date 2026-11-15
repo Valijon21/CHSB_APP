@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { useTenantStore } from '../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacher/teacherStore';
 import { useOrganizationStore } from '../organization/store/organizationStore';
+import { useAuthStore } from '../auth/store/authStore';
 import CreateTeacherModal from '../organization/components/CreateTeacherModal.vue';
 import CreateClassModal from '../organization/components/CreateClassModal.vue';
 import CreateSubjectModal from '../organization/components/CreateSubjectModal.vue';
@@ -16,6 +17,7 @@ const route = useRoute();
 const tenantStore = useTenantStore();
 const teacherStore = useTeacherStore();
 const orgStore = useOrganizationStore();
+const authStore = useAuthStore();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const isCreateTeacherModalOpen = ref(false);
@@ -57,13 +59,16 @@ async function handleDeleteSubject(id: string) {
   <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
       <div>
-        <h2 class="text-xl font-bold text-slate-900 dark:text-white">Tenant Administrator Sozlamalari</h2>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white">
+          {{ authStore.currentRole === 'SCHOOL_ADMIN' ? "Maktab Boshqaruvi va Sozlamalari" : "Tenant Administrator Sozlamalari" }}
+        </h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Muassasa boshqaruvi: <span class="font-mono text-indigo-700 dark:text-indigo-400 font-semibold">{{ tenantStore.currentTenant?.displayName }}</span>
+          Muassasa: <span class="font-semibold text-teal-800 dark:text-teal-300">{{ tenantStore.currentTenant?.displayName }}</span>
         </p>
       </div>
       <div class="flex items-center gap-2">
         <router-link
+          v-if="authStore.hasRole(['SUPER_ADMIN'])"
           to="/schools"
           aria-label="Maktablar katalogiga qaytish"
           class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold transition min-h-[36px] flex items-center"
@@ -71,7 +76,7 @@ async function handleDeleteSubject(id: string) {
           ← Barcha Maktablar Katalogi
         </router-link>
         <span class="text-xs px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">
-          Tenant Admin Portal
+          {{ authStore.currentRole === 'SCHOOL_ADMIN' ? 'Maktab Admini' : 'Tenant Admin' }}
         </span>
       </div>
     </div>

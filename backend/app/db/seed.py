@@ -36,7 +36,7 @@ async def seed_subjects_if_empty(db: Prisma):
                 )
             print(f"✅ Seeded {len(STANDARD_SUBJECTS)} subjects for tenant '{t.slug}'")
 
-async def auto_seed_db(db: Prisma):
+async def auto_seed_db(db: Prisma, force: bool = False):
     """
     Automatic self-bootstrapping seed function.
     Populates SQLite database with full real records if database is empty.
@@ -48,11 +48,12 @@ async def auto_seed_db(db: Prisma):
     hashed_password = bcrypt.hashpw(default_password.encode("utf-8"), bcrypt.gensalt(10)).decode("utf-8")
 
     # 2. Check if Tenants exist
-    existing = await db.tenant.count()
-    if existing > 0:
-        print("ℹ️ Database already has records, verifying subjects...")
-        await seed_subjects_if_empty(db)
-        return
+    if not force:
+        existing = await db.tenant.count()
+        if existing > 0:
+            print("ℹ️ Database already has records, verifying subjects...")
+            await seed_subjects_if_empty(db)
+            return
 
     # 3. Create Tenants
     tenant_ax = await db.tenant.create(
@@ -195,6 +196,28 @@ async def auto_seed_db(db: Prisma):
         {"id": "rec-ax-114", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1114", "firstName": "Dildora", "lastName": "Tursunova", "middleName": "Bekzod qizi", "status": "ELIGIBLE"},
         {"id": "rec-ax-115", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1115", "firstName": "Farrux", "lastName": "Ergashev", "middleName": "Ravshan o‘g‘li", "status": "ELIGIBLE"},
 
+        # 10-A sinf
+        {"id": "rec-ax-1001", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-10a", "rosterCode": "STU-1001", "firstName": "Temur", "lastName": "Ismoilov", "middleName": "Akbar o‘g‘li", "status": "ELIGIBLE"},
+        {"id": "rec-ax-1002", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-10a", "rosterCode": "STU-1002", "firstName": "Zarina", "lastName": "Mahmudova", "middleName": "Shavkat qizi", "status": "ELIGIBLE"},
+        {"id": "rec-ax-1003", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-10a", "rosterCode": "STU-1003", "firstName": "Diyorbek", "lastName": "Rahmonov", "middleName": "Olim o‘g‘li", "status": "ELIGIBLE"},
+        {"id": "rec-ax-1004", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-10a", "rosterCode": "STU-1004", "firstName": "Nigora", "lastName": "Sobirova", "middleName": "Rustam qizi", "status": "ELIGIBLE"},
+        {"id": "rec-ax-1005", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-10a", "rosterCode": "STU-1005", "firstName": "Otabek", "lastName": "Hasanov", "middleName": "Bobur o‘g‘li", "status": "ELIGIBLE"},
+
+        # 9-A sinf
+        {"id": "rec-ax-901", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9a", "rosterCode": "STU-9001", "firstName": "Jasurbek", "lastName": "Olimov", "middleName": "Anvarovich", "status": "ELIGIBLE"},
+        {"id": "rec-ax-902", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9a", "rosterCode": "STU-9002", "firstName": "Madina", "lastName": "Aliyeva", "middleName": "Rustam qizi", "status": "ELIGIBLE"},
+        {"id": "rec-ax-903", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9a", "rosterCode": "STU-9003", "firstName": "Sardor", "lastName": "Boboyev", "middleName": "Ilhomovich", "status": "ELIGIBLE"},
+        {"id": "rec-ax-904", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9a", "rosterCode": "STU-9004", "firstName": "Dilnoza", "lastName": "Karimova", "middleName": "Alisher qizi", "status": "ELIGIBLE"},
+        {"id": "rec-ax-905", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9a", "rosterCode": "STU-9005", "firstName": "Bekzod", "lastName": "Yo‘ldoshev", "middleName": "Mansur o‘g‘li", "status": "ELIGIBLE"},
+        {"id": "rec-ax-906", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9a", "rosterCode": "STU-9006", "firstName": "Shahnoza", "lastName": "Qosimova", "middleName": "Farhod qizi", "status": "ELIGIBLE"},
+        {"id": "rec-ax-907", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9a", "rosterCode": "STU-9007", "firstName": "Anvar", "lastName": "Rustamov", "middleName": "Dilshod o‘g‘li", "status": "ELIGIBLE"},
+        {"id": "rec-ax-908", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9a", "rosterCode": "STU-9008", "firstName": "Gulbahor", "lastName": "Ergasheva", "middleName": "Jamshid qizi", "status": "ELIGIBLE"},
+
+        # 9-B sinf
+        {"id": "rec-ax-911", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9b", "rosterCode": "STU-9011", "firstName": "Samandar", "lastName": "Xolmatov", "middleName": "G‘ayrat o‘g‘li", "status": "ELIGIBLE"},
+        {"id": "rec-ax-912", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9b", "rosterCode": "STU-9012", "firstName": "Munira", "lastName": "Yoqubova", "middleName": "Sherzod qizi", "status": "ELIGIBLE"},
+        {"id": "rec-ax-913", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-9b", "rosterCode": "STU-9013", "firstName": "Islom", "lastName": "Fayzullayev", "middleName": "Umid o‘g‘li", "status": "ELIGIBLE"},
+
         # Temurbeklar Maktabi
         {"id": "rec-tm-201", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "classGroupId": "class-tm-11g1", "rosterCode": "TM-201", "firstName": "Sardor", "lastName": "Rahimov", "middleName": "G‘ayrat o‘g‘li", "status": "ELIGIBLE"},
         {"id": "rec-tm-202", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "classGroupId": "class-tm-11g1", "rosterCode": "TM-202", "firstName": "Otabek", "lastName": "Boboyev", "middleName": "Mansur o‘g‘li", "status": "ELIGIBLE"},
@@ -220,8 +243,8 @@ async def auto_seed_db(db: Prisma):
             }
         )
 
-    # 8. Create Assessment
-    assessment = await db.assessment.create(
+    # 8. Create Assessments (11-sinf va 9-sinf)
+    assessment_11 = await db.assessment.create(
         data={
             "id": "chsb-inf-11-q1",
             "code": "CHSB-INF-11-Q1",
@@ -234,57 +257,109 @@ async def auto_seed_db(db: Prisma):
         }
     )
 
-    # 9. Create 15 Questions
+    assessment_9 = await db.assessment.create(
+        data={
+            "id": "chsb-inf-9-q1",
+            "code": "CHSB-INF-9-Q1",
+            "title": "Informatika va axborot texnologiyalari, 9-sinf. 1-ChSB",
+            "subject": "Informatika va AT",
+            "gradeLevel": 9,
+            "durationMinutes": 40,
+            "totalQuestions": 15,
+            "maxScore": 40.0,
+        }
+    )
+
+    assessment_mat_9 = await db.assessment.create(
+        data={
+            "id": "chsb-mat-9-q1",
+            "code": "CHSB-MAT-9-Q1",
+            "title": "Matematika (Algebra va Geometriya), 9-sinf. 1-ChSB",
+            "subject": "Matematika",
+            "gradeLevel": 9,
+            "durationMinutes": 45,
+            "totalQuestions": 15,
+            "maxScore": 40.0,
+        }
+    )
+
+    # 9. Create 15 Questions for each assessment
     bloom_levels = [
         "KNOWLEDGE", "KNOWLEDGE", "COMPREHENSION", "KNOWLEDGE", "APPLICATION",
         "KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ANALYSIS", "COMPREHENSION",
         "KNOWLEDGE", "APPLICATION", "ANALYSIS", "COMPREHENSION", "APPLICATION"
     ]
 
-    for i in range(1, 16):
-        options = [
-            {"id": "opt-a", "label": "A", "text": "To'g'ri javob varianti"},
-            {"id": "opt-b", "label": "B", "text": "Noto'g'ri chalg'ituvchi variant 1"},
-            {"id": "opt-c", "label": "C", "text": "Noto'g'ri chalg'ituvchi variant 2"},
-            {"id": "opt-d", "label": "D", "text": "Noto'g'ri chalg'ituvchi variant 3"},
-        ]
-        await db.question.create(
-            data={
-                "id": f"q-inf-11-{i}",
-                "assessmentId": assessment.id,
-                "questionNumber": i,
-                "prompt": f"{i}-savol: Informatika va zamonaviy dasturlash asoslari bo'yicha test topshirig'i.",
-                "optionsJson": json.dumps(options),
-                "correctOptionId": "opt-a",
-                "bloomLevel": bloom_levels[i - 1],
-                "difficulty": "hard" if i > 10 else "medium" if i > 5 else "easy",
-                "points": 2.5,
-            }
-        )
+    for asm in [assessment_11, assessment_9, assessment_mat_9]:
+        for i in range(1, 16):
+            options = [
+                {"id": "opt-a", "label": "A", "text": "To'g'ri javob varianti"},
+                {"id": "opt-b", "label": "B", "text": "Noto'g'ri chalg'ituvchi variant 1"},
+                {"id": "opt-c", "label": "C", "text": "Noto'g'ri chalg'ituvchi variant 2"},
+                {"id": "opt-d", "label": "D", "text": "Noto'g'ri chalg'ituvchi variant 3"},
+            ]
+            await db.question.create(
+                data={
+                    "id": f"q-{asm.id}-{i}",
+                    "assessmentId": asm.id,
+                    "questionNumber": i,
+                    "prompt": f"{i}-savol: {asm.subject} bo'yicha {asm.gradeLevel}-sinf test topshirig'i.",
+                    "optionsJson": json.dumps(options),
+                    "correctOptionId": "opt-a",
+                    "bloomLevel": bloom_levels[i - 1],
+                    "difficulty": "hard" if i > 10 else "medium" if i > 5 else "easy",
+                    "points": 2.5,
+                }
+            )
 
     # 10. Create Attempts & Results
     results_data = [
-        {"stuId": "rec-ax-101", "score": 35.0, "percentage": 87.5, "grade": "5"},
-        {"stuId": "rec-ax-102", "score": 37.5, "percentage": 93.8, "grade": "5"},
-        {"stuId": "rec-ax-104", "score": 32.5, "percentage": 81.3, "grade": "4"},
-        {"stuId": "rec-ax-105", "score": 30.0, "percentage": 75.0, "grade": "4"},
-        {"stuId": "rec-ax-106", "score": 28.0, "percentage": 70.0, "grade": "3"},
-        {"stuId": "rec-ax-107", "score": 22.5, "percentage": 56.3, "grade": "3"},
-        {"stuId": "rec-ax-108", "score": 18.0, "percentage": 45.0, "grade": "2"},
-        {"stuId": "rec-ax-109", "score": 36.0, "percentage": 90.0, "grade": "5"},
-        {"stuId": "rec-ax-110", "score": 31.0, "percentage": 77.5, "grade": "4"},
-        {"stuId": "rec-ax-111", "score": 34.0, "percentage": 85.0, "grade": "5"},
-        {"stuId": "rec-ax-112", "score": 29.0, "percentage": 72.5, "grade": "3"},
-        {"stuId": "rec-ax-113", "score": 33.0, "percentage": 82.5, "grade": "4"},
-        {"stuId": "rec-ax-114", "score": 38.0, "percentage": 95.0, "grade": "5"},
-        {"stuId": "rec-ax-115", "score": 20.0, "percentage": 50.0, "grade": "2"},
+        # 11-A sinf
+        {"stuId": "rec-ax-101", "asmId": assessment_11.id, "score": 35.0, "percentage": 87.5, "grade": "5"},
+        {"stuId": "rec-ax-102", "asmId": assessment_11.id, "score": 37.5, "percentage": 93.8, "grade": "5"},
+        {"stuId": "rec-ax-104", "asmId": assessment_11.id, "score": 32.5, "percentage": 81.3, "grade": "4"},
+        {"stuId": "rec-ax-105", "asmId": assessment_11.id, "score": 30.0, "percentage": 75.0, "grade": "4"},
+        {"stuId": "rec-ax-106", "asmId": assessment_11.id, "score": 28.0, "percentage": 70.0, "grade": "3"},
+        {"stuId": "rec-ax-107", "asmId": assessment_11.id, "score": 22.5, "percentage": 56.3, "grade": "3"},
+        {"stuId": "rec-ax-108", "asmId": assessment_11.id, "score": 18.0, "percentage": 45.0, "grade": "2"},
+        {"stuId": "rec-ax-109", "asmId": assessment_11.id, "score": 36.0, "percentage": 90.0, "grade": "5"},
+        {"stuId": "rec-ax-110", "asmId": assessment_11.id, "score": 31.0, "percentage": 77.5, "grade": "4"},
+
+        # 11-B sinf
+        {"stuId": "rec-ax-111", "asmId": assessment_11.id, "score": 34.0, "percentage": 85.0, "grade": "5"},
+        {"stuId": "rec-ax-112", "asmId": assessment_11.id, "score": 29.0, "percentage": 72.5, "grade": "3"},
+        {"stuId": "rec-ax-113", "asmId": assessment_11.id, "score": 33.0, "percentage": 82.5, "grade": "4"},
+        {"stuId": "rec-ax-114", "asmId": assessment_11.id, "score": 38.0, "percentage": 95.0, "grade": "5"},
+        {"stuId": "rec-ax-115", "asmId": assessment_11.id, "score": 20.0, "percentage": 50.0, "grade": "2"},
+
+        # 10-A sinf
+        {"stuId": "rec-ax-1001", "asmId": assessment_11.id, "score": 36.5, "percentage": 91.3, "grade": "5"},
+        {"stuId": "rec-ax-1002", "asmId": assessment_11.id, "score": 33.0, "percentage": 82.5, "grade": "4"},
+        {"stuId": "rec-ax-1003", "asmId": assessment_11.id, "score": 27.5, "percentage": 68.8, "grade": "3"},
+        {"stuId": "rec-ax-1004", "asmId": assessment_11.id, "score": 38.5, "percentage": 96.3, "grade": "5"},
+        {"stuId": "rec-ax-1005", "asmId": assessment_11.id, "score": 22.0, "percentage": 55.0, "grade": "2"},
+
+        # 9-A sinf (Informatika va Matematika)
+        {"stuId": "rec-ax-901", "asmId": assessment_9.id, "score": 38.0, "percentage": 95.0, "grade": "5"},
+        {"stuId": "rec-ax-902", "asmId": assessment_9.id, "score": 36.0, "percentage": 90.0, "grade": "5"},
+        {"stuId": "rec-ax-903", "asmId": assessment_9.id, "score": 31.0, "percentage": 77.5, "grade": "4"},
+        {"stuId": "rec-ax-904", "asmId": assessment_9.id, "score": 34.0, "percentage": 85.0, "grade": "5"},
+        {"stuId": "rec-ax-905", "asmId": assessment_9.id, "score": 26.0, "percentage": 65.0, "grade": "3"},
+        {"stuId": "rec-ax-906", "asmId": assessment_9.id, "score": 29.0, "percentage": 72.5, "grade": "3"},
+        {"stuId": "rec-ax-907", "asmId": assessment_9.id, "score": 19.5, "percentage": 48.8, "grade": "2"},
+        {"stuId": "rec-ax-908", "asmId": assessment_9.id, "score": 32.5, "percentage": 81.3, "grade": "4"},
+
+        # 9-B sinf
+        {"stuId": "rec-ax-911", "asmId": assessment_9.id, "score": 35.0, "percentage": 87.5, "grade": "5"},
+        {"stuId": "rec-ax-912", "asmId": assessment_9.id, "score": 30.5, "percentage": 76.3, "grade": "4"},
+        {"stuId": "rec-ax-913", "asmId": assessment_9.id, "score": 24.0, "percentage": 60.0, "grade": "3"},
     ]
 
     for idx, res in enumerate(results_data):
         attempt = await db.assessmentattempt.create(
             data={
                 "id": f"att-seed-{idx + 1}",
-                "assessmentId": assessment.id,
+                "assessmentId": res["asmId"],
                 "studentId": res["stuId"],
                 "status": "submitted",
                 "timeSpentSeconds": 1800 + (idx * 30),
@@ -308,3 +383,27 @@ async def auto_seed_db(db: Prisma):
     await seed_subjects_if_empty(db)
 
     print(f"✅ Auto-seed completed: 2 tenants, 2 schools, {len(classes_data)} classes, {len(students_raw)} students, 15 questions, {len(results_data)} results.")
+
+if __name__ == "__main__":
+    import asyncio
+    async def run_cli_seed():
+        db = Prisma()
+        await db.connect()
+        try:
+            print("🧹 Purging old sample data...")
+            await db.assessmentresult.delete_many()
+            await db.assessmentattempt.delete_many()
+            await db.question.delete_many()
+            await db.assessment.delete_many()
+            await db.student.delete_many()
+            await db.classgroup.delete_many()
+            await db.subject.delete_many()
+            await db.user.delete_many()
+            await db.school.delete_many()
+            await db.tenant.delete_many()
+            await auto_seed_db(db, force=True)
+        finally:
+            await db.disconnect()
+
+    asyncio.run(run_cli_seed())
+

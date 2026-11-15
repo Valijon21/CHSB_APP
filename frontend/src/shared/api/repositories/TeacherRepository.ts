@@ -1,6 +1,6 @@
 import type { ClassGroup } from '../../../entities/class-group/model';
 import type { StudentRosterRecord } from '../../../entities/roster/model';
-import type { AssessmentSummary } from '../../../entities/assessment/model';
+import type { AssessmentSummary, CreateAssessmentInput } from '../../../entities/assessment/model';
 import type { AssessmentResult } from '../../../entities/result/model';
 import type {
   TeacherProfile,
@@ -15,6 +15,7 @@ export interface TeacherRepository {
   getClasses(tenantId: string): Promise<ClassGroup[]>;
   getRoster(tenantId: string, classGroupId?: string): Promise<StudentRosterRecord[]>;
   getAssessments(tenantId: string): Promise<AssessmentSummary[]>;
+  createAssessment(input: CreateAssessmentInput): Promise<AssessmentSummary>;
   getResults(tenantId: string): Promise<AssessmentResult[]>;
   getProfile(tenantId: string): Promise<TeacherProfile>;
   getClassDetail(tenantId: string, classId: string): Promise<ClassDetail | null>;
@@ -23,3 +24,4 @@ export interface TeacherRepository {
   getAnalytics(tenantId: string): Promise<AnalyticsData>;
   generateReportData(tenantId: string, options?: { classGroupId?: string; assessmentId?: string }): Promise<ReportItem[]>;
 }
+

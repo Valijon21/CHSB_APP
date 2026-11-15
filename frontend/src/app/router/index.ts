@@ -204,13 +204,22 @@ const routes: RouteRecordRaw[] = [
     path: '/regional/oversight',
     redirect: '/t/al-xorazmiy/teacher/regional-oversight',
   },
+  // Root /admin route redirect to active tenant portal (fixes 404 on direct /admin navigation)
+  {
+    path: '/admin',
+    redirect: () => {
+      const auth = getActivePinia() ? useAuthStore() : null;
+      const tenant = auth?.currentTenantSlug || 'al-xorazmiy';
+      return `/t/${tenant}/admin`;
+    },
+  },
   {
     path: '/schools',
     name: 'SchoolDirectory',
     component: () => import('../../features/organization/views/SchoolDirectoryView.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['SUPER_ADMIN', 'SCHOOL_ADMIN'] as UserRole[],
+      roles: ['SUPER_ADMIN'] as UserRole[],
     },
   },
   // Catch-all 404 Not Found

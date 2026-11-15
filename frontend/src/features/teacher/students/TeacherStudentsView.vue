@@ -240,6 +240,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
       :available-classes="availableClassRecords"
       @close="isCreateModalOpen = false"
       @create="handleCreateStudent"
+      @open-bulk="isCreateModalOpen = false; isBulkModalOpen = true"
     />
 
     <!-- 2. Ommaviy Import Modali -->
