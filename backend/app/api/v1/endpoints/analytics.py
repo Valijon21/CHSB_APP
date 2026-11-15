@@ -6,7 +6,9 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 @router.get("/{tenant_slug}")
 async def get_tenant_analytics(tenant_slug: str, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_unique(where={"slug": tenant_slug})
+    tenant = await db.tenant.find_first(
+        where={"OR": [{"slug": tenant_slug}, {"id": tenant_slug}]}
+    )
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 

@@ -123,6 +123,81 @@ onMounted(async () => {
           </table>
         </div>
       </div>
+
+      <!-- Test Savollari Banki (Question Bank) -->
+      <div v-if="teacherStore.assessmentDetail.questions && teacherStore.assessmentDetail.questions.length > 0" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs p-5 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <span>📋</span> Test Savollari va Variantlari ({{ teacherStore.assessmentDetail.questions.length }} ta savol)
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Ushbu imtihon uchun tuzilgan savollar, javob variantlari va to'g'ri kalitlar
+            </p>
+          </div>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+            Jami: {{ teacherStore.assessmentDetail.summary.maxScore }} ball
+          </span>
+        </div>
+
+        <div class="space-y-3.5">
+          <div
+            v-for="q in teacherStore.assessmentDetail.questions"
+            :key="q.id"
+            class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/40 space-y-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md bg-teal-800 text-white font-bold text-xs">
+                  {{ q.order }}-savol
+                </span>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                  ({{ q.points }} ball)
+                </span>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                {{ q.cognitiveLevel }}
+              </span>
+            </div>
+
+            <p class="text-sm font-medium text-slate-900 dark:text-white leading-relaxed">
+              {{ q.text }}
+            </p>
+
+            <!-- Options Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <div
+                v-for="opt in q.options"
+                :key="opt.id"
+                :class="[
+                  'p-2.5 rounded-lg border text-xs flex items-center gap-2 transition',
+                  (opt.id === q.correctOptionId || opt.label === 'A' && !q.correctOptionId)
+                    ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-semibold'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                ]"
+              >
+                <span
+                  :class="[
+                    'w-5 h-5 rounded-full flex items-center justify-center font-bold text-[11px]',
+                    (opt.id === q.correctOptionId || opt.label === 'A' && !q.correctOptionId)
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  ]"
+                >
+                  {{ opt.label || opt.id.replace('opt-', '').toUpperCase() }}
+                </span>
+                <span class="flex-1">{{ opt.text }}</span>
+                <span
+                  v-if="opt.id === q.correctOptionId || opt.label === 'A' && !q.correctOptionId"
+                  class="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded"
+                >
+                  To'g'ri Javob
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

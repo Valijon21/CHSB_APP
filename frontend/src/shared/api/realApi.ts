@@ -649,6 +649,7 @@ export class RealTeacherRepository implements TeacherRepository {
           { order: 5, cognitiveLevel: '(Q)', points: 2.5, correctRate: 72 },
           { order: 6, cognitiveLevel: '(M)', points: 2.5, correctRate: 64 },
         ],
+        questions: (assessment as any).questions || [],
       };
     } catch {
       return null;

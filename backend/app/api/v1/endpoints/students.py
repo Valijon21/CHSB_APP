@@ -25,7 +25,9 @@ async def get_students(
     classGroupId: str | None = None,
     db: Prisma = Depends(get_prisma),
 ):
-    tenant = await db.tenant.find_unique(where={"slug": tenantSlug})
+    tenant = await db.tenant.find_first(
+        where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
+    )
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
@@ -63,7 +65,9 @@ async def get_students(
 
 @router.post("")
 async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_unique(where={"slug": payload.tenantSlug})
+    tenant = await db.tenant.find_first(
+        where={"OR": [{"slug": payload.tenantSlug}, {"id": payload.tenantSlug}]}
+    )
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 

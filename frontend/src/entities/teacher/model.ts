@@ -48,6 +48,15 @@ export interface AssessmentDetail {
     points: number;
     correctRate: number; // estimated average correct %
   }>;
+  questions?: Array<{
+    id: string;
+    order: number;
+    text: string;
+    options: Array<{ id: string; label?: string; text: string }>;
+    correctOptionId?: string;
+    points: number;
+    cognitiveLevel: string;
+  }>;
 }
 
 export interface AnalyticsData {

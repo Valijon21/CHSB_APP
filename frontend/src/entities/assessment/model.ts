@@ -81,6 +81,13 @@ export interface CreateAssessmentInput {
   totalQuestions: number;
   maxScore: number;
   code?: string;
+  questions?: Array<{
+    prompt: string;
+    options: Array<{ id: string; label: string; text: string }>;
+    correctOptionId: string;
+    points?: number;
+    bloomLevel?: string;
+  }>;
 }
 
 

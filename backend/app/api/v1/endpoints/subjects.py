@@ -11,7 +11,9 @@ async def list_subjects(
     tenantSlug: str = Query("al-xorazmiy", description="Muassasa identifikatori"),
     db: Prisma = Depends(get_prisma),
 ):
-    tenant = await db.tenant.find_unique(where={"slug": tenantSlug})
+    tenant = await db.tenant.find_first(
+        where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
+    )
     if not tenant:
         raise HTTPException(status_code=404, detail="Muassasa topilmadi.")
 
@@ -41,7 +43,9 @@ async def create_subject(
     payload: SubjectCreate,
     db: Prisma = Depends(get_prisma),
 ):
-    tenant = await db.tenant.find_unique(where={"slug": payload.tenantSlug})
+    tenant = await db.tenant.find_first(
+        where={"OR": [{"slug": payload.tenantSlug}, {"id": payload.tenantSlug}]}
+    )
     if not tenant:
         raise HTTPException(status_code=404, detail="Muassasa topilmadi.")
 

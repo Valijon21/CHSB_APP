@@ -728,6 +728,7 @@ export class MockTeacherRepository implements TeacherRepository {
       completionRate: Math.round(((totalCompleted || 2) / (totalAssigned || 42)) * 100),
       averageScore,
       questionStats,
+      questions: [],
     };
   }
 

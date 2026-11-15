@@ -73,10 +73,35 @@ async def create_assessment(payload: AssessmentCreate, db: Prisma = Depends(get_
         }
     )
 
-    # Seed default questions if none provided
+    # Seed questions: custom questions if provided, otherwise default template
     points_per_q = round(payload.maxScore / max(1, payload.totalQuestions), 1)
     bloom_cycle = ["KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ANALYSIS"]
-    if not payload.questions:
+    if payload.questions and len(payload.questions) > 0:
+        for idx, q_data in enumerate(payload.questions, 1):
+            opts = q_data.get("options", [
+                {"id": "opt-a", "label": "A", "text": "A variant"},
+                {"id": "opt-b", "label": "B", "text": "B variant"},
+                {"id": "opt-c", "label": "C", "text": "C variant"},
+                {"id": "opt-d", "label": "D", "text": "D variant"},
+            ])
+            correct_opt = q_data.get("correctOptionId", "opt-a")
+            prompt = q_data.get("prompt") or q_data.get("text") or f"{idx}-savol"
+            bloom = q_data.get("bloomLevel") or q_data.get("cognitiveLevel") or bloom_cycle[(idx - 1) % len(bloom_cycle)]
+            pts = float(q_data.get("points", points_per_q))
+            await db.question.create(
+                data={
+                    "id": f"q-{created.id}-{idx}",
+                    "assessmentId": created.id,
+                    "questionNumber": idx,
+                    "prompt": prompt,
+                    "optionsJson": json.dumps(opts),
+                    "correctOptionId": correct_opt,
+                    "bloomLevel": bloom,
+                    "difficulty": "medium",
+                    "points": pts,
+                }
+            )
+    else:
         for i in range(1, payload.totalQuestions + 1):
             bloom = bloom_cycle[(i - 1) % len(bloom_cycle)]
             options = [
@@ -106,10 +131,42 @@ async def create_assessment(payload: AssessmentCreate, db: Prisma = Depends(get_
         "subject": created.subject,
         "gradeLevel": created.gradeLevel,
         "durationMinutes": created.durationMinutes,
-        "totalQuestions": created.totalQuestions,
+        "totalQuestions": payload.totalQuestions if not payload.questions else len(payload.questions),
         "maxScore": created.maxScore,
         "status": "published",
     }
+
+class QuestionUpdate(BaseModel):
+    prompt: str | None = None
+    options: list[dict] | None = None
+    correctOptionId: str | None = None
+    points: float | None = None
+    bloomLevel: str | None = None
+
+@router.put("/assessments/{assessment_id}/questions/{question_id}")
+async def update_question(
+    assessment_id: str,
+    question_id: str,
+    payload: QuestionUpdate,
+    db: Prisma = Depends(get_prisma),
+):
+    update_data = {}
+    if payload.prompt is not None:
+        update_data["prompt"] = payload.prompt
+    if payload.options is not None:
+        update_data["optionsJson"] = json.dumps(payload.options)
+    if payload.correctOptionId is not None:
+        update_data["correctOptionId"] = payload.correctOptionId
+    if payload.points is not None:
+        update_data["points"] = payload.points
+    if payload.bloomLevel is not None:
+        update_data["bloomLevel"] = payload.bloomLevel
+
+    updated = await db.question.update(
+        where={"id": question_id},
+        data=update_data,
+    )
+    return {"success": True, "id": updated.id, "prompt": updated.prompt}
 
 @router.get("/assessments/{assessment_id}")
 async def get_assessment_by_id(assessment_id: str, db: Prisma = Depends(get_prisma)):

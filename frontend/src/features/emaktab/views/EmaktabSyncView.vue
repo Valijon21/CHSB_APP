@@ -154,6 +154,17 @@ function goBack() {
       </router-link>
     </div>
 
+    <!-- eMaktab Maqsadi va Avtomatik Holat Banneri -->
+    <div class="p-4 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/70 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 text-xs leading-relaxed flex items-start gap-3">
+      <span class="text-lg">💡</span>
+      <div class="space-y-1">
+        <h4 class="font-bold text-slate-900 dark:text-white">eMaktab (kundalik.com) Sinxronizatsiyasi Haqida:</h4>
+        <p class="text-slate-600 dark:text-slate-300">
+          Ushbu sahifa CHSB imtihon baholarini davlat <strong>eMaktab (kundalik.com)</strong> elektron jurnaliga 1-bosishda (Ctrl+V yoki CSV orqali) ko'chirib o'tkazish uchun xizmat qiladi. Sinfingizdagi barcha o'quvchilar va ularning baholari pastdagi solishtirish jadvalida avtomatik shakllantirilgan. Agar jurnal formatidagi alohida faylni solishtirmoqchi bo'lsangiz, quyidagi yuklash kartasidan foydalanishingiz mumkin.
+        </p>
+      </div>
+    </div>
+
     <!-- 1. Ro'yxatni yuklash qismi (Roster Upload) -->
     <RosterUploadCard @import-roster="handleImportRoster" />
 
