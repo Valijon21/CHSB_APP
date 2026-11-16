@@ -18,9 +18,6 @@ RUN npm run build
 # --- Stage 2: Production Python & Prisma Runtime ---
 FROM python:3.11-slim AS runner
 
-# Create a non-root user with UID 1000 for Hugging Face Spaces security
-RUN useradd -m -u 1000 appuser
-
 WORKDIR /app
 
 # Install Node.js (required by Prisma CLI engine) and system dependencies
@@ -51,12 +48,6 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
-
-# Ensure user 1000 owns /app directory for Prisma and SQLite operations
-RUN chown -R appuser:appuser /app
-
-# Switch to non-root user for security and Hugging Face Spaces compliance
-USER appuser
 
 # Environment settings (8000 standard port)
 ENV PYTHONUNBUFFERED=1
