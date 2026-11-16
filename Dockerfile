@@ -58,9 +58,9 @@ RUN chown -R appuser:appuser /app
 # Switch to non-root user for security and Hugging Face Spaces compliance
 USER appuser
 
-# Environment settings (7860 is Hugging Face default port)
+# Environment settings (8000 standard port)
 ENV PYTHONUNBUFFERED=1
-ENV PORT=7860
-EXPOSE 7860
+ENV PORT=8000
+EXPOSE 8000
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

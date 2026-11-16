@@ -19,8 +19,8 @@ prisma db push --accept-data-loss || echo "⚠️ Warning: prisma db push warnin
 echo "⚙️ Generating Prisma client..."
 prisma generate
 
-# 4. Dynamic Port resolution (Hugging Face default is 7860, Cloud providers inject $PORT)
-APP_PORT="${PORT:-7860}"
+# 4. Dynamic Port resolution (Zeabur / Cloud providers inject $PORT, default 8000)
+APP_PORT="${PORT:-8000}"
 echo "🌐 Starting Uvicorn server on 0.0.0.0:${APP_PORT}..."
 
 exec uvicorn backend.app.main:app --host 0.0.0.0 --port "${APP_PORT}" --workers 2

@@ -93,11 +93,11 @@ def test_huggingface_spaces_configuration():
 
     dockerfile_path = settings.BASE_DIR / "Dockerfile"
     dockerfile_content = dockerfile_path.read_text(encoding="utf-8")
-    assert "EXPOSE 7860" in dockerfile_content
+    assert "EXPOSE 8000" in dockerfile_content
     assert "1000" in dockerfile_content
     assert "USER appuser" in dockerfile_content
 
     entrypoint_path = settings.BASE_DIR / "docker-entrypoint.sh"
     entrypoint_content = entrypoint_path.read_text(encoding="utf-8")
-    assert "PORT:-7860" in entrypoint_content
+    assert "PORT:-8000" in entrypoint_content
 
