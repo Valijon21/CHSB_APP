@@ -19,7 +19,7 @@ describe('TASK-CLS.3: TeacherClassesView & ClassCard Unit Tests', () => {
       gradeLevel: 10,
       shift: 1 as const,
       academicYear: '2026-2027',
-      headTeacherName: 'Dilmurod Quryazov',
+      headTeacherName: 'Anvar Rahimov',
       studentCount: 28,
       createdAt: '2026-09-01T08:00:00Z',
     };
@@ -37,7 +37,7 @@ describe('TASK-CLS.3: TeacherClassesView & ClassCard Unit Tests', () => {
     expect(wrapper.text()).toContain('10-A');
     expect(wrapper.text()).toContain('10-sinf');
     expect(wrapper.text()).toContain('1-smena');
-    expect(wrapper.text()).toContain('Dilmurod Quryazov');
+    expect(wrapper.text()).toContain('Anvar Rahimov');
     expect(wrapper.text()).toContain('28 nafar');
   });
 

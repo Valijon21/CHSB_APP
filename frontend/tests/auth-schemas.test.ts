@@ -23,10 +23,10 @@ describe('TASK-AUTH.1: Auth Schemas & Zod Contracts', () => {
   describe('LoginCredentialsSchema', () => {
     it('accepts valid credentials with defaults', () => {
       const parsed = LoginCredentialsSchema.parse({
-        username: 'dilmurod_ustoz',
+        username: 'anvar_ustoz',
         password: 'secret_password_123',
       });
-      expect(parsed.username).toBe('dilmurod_ustoz');
+      expect(parsed.username).toBe('anvar_ustoz');
       expect(parsed.password).toBe('secret_password_123');
       expect(parsed.rememberMe).toBe(false);
     });
@@ -64,10 +64,10 @@ describe('TASK-AUTH.1: Auth Schemas & Zod Contracts', () => {
     it('accepts valid authenticated teacher user', () => {
       const teacher = {
         id: 'usr-tch-01',
-        username: 'dilmurod_ustoz',
-        fullName: 'Dilmurod Matyoqubov',
+        username: 'anvar_ustoz',
+        fullName: 'Anvar Rahimov',
         role: 'TEACHER',
-        email: 'dilmurod@al-xorazmiy.uz',
+        email: 'anvar@al-xorazmiy.uz',
         phone: '+998901234567',
         tenantSlug: 'al-xorazmiy',
         schoolName: 'Al-Xorazmiy IT-maktab',

@@ -31,7 +31,7 @@ onMounted(async () => {
           <span class="text-xs text-slate-400 dark:text-slate-500">• CHSB V2</span>
         </div>
         <h1 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-          Xush kelibsiz, {{ teacherStore.profile?.fullName || 'Dilmurod Ustoz' }}!
+          Xush kelibsiz, {{ teacherStore.profile?.fullName || 'Anvar Ustoz' }}!
         </h1>
         <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
           {{ tenantStore.currentTenant?.displayName }} — 11-sinf Informatika va axborot texnologiyalari bo'yicha hisobotlar paneli.

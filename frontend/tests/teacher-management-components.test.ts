@@ -61,7 +61,7 @@ describe('TASK-MS.5: Teacher Management Components', () => {
         id: 'tch-10',
         schoolId: 'sch-01',
         tenantSlug: 'al-xorazmiy',
-        fullName: 'Dilmurod Quryazov',
+        fullName: 'Anvar Rahimov',
         subject: 'Informatika',
         qualification: 'oliy',
         assignedClassIds: ['cls-10a'],
@@ -76,7 +76,7 @@ describe('TASK-MS.5: Teacher Management Components', () => {
       props: { teachers },
     });
 
-    expect(wrapper.text()).toContain('Dilmurod Quryazov');
+    expect(wrapper.text()).toContain('Anvar Rahimov');
     expect(wrapper.text()).toContain('Informatika');
     expect(wrapper.text()).toContain('10-A');
 

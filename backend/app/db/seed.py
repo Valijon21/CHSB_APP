@@ -106,7 +106,7 @@ async def auto_seed_db(db: Prisma, force: bool = False):
             "tenantId": tenant_ax.id,
             "username": "teacher_ax",
             "email": "teacher@al-xorazmiy.uz",
-            "fullName": "Dilmurod Ustoz",
+            "fullName": "Anvar Rahimov",
             "hashedPassword": hashed_password,
             "role": "TEACHER",
             "isActive": True,

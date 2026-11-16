@@ -76,7 +76,7 @@ async function main() {
         tenantId: tenantAx.id,
         username: 'teacher_ax',
         email: 'teacher@al-xorazmiy.uz',
-        fullName: 'Dilmurod Ustoz',
+        fullName: 'Anvar Rahimov',
         hashedPassword,
         role: 'TEACHER',
         isActive: true,

@@ -29,7 +29,7 @@ describe('TASK-CLS.1: Class Management Store & Repository Sync', () => {
     expect(created.name).toBe('8-B');
     expect(created.gradeLevel).toBe(8);
     expect(created.shift).toBe(2);
-    expect(created.headTeacherName).toBe('Dilmurod Quryazov');
+    expect(created.headTeacherName).toBe('Anvar Rahimov');
 
     // Check teacher assigned classes updated
     const teacher = (await mockRepo.getTeachersBySchool('al-xorazmiy')).find((t) => t.id === 'tch-01');

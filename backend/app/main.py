@@ -23,6 +23,12 @@ async def lifespan(app: FastAPI):
             from backend.app.db.seed import auto_seed_db
             await auto_seed_db(prisma)
             print("✅ Database successfully bootstrapped!")
+        else:
+            # Sync user profile names if legacy seed was present
+            await prisma.user.update_many(
+                where={"fullName": {"contains": "Dilmurod"}},
+                data={"fullName": "Anvar Rahimov"}
+            )
     except Exception as e:
         print(f"⚠️ Auto-seed bootstrap warning: {e}")
 

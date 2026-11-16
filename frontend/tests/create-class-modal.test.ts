@@ -9,7 +9,7 @@ describe('TASK-CLS.2: CreateClassModal Component', () => {
       id: 'tch-01',
       schoolId: 'sch-01',
       tenantSlug: 'al-xorazmiy',
-      fullName: 'Dilmurod Quryazov',
+      fullName: 'Anvar Rahimov',
       subject: 'Informatika',
       qualification: 'oliy',
       assignedClassIds: [],

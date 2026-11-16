@@ -27,10 +27,10 @@ describe('TASK-AUTH.2: Pinia authStore & Session Management', () => {
     });
 
     expect(store.isAuthenticated).toBe(true);
-    expect(user.fullName).toBe('Dilmurod Matyoqubov');
+    expect(user.fullName).toBe('Anvar Rahimov');
     expect(store.currentRole).toBe('TEACHER');
     expect(store.currentTenantSlug).toBe('al-xorazmiy');
-    expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toContain('Dilmurod Matyoqubov');
+    expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toContain('Anvar Rahimov');
     expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
   });
 
@@ -92,7 +92,7 @@ describe('TASK-AUTH.2: Pinia authStore & Session Management', () => {
     const mockUser = {
       id: 'usr-tch-01',
       username: 'teacher@xorazm.uz',
-      fullName: 'Dilmurod Matyoqubov',
+      fullName: 'Anvar Rahimov',
       role: 'TEACHER',
       token: 'restored-token-123',
       tenantSlug: 'al-xorazmiy',
@@ -104,7 +104,7 @@ describe('TASK-AUTH.2: Pinia authStore & Session Management', () => {
 
     expect(restored).toBe(true);
     expect(store.isAuthenticated).toBe(true);
-    expect(store.currentUser?.fullName).toBe('Dilmurod Matyoqubov');
+    expect(store.currentUser?.fullName).toBe('Anvar Rahimov');
   });
 
   it('logs out and wipes storage cleanly', async () => {

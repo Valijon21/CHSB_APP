@@ -619,9 +619,9 @@ export class MockTeacherRepository implements TeacherRepository {
     return {
       id: 'tch-ax-01',
       tenantId: 'tenant-al-xorazmiy',
-      fullName: 'Dilmurod Ustoz',
+      fullName: 'Anvar Rahimov',
       title: 'Oliy toifali informatika va axborot texnologiyalari fani o‘qituvchisi',
-      email: 'dilmurod.ustoz@al-xorazmiy.uz',
+      email: 'anvar.ustoz@al-xorazmiy.uz',
       phone: '+998 71 200-11-01',
       assignedSchoolName: 'Al-Xorazmiy IT Bosh Kampusi',
       subjects: ['Informatika va axborot texnologiyalari', 'Algoritmlar va dasturlash'],

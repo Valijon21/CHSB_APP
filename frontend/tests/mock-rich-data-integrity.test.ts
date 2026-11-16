@@ -97,7 +97,7 @@ describe('TASK-DAT.4: Senior Enterprise Mock Data Architecture Integrity', () =>
     it('seeds 5 realistic teachers with qualifications and subjects', async () => {
       const teachers = await orgRepo.getTeachersBySchool('sch-01');
       expect(teachers.length).toBeGreaterThanOrEqual(3);
-      expect(teachers.map((t) => t.fullName)).toContain('Dilmurod Quryazov');
+      expect(teachers.map((t) => t.fullName)).toContain('Anvar Rahimov');
       expect(teachers.map((t) => t.fullName)).toContain('Nilufar Rahimova');
     });
   });

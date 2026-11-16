@@ -13,9 +13,9 @@ export const DEMO_USERS: Record<string, { password: string; user: AuthUser }> = 
     user: {
       id: 'usr-tch-01',
       username: 'teacher@xorazm.uz',
-      fullName: 'Dilmurod Matyoqubov',
+      fullName: 'Anvar Rahimov',
       role: 'TEACHER',
-      email: 'dilmurod@al-xorazmiy.uz',
+      email: 'anvar@al-xorazmiy.uz',
       phone: '+998901234567',
       tenantSlug: 'al-xorazmiy',
       schoolName: 'Al-Xorazmiy IT-maktab',

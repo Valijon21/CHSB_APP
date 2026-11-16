@@ -732,7 +732,7 @@ function printReport() {
         <div>
           <span class="block text-slate-400 dark:text-slate-400 print:text-black font-semibold">Fan o'qituvchisi:</span>
           <span class="font-bold text-slate-900 dark:text-white print:text-black block mt-1">
-            {{ authStore.currentUser?.fullName || teacherStore.profile?.fullName || 'Dilmurod Ustoz' }}
+            {{ authStore.currentUser?.fullName || teacherStore.profile?.fullName || 'Anvar Rahimov' }}
           </span>
           <div class="flex items-center gap-2 mt-4">
             <span class="text-[10px] text-slate-400 print:text-black">Imzo:</span>

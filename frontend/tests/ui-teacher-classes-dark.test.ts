@@ -69,7 +69,7 @@ describe('TASK-UIX.2: Teacher Classes, ClassCard & ClassDetail Dark Mode & A11y'
       academicYear: '2026-2027',
       studentCount: 28,
       shift: 1 as const,
-      headTeacherName: 'Dilmurod Ustoz',
+      headTeacherName: 'Anvar Rahimov',
     };
 
     const wrapper = mount(ClassCard, {

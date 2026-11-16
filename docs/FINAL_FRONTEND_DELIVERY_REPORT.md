@@ -23,7 +23,7 @@ Mavjud 11-sinf Informatika va axborot texnologiyalari fanining 1-ChSB bo'yicha b
 ### 2.1 Papkalar Tuzilishi (Clean / Modular Architecture)
 
 ```
-d:\Proyekt\DIlmurod_ustoz CHSB APP\
+d:\Proyekt\CHSB APP\
 ├── docs/                                # Arxitektura, audit va qadam-baqadam hisobotlar
 │   ├── reports/                         # Phase 1 dan Phase 6 gacha hisobotlar
 │   ├── PROJECT_AUDIT_PHASE_0.md

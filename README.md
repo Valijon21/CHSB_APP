@@ -215,7 +215,7 @@ Barcha hisoblar bazada `bcrypt` orqali shifrlangan va darhol kirishga tayyor:
 
 | Rol | Foydalanuvchi nomi | Parol | To'liq Ism |
 | :--- | :--- | :--- | :--- |
-| **Fan O'qituvchisi** | `teacher_ax` | `Secret123!` | Dilmurod Ustoz (Informatika) |
+| **Fan O'qituvchisi** | `teacher_ax` | `Secret123!` | Anvar Rahimov (Informatika) |
 | **Maktab Direktori** | `admin_ax` | `Secret123!` | Shavkat Boboyev (Al-Xorazmiy IT-maktab) |
 | **Viloyat Nazoratchisi**| `inspector_tashkent` | `Secret123!` | Toshkent shahar MMTO Boshqarmasi |
 | **O'quvchi Imtihon Kirdi**| *(Roster Kod)* | `STU-1101` | Alisher Zokirov (11-A sinf) |

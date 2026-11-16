@@ -117,7 +117,7 @@ describe('Phase 5 — Teacher Workspace Enterprise Architecture', () => {
       await store.loadTeacherData('tenant-al-xorazmiy');
 
       expect(store.profile).not.toBeNull();
-      expect(store.profile?.fullName).toBe('Dilmurod Ustoz');
+      expect(store.profile?.fullName).toBe('Anvar Rahimov');
       expect(store.profile?.assignedSchoolName).toBe('Al-Xorazmiy IT Bosh Kampusi');
       expect(store.profile?.subjects).toContain('Informatika va axborot texnologiyalari');
     });

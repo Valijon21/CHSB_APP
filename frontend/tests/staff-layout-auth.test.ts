@@ -41,7 +41,7 @@ describe('TASK-AUTH.5: StaffLayout Auth & Logout Integration', () => {
       },
     });
 
-    expect(wrapper.text()).toContain('Dilmurod Matyoqubov');
+    expect(wrapper.text()).toContain('Anvar Rahimov');
     expect(wrapper.text()).toContain("O'qituvchi");
     // Teacher should not have Viloyat Boshqaruvi in navigation
     expect(wrapper.text()).not.toContain('Viloyat Boshqaruvi');

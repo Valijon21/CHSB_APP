@@ -18,7 +18,7 @@ def test_auth_login_success(client: TestClient):
     assert "access_token" in data
     assert data["token_type"] == "bearer"
     assert data["user"]["role"] == "TEACHER"
-    assert data["user"]["fullName"] == "Dilmurod Ustoz"
+    assert data["user"]["fullName"] == "Anvar Rahimov"
     assert data["user"]["username"] == "teacher_ax"
 
 def test_auth_login_invalid_password(client: TestClient):
