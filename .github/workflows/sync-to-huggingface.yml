@@ -1,0 +1,28 @@
+name: Sync to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
+        run: |
+          if [ -n "$HF_TOKEN" ] && [ -n "$HF_SPACE_REPO" ]; then
+            echo "Pushing code to Hugging Face Space: $HF_SPACE_REPO..."
+            git push https://user:$HF_TOKEN@huggingface.co/spaces/$HF_SPACE_REPO main:main --force
+            echo "✅ Successfully synced repository to Hugging Face Space!"
+          else
+            echo "ℹ️ HF_TOKEN or HF_SPACE_REPO secret is not configured in GitHub Repository Settings. Manual push or space connection can be used."
+          fi

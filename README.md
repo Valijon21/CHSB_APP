@@ -1,3 +1,13 @@
+---
+title: CHSB Assessment Platform
+emoji: 🎓
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🎓 CHSB Platform — Enterprise Multi-Tenant Assessment & Pedagogical AI SaaS
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)

@@ -1,5 +1,6 @@
 # ==============================================================================
 # Multi-Stage Dockerfile for CHSB Assessment Platform
+# Compatible with: Hugging Face Spaces (24/7 Free, 16GB RAM), Render, Koyeb
 # Stage 1: Frontend Builder (Vue 3 + Vite + Tailwind CSS + Pinia)
 # Stage 2: Runtime Container (Python FastAPI + Prisma + Embedded Frontend)
 # ==============================================================================
@@ -16,9 +17,13 @@ RUN npm run build
 
 # --- Stage 2: Production Python & Prisma Runtime ---
 FROM python:3.11-slim AS runner
+
+# Create a non-root user with UID 1000 for Hugging Face Spaces security
+RUN useradd -m -u 1000 appuser
+
 WORKDIR /app
 
-# Install Node.js (required by Prisma CLI engine) and curl
+# Install Node.js (required by Prisma CLI engine) and system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
@@ -47,9 +52,15 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-# Environment settings
+# Ensure user 1000 owns /app directory for Prisma and SQLite operations
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user for security and Hugging Face Spaces compliance
+USER appuser
+
+# Environment settings (7860 is Hugging Face default port)
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8000
-EXPOSE 8000
+ENV PORT=7860
+EXPOSE 7860
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

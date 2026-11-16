@@ -78,3 +78,26 @@ def test_prisma_schema_switcher_utility():
         assert 'provider = "sqlite"' in content
     finally:
         schema_path.write_text(original_content, encoding="utf-8")
+
+def test_huggingface_spaces_configuration():
+    """
+    Verifies that README.md and Dockerfile meet Hugging Face Spaces requirements:
+    1. README.md contains YAML frontmatter with sdk: docker and app_port: 7860
+    2. Dockerfile exposes port 7860 and configures non-root UID 1000 user
+    3. docker-entrypoint.sh resolves default port 7860
+    """
+    readme_path = settings.BASE_DIR / "README.md"
+    readme_content = readme_path.read_text(encoding="utf-8")
+    assert "sdk: docker" in readme_content
+    assert "app_port: 7860" in readme_content
+
+    dockerfile_path = settings.BASE_DIR / "Dockerfile"
+    dockerfile_content = dockerfile_path.read_text(encoding="utf-8")
+    assert "EXPOSE 7860" in dockerfile_content
+    assert "1000" in dockerfile_content
+    assert "USER appuser" in dockerfile_content
+
+    entrypoint_path = settings.BASE_DIR / "docker-entrypoint.sh"
+    entrypoint_content = entrypoint_path.read_text(encoding="utf-8")
+    assert "PORT:-7860" in entrypoint_content
+
