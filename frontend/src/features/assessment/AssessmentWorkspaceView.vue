@@ -36,6 +36,24 @@ function handleOptionSelect(optionId: string) {
   }
 }
 
+function getOptionLabel(opt: { id: string; label?: string }, index: number): string {
+  if (opt.label && opt.label.trim().length > 0) {
+    return opt.label.trim().toUpperCase();
+  }
+  if (opt.id.toLowerCase().startsWith('opt-')) {
+    const raw = opt.id.replace(/^opt-/, '').trim().toUpperCase();
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num >= 1 && num <= 26) {
+      return String.fromCharCode(64 + num);
+    }
+    return raw;
+  }
+  if (/^[a-z]$/i.test(opt.id.trim())) {
+    return opt.id.trim().toUpperCase();
+  }
+  return String.fromCharCode(65 + index);
+}
+
 async function handleFinish() {
   const unanswered = assessmentStore.unansweredCount;
   if (unanswered > 0) {
@@ -157,10 +175,10 @@ async function handleFinish() {
           <!-- Options List (A, B, C, D) -->
           <div class="space-y-3">
             <button
-              v-for="opt in assessmentStore.currentQuestion.options"
+              v-for="(opt, optIdx) in assessmentStore.currentQuestion.options"
               :key="opt.id"
               @click="handleOptionSelect(opt.id)"
-              :aria-label="`Variant ${opt.id}`"
+              :aria-label="`Variant ${getOptionLabel(opt, optIdx)}`"
               :class="[
                 'w-full text-left p-3.5 rounded-lg border text-sm transition flex items-start gap-3 cursor-pointer',
                 assessmentStore.answers[assessmentStore.currentQuestion.id] === opt.id
@@ -176,7 +194,7 @@ async function handleFinish() {
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                 ]"
               >
-                {{ opt.id }}
+                {{ getOptionLabel(opt, optIdx) }}
               </span>
               <span class="flex-1 leading-snug pt-0.5" v-html="opt.text"></span>
             </button>

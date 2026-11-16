@@ -34,7 +34,8 @@ export const QuestionBlockSchema = z.discriminatedUnion('type', [
 export type QuestionBlock = z.infer<typeof QuestionBlockSchema>;
 
 export const QuestionOptionSchema = z.object({
-  id: z.string(), // 'A' | 'B' | 'C' | 'D'
+  id: z.string(), // 'A' | 'B' | 'C' | 'D' or 'opt-a', 'opt-b', etc.
+  label: z.string().optional(),
   text: z.string(),
 });
 
