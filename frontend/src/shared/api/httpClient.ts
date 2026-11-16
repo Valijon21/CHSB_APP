@@ -21,15 +21,14 @@ class HttpClient {
   private baseUrl: string;
 
   constructor() {
-    const metaEnv = (import.meta as unknown as { env?: Record<string, string | boolean> })?.env;
-    if (metaEnv?.VITE_API_BASE_URL && typeof metaEnv.VITE_API_BASE_URL === 'string') {
-      this.baseUrl = metaEnv.VITE_API_BASE_URL;
-    } else if (metaEnv?.PROD) {
-      // Production All-in-One Docker or same-domain deployment: use relative path
-      this.baseUrl = '/api/v1';
-    } else {
-      // Local development default
+    // In Vite, import.meta.env is statically replaced at build time
+    if (import.meta.env.VITE_API_BASE_URL) {
+      this.baseUrl = import.meta.env.VITE_API_BASE_URL;
+    } else if (import.meta.env.DEV) {
       this.baseUrl = 'http://localhost:8000/api/v1';
+    } else {
+      // In production (All-in-One Docker / Same Origin), use relative /api/v1
+      this.baseUrl = '/api/v1';
     }
   }
 
