@@ -1,8 +1,7 @@
 # ==============================================================================
-# Multi-Stage Dockerfile for CHSB Assessment Platform
-# Compatible with: Hugging Face Spaces (24/7 Free, 16GB RAM), Render, Koyeb
-# Stage 1: Frontend Builder (Vue 3 + Vite + Tailwind CSS + Pinia)
-# Stage 2: Runtime Container (Python FastAPI + Prisma + Embedded Frontend)
+# Production Dockerfile for CHSB Assessment Platform (Ultra-Lightweight Runtime)
+# Stage 1: Build Frontend (Vue 3 + Vite)
+# Stage 2: Production Python & Prisma Runtime
 # ==============================================================================
 
 # --- Stage 1: Build Frontend ---
@@ -17,10 +16,9 @@ RUN npm run build
 
 # --- Stage 2: Production Python & Prisma Runtime ---
 FROM python:3.11-slim AS runner
-
 WORKDIR /app
 
-# Install Node.js (required by Prisma CLI engine) and system dependencies
+# Install Node.js (for pre-generating Prisma during build) and curl
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
@@ -29,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
     && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
     && apt-get update && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g prisma@5.17.0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -36,8 +35,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# Copy Prisma schema and preparation script
+# Copy Prisma schema and pre-generate Prisma client during BUILD time (Zero runtime overhead!)
 COPY prisma/ ./prisma/
+RUN DATABASE_URL="postgresql://user:pass@localhost:5432/db" python prisma/prepare_schema.py && prisma generate
 
 # Copy backend application source code
 COPY backend/ ./backend/
@@ -49,7 +49,7 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-# Environment settings (8000 standard port)
+# Environment settings
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 EXPOSE 8000
