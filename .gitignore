@@ -29,7 +29,13 @@ frontend/.vite/
 *.sln
 *.sw?
 
-# Testing & Coverage
+# Database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+prisma/*.db*
+prisma/prisma/
 coverage/
 frontend/coverage/
 playwright-report/

@@ -8,6 +8,55 @@ import { MockTeacherRepository } from './mocks/repositories/MockTeacherRepositor
 import { MockRegionalRepository } from './mocks/repositories/MockRegionalRepository';
 import { MockOrganizationRepository } from './mocks/repositories/MockOrganizationRepository';
 
+// Ensure localStorage and sessionStorage exist and function in Node 26+ / jsdom environment
+const createStorageMock = () => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = String(value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: vi.fn((idx: number) => Object.keys(store)[idx] ?? null),
+  };
+};
+
+try {
+  const testStorage = createStorageMock();
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: testStorage,
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    value: createStorageMock(),
+    writable: true,
+    configurable: true,
+  });
+  if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'localStorage', {
+      value: testStorage,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'sessionStorage', {
+      value: createStorageMock(),
+      writable: true,
+      configurable: true,
+    });
+  }
+} catch {
+  // Ignore fallback errors
+}
+
 // Provide isolated mock API services for Vitest unit test suite
 vi.mock('@/shared/api', () => {
   return {

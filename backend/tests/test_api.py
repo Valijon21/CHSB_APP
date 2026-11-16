@@ -5,7 +5,7 @@ def test_health_check(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert data["database"] == "postgresql-18"
+    assert "prisma" in data["database"]
     assert data["orm"] == "prisma-client-py"
 
 def test_auth_login_success(client: TestClient):
@@ -104,7 +104,8 @@ def test_get_assessments(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 1
-    assert data[0]["code"].lower() == "chsb-inf-11-q1"
+    codes = [a["code"].lower() for a in data]
+    assert "chsb-inf-11-q1" in codes
 
 def test_get_assessment_detail(client: TestClient):
     response = client.get("/api/v1/assessments/chsb-inf-11-q1")

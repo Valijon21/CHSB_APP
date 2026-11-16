@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "CHSB Assessment Platform API"
     VERSION: str = "2.0.0"
     API_V1_STR: str = "/api/v1"
+    BASE_DIR: Path = BASE_DIR
+    FRONTEND_DIST: Path = Path(os.getenv("FRONTEND_DIST", str(BASE_DIR / "frontend" / "dist")))
     
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 

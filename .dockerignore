@@ -1,0 +1,31 @@
+# Git & System
+.git
+.gitignore
+.agents
+.vscode
+.idea
+.DS_Store
+
+# Node & Frontend
+node_modules
+frontend/node_modules
+frontend/dist
+npm-debug.log*
+
+# Python & Backend
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info
+.pytest_cache
+
+# Database & Environment
+prisma/dev.db*
+.env
+.env.local
+docs/
