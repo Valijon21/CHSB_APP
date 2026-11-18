@@ -160,6 +160,21 @@ interface BackendAnalyticsResponse {
   };
 }
 
+const DEFAULT_TENANT_CONTEXTS: Record<string, TenantPublicContext> = {
+  'al-xorazmiy': {
+    tenantId: 'tenant-al-xorazmiy',
+    tenantSlug: 'al-xorazmiy',
+    displayName: 'Muhammad al-Xorazmiy nomidagi ixtisoslashtirilgan IT-maktab',
+    status: 'active',
+  },
+  'temurbeklar-maktabi': {
+    tenantId: 'tenant-temurbeklar',
+    tenantSlug: 'temurbeklar-maktabi',
+    displayName: 'Temurbeklar Maktabi Harbiy-Akademik Litseyi',
+    status: 'active',
+  },
+};
+
 export class RealTenantRepository implements TenantRepository {
   async getPublicContextBySlug(slug: string): Promise<TenantPublicContext | null> {
     try {
@@ -171,7 +186,7 @@ export class RealTenantRepository implements TenantRepository {
         status: 'active',
       };
     } catch {
-      return null;
+      return DEFAULT_TENANT_CONTEXTS[slug] || null;
     }
   }
 
