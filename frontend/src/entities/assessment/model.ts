@@ -130,6 +130,10 @@ export interface CreateAssessmentInput {
     correctOptionId: string;
     points?: number;
     bloomLevel?: string;
+    taskType?: 'multiple_choice' | 'subquestions' | 'table_completion' | 'case_study' | 'open_text';
+    subQuestions?: Array<{ id: string; label: string; prompt: string; points: number; rubric?: string }>;
+    rubric?: string;
+    sourceExcerpt?: string;
   }>;
 }
 

@@ -7,6 +7,13 @@ import type { CreateAssessmentInput } from '../../../entities/assessment/model';
 import { extractTextFromPdf } from '../../../shared/utils/pdfExtractor';
 import { parseExamQuestionsFromText, type ParsedQuestionItem } from '../../../shared/utils/pdfQuestionParser';
 import { getBsbStandardByGrade } from '../../../entities/assessment/officialBsbData';
+import {
+  extractGroundedQuestionsWithAi,
+  getStoredGeminiApiKey,
+  saveStoredGeminiApiKey,
+  type GroundedQuestionItem,
+} from '../../../shared/utils/groundedAiExtractor';
+import AiQuestionReviewCard from './components/AiQuestionReviewCard.vue';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -51,14 +58,51 @@ const isSubmitting = ref<boolean>(false);
 const questionMode = ref<'auto' | 'custom' | 'pdf'>('auto');
 const customQuestionsText = ref('');
 
-// PDF Upload & Extraction State
+// PDF Upload & Grounded AI Extraction State
 const isPdfProcessing = ref(false);
 const pdfFileName = ref('');
 const pdfFileSize = ref('');
 const pdfQuestions = ref<ParsedQuestionItem[]>([]);
+const pdfGroundedQuestions = ref<GroundedQuestionItem[]>([]);
 const pdfWarnings = ref<string[]>([]);
 const pdfDropzoneActive = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const aiExtractionMode = ref<'gemini' | 'local'>('gemini');
+const geminiApiKey = ref<string>(getStoredGeminiApiKey());
+const showApiKeyInput = ref<boolean>(false);
+const lastExtractionSource = ref<'ai' | 'local'>('ai');
+
+const approvedCount = computed(() => pdfGroundedQuestions.value.filter((q) => q.isApprovedByHuman).length);
+const allApproved = computed(
+  () => pdfGroundedQuestions.value.length > 0 && approvedCount.value === pdfGroundedQuestions.value.length
+);
+
+function approveAllQuestions() {
+  pdfGroundedQuestions.value.forEach((q) => {
+    q.isApprovedByHuman = true;
+  });
+}
+
+function toggleApproval(idx: number) {
+  const item = pdfGroundedQuestions.value[idx];
+  if (item) {
+    item.isApprovedByHuman = !item.isApprovedByHuman;
+  }
+}
+
+function saveApiKeyLocally() {
+  saveStoredGeminiApiKey(geminiApiKey.value);
+  showApiKeyInput.value = false;
+}
+
+function updateGroundedQuestion(idx: number, updated: GroundedQuestionItem) {
+  pdfGroundedQuestions.value[idx] = updated;
+}
+
+function deleteGroundedQuestion(idx: number) {
+  pdfGroundedQuestions.value.splice(idx, 1);
+  totalQuestions.value = pdfGroundedQuestions.value.length;
+}
 
 async function handlePdfFile(file: File) {
   if (!file) return;
@@ -70,23 +114,70 @@ async function handlePdfFile(file: File) {
   errorMessage.value = null;
   pdfFileName.value = file.name;
   pdfFileSize.value = `${(file.size / 1024).toFixed(1)} KB`;
+  pdfGroundedQuestions.value = [];
+  pdfWarnings.value = [];
 
   try {
     const rawText = await extractTextFromPdf(file);
-    const parsed = parseExamQuestionsFromText(rawText, {
-      maxScore: Number(maxScore.value),
-    });
+    let extracted: GroundedQuestionItem[] = [];
 
-    if (!parsed.success || parsed.questions.length === 0) {
-      errorMessage.value = "PDF fayldan test savollari ajratib olinmadi. Iltimos, faylda savollar (1., 2.) va variantlar (A), B)) to'liq yozilganligini tekshiring.";
-      pdfQuestions.value = [];
+    // Mode 1: Gemini 3.5 Flash Lite with Strict Grounding
+    if (aiExtractionMode.value === 'gemini' && geminiApiKey.value.trim()) {
+      saveStoredGeminiApiKey(geminiApiKey.value);
+      const aiRes = await extractGroundedQuestionsWithAi(rawText, {
+        apiKey: geminiApiKey.value.trim(),
+        model: 'gemini-3.5-flash-lite',
+        maxScore: Number(maxScore.value),
+      });
+
+      if (aiRes.success && aiRes.questions.length > 0) {
+        extracted = aiRes.questions;
+        lastExtractionSource.value = 'ai';
+      } else if (aiRes.error) {
+        pdfWarnings.value.push(`AI ogohlantirishi: ${aiRes.error}. Lokal BSB tahliliga o'tildi.`);
+      }
+    }
+
+    // Mode 2: Local BSB deterministic parser (Fallback or direct)
+    if (extracted.length === 0) {
+      const localParsed = parseExamQuestionsFromText(rawText, {
+        maxScore: Number(maxScore.value),
+      });
+
+      if (localParsed.success && localParsed.questions.length > 0) {
+        extracted = localParsed.questions.map((q, idx) => ({
+          id: `local-q-${q.number || idx + 1}`,
+          number: q.number || idx + 1,
+          title: `${q.number || idx + 1}-topshiriq`,
+          prompt: q.prompt,
+          taskType: (q.taskType || (q.options && q.options.length >= 2 ? 'multiple_choice' : 'subquestions')) as GroundedQuestionItem['taskType'],
+          points: q.points,
+          options: q.options,
+          correctOptionId: q.correctOptionId,
+          subQuestions: q.subQuestions?.map((s) => ({
+            id: s.id,
+            label: s.label,
+            prompt: s.prompt,
+            points: s.points,
+            rubric: s.rubric,
+          })),
+          rubric: q.rubric,
+          sourceExcerpt: q.sourceExcerpt || q.prompt,
+          isApprovedByHuman: false,
+        }));
+        lastExtractionSource.value = 'local';
+      }
+    }
+
+    if (extracted.length === 0) {
+      errorMessage.value = "PDF fayldan topshiriqlar ajratib olinmadi. Iltimos, fayl matni to'liq ekanligini tekshiring.";
+      pdfGroundedQuestions.value = [];
     } else {
-      pdfQuestions.value = parsed.questions;
-      pdfWarnings.value = parsed.warnings;
-      totalQuestions.value = parsed.questions.length;
+      pdfGroundedQuestions.value = extracted;
+      totalQuestions.value = extracted.length;
     }
   } catch (err: unknown) {
-    const msg = (err as Error)?.message || "PDF faylni o'qishda xatolik yuz berdi.";
+    const msg = (err as Error)?.message || "PDF faylni tahlil qilishda xatolik yuz berdi.";
     errorMessage.value = msg;
   } finally {
     isPdfProcessing.value = false;
@@ -113,17 +204,13 @@ function removePdf() {
   pdfFileName.value = '';
   pdfFileSize.value = '';
   pdfQuestions.value = [];
+  pdfGroundedQuestions.value = [];
   pdfWarnings.value = [];
   if (fileInputRef.value) {
     fileInputRef.value.value = '';
   }
 }
 
-function updatePdfQuestionAnswer(qIndex: number, optId: string) {
-  if (pdfQuestions.value[qIndex]) {
-    pdfQuestions.value[qIndex].correctOptionId = optId;
-  }
-}
 
 interface ParsedQuestion {
   prompt: string;
@@ -275,21 +362,36 @@ function handleSubmit() {
     return;
   }
 
-  let finalQuestions: ParsedQuestion[] | undefined = undefined;
+  let finalQuestions: CreateAssessmentInput['questions'] | undefined = undefined;
 
   if (questionMode.value === 'pdf') {
-    if (pdfQuestions.value.length === 0) {
-      errorMessage.value = "PDF rejimida kamida bitta to'liq test savoli aniqlangan bo'lishi shart!";
+    if (pdfGroundedQuestions.value.length === 0) {
+      errorMessage.value = "PDF rejimida kamida bitta topshiriq aniqlangan bo'lishi shart!";
       activeTab.value = 'questions';
       return;
     }
-    finalQuestions = pdfQuestions.value.map((q) => ({
+    if (!allApproved.value) {
+      errorMessage.value = `Inson nazorati talab etiladi: Barcha topshiriqlar (${pdfGroundedQuestions.value.length} tadan ${approvedCount.value} tasi tasdiqlangan) inson tomonidan ko'rib chiqilib tasdiqlanishi shart! ("Barchasini tasdiqlash" tugmasini bosing yoki har birini alohida tekshiring).`;
+      activeTab.value = 'questions';
+      return;
+    }
+    finalQuestions = pdfGroundedQuestions.value.map((q) => ({
       prompt: q.prompt,
-      options: q.options,
-      correctOptionId: q.correctOptionId,
+      options: q.options || [],
+      correctOptionId: q.correctOptionId || 'opt-a',
       points: q.points,
+      taskType: q.taskType,
+      subQuestions: q.subQuestions?.map((sub) => ({
+        id: sub.id,
+        label: sub.label,
+        prompt: sub.prompt,
+        points: sub.points,
+        rubric: sub.rubric,
+      })),
+      rubric: q.rubric,
+      sourceExcerpt: q.sourceExcerpt,
     }));
-    totalQuestions.value = pdfQuestions.value.length;
+    totalQuestions.value = pdfGroundedQuestions.value.length;
   } else if (questionMode.value === 'custom') {
     if (parsedQuestions.value.length === 0) {
       errorMessage.value = "Maxsus savollar rejimida kamida bitta to'liq test savoli (savol matni va kamida 2 ta variant) kiritilishi shart!";
@@ -335,8 +437,11 @@ function resetForm() {
   pdfFileName.value = '';
   pdfFileSize.value = '';
   pdfQuestions.value = [];
+  pdfGroundedQuestions.value = [];
   pdfWarnings.value = [];
   isPdfProcessing.value = false;
+  showApiKeyInput.value = false;
+  lastExtractionSource.value = 'ai';
   if (fileInputRef.value) {
     fileInputRef.value.value = '';
   }
@@ -599,6 +704,74 @@ function resetForm() {
               class="hidden"
             />
 
+            <!-- Top AI Mode Selector & API Key Settings -->
+            <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 flex-wrap">
+              <div class="flex items-center gap-1.5 text-xs font-semibold">
+                <span class="text-slate-500 dark:text-slate-400">Tahlil usuli:</span>
+                <button
+                  type="button"
+                  @click="aiExtractionMode = 'gemini'"
+                  :class="[
+                    'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
+                    aiExtractionMode === 'gemini'
+                      ? 'bg-teal-700 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
+                  ]"
+                >
+                  <span>🤖 Gemini 3.5 Flash Lite (AI RAG)</span>
+                </button>
+                <button
+                  type="button"
+                  @click="aiExtractionMode = 'local'"
+                  :class="[
+                    'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
+                    aiExtractionMode === 'local'
+                      ? 'bg-teal-700 text-white shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
+                  ]"
+                >
+                  <span>🧠 Lokal BSB algoritmi (Oflayn)</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                @click="showApiKeyInput = !showApiKeyInput"
+                class="text-xs px-2.5 py-1 rounded-lg text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/40 font-bold transition flex items-center gap-1 cursor-pointer"
+              >
+                <span>🔑</span>
+                <span>API Kalit sozlamasi</span>
+              </button>
+            </div>
+
+            <!-- API Key Input Drawer -->
+            <div v-if="showApiKeyInput" class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1">
+                  <span>🔑 Google Gemini API Kaliti (gemini-3.5-flash-lite)</span>
+                </span>
+                <span class="text-[10px] text-amber-700 dark:text-amber-400">Tekin & tezkor model</span>
+              </div>
+              <div class="flex gap-2">
+                <input
+                  v-model="geminiApiKey"
+                  type="password"
+                  placeholder="AQ.Ab8... yoki AIzaSy..."
+                  class="flex-1 p-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono"
+                />
+                <button
+                  type="button"
+                  @click="saveApiKeyLocally"
+                  class="px-3 py-1 rounded-lg bg-teal-800 text-white text-xs font-bold hover:bg-teal-900 cursor-pointer"
+                >
+                  Saqlash
+                </button>
+              </div>
+              <p class="text-[10px] text-amber-700 dark:text-amber-400">
+                Kalit faqat sizning brauzeringizda xavfsiz saqlanadi va serverga yuborilmaydi.
+              </p>
+            </div>
+
             <!-- Drag & Drop Dropzone -->
             <div
               v-if="!pdfFileName"
@@ -619,10 +792,10 @@ function resetForm() {
                 </svg>
               </div>
               <p class="font-bold text-sm text-slate-800 dark:text-slate-200">
-                PDF test hujjatini bu yerga tashlang yoki tanlash uchun bosing
+                PDF test yoki BSB hujjatini bu yerga tashlang yoki tanlash uchun bosing
               </p>
               <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-                Respublika ta'lim markazi yoki attestatsiya standartidagi (1. Savol... A, B, C, D) PDF fayllar qo'llab-quvvatlanadi
+                Pedagogik Mahorat Markazi BSB topshiriqlari (1-topshiriq, a, b, c, d bandlari, rubrikalar) va standart testlar qo'llab-quvvatlanadi
               </p>
               <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-800 text-white text-xs font-semibold mt-1">
                 PDF faylni tanlash
@@ -632,19 +805,37 @@ function resetForm() {
             <!-- Processing Spinner -->
             <div v-else-if="isPdfProcessing" class="p-8 text-center bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-200 dark:border-slate-600">
               <div class="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-              <p class="text-xs font-bold text-slate-800 dark:text-slate-200">PDF fayl o'qilmoqda va savollar tahlil qilinmoqda...</p>
+              <p class="text-xs font-bold text-slate-800 dark:text-slate-200">
+                PDF fayl o'qilmoqda va topshiriqlar qat'iy nazorat (Strict Grounding) bilan tahlil qilinmoqda...
+              </p>
               <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{{ pdfFileName }}</p>
             </div>
 
             <!-- Parsed Questions Review & Control -->
             <div v-else class="space-y-3">
               <!-- Header with file info & reset -->
-              <div class="flex items-center justify-between p-3 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800">
+              <div class="flex items-center justify-between p-3 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex-wrap gap-2">
                 <div class="flex items-center gap-2">
                   <span class="text-lg">📄</span>
                   <div>
-                    <span class="text-xs font-bold text-teal-950 dark:text-teal-200 block truncate max-w-[200px] sm:max-w-xs">{{ pdfFileName }}</span>
-                    <span class="text-[11px] text-teal-700 dark:text-teal-400 font-mono">{{ pdfFileSize }} • <strong>{{ pdfQuestions.length }} ta savol aniqlandi</strong></span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-xs font-bold text-teal-950 dark:text-teal-200 block truncate max-w-[200px] sm:max-w-xs">{{ pdfFileName }}</span>
+                      <span
+                        v-if="lastExtractionSource === 'ai'"
+                        class="px-2 py-0.5 rounded-md bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300 font-bold text-[10px]"
+                      >
+                        🤖 Gemini 3.5 AI Grounded
+                      </span>
+                      <span
+                        v-else
+                        class="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 font-bold text-[10px]"
+                      >
+                        🧠 Lokal BSB algoritmi
+                      </span>
+                    </div>
+                    <span class="text-[11px] text-teal-700 dark:text-teal-400 font-mono">
+                      {{ pdfFileSize }} • <strong>{{ pdfGroundedQuestions.length }} ta topshiriq aniqlandi</strong>
+                    </span>
                   </div>
                 </div>
                 <div class="flex items-center gap-1.5">
@@ -667,64 +858,63 @@ function resetForm() {
 
               <!-- Warnings Alert if any -->
               <div v-if="pdfWarnings.length > 0" class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300">
-                ⚠️ {{ pdfWarnings.length }} ta savol uchun to'g'ri javob ko'rsatilmagan — quyida to'g'ri variantni radiotugma orqali belgilab qo'yishingiz mumkin.
+                <span v-for="(warn, wIdx) in pdfWarnings" :key="wIdx" class="block">
+                  ⚠️ {{ warn }}
+                </span>
+              </div>
+
+              <!-- Human-in-the-Loop Approval Banner -->
+              <div
+                :class="[
+                  'p-3 rounded-xl border flex items-center justify-between gap-2 flex-wrap transition',
+                  allApproved
+                    ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
+                    : 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800'
+                ]"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="text-base">{{ allApproved ? '✅' : '🛡️' }}</span>
+                  <div>
+                    <span
+                      class="text-xs font-bold block"
+                      :class="allApproved ? 'text-emerald-900 dark:text-emerald-200' : 'text-amber-900 dark:text-amber-200'"
+                    >
+                      Inson nazorati: {{ approvedCount }} / {{ pdfGroundedQuestions.length }} ta topshiriq tasdiqlandi
+                    </span>
+                    <span
+                      class="text-[11px]"
+                      :class="allApproved ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'"
+                    >
+                      {{ allApproved ? "Barcha topshiriqlar o'qituvchi tomonidan tekshirildi va tasdiqlandi" : "Savollarni ko'rib chiqing va har birini alohida tasdiqlang yoki barchasini birdan tasdiqlang" }}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  v-if="!allApproved"
+                  type="button"
+                  @click="approveAllQuestions"
+                  class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <span>✓</span>
+                  <span>Barchasini tasdiqlash</span>
+                </button>
+                <div v-else class="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                  <span>✓ Imtihonni saqlashga ruxsat berildi</span>
+                </div>
               </div>
 
               <!-- Question Cards List -->
-              <div class="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
-                <div
-                  v-for="(q, qIdx) in pdfQuestions"
-                  :key="q.number"
-                  class="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 space-y-2"
-                >
-                  <div class="flex items-center justify-between text-xs">
-                    <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                      <span class="w-5 h-5 rounded-full bg-teal-800 text-white flex items-center justify-center text-[11px] font-mono font-bold">{{ q.number }}</span>
-                      Savol matni
-                    </span>
-                    <span class="px-2 py-0.5 rounded-md bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300 font-mono text-[10px] font-bold">
-                      {{ q.points }} ball
-                    </span>
-                  </div>
-
-                  <input
-                    v-model="q.prompt"
-                    type="text"
-                    class="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium"
-                  />
-
-                  <!-- Options List -->
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
-                    <label
-                      v-for="opt in q.options"
-                      :key="opt.id"
-                      :class="[
-                        'flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition',
-                        q.correctOptionId === opt.id
-                          ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-200 font-bold'
-                          : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                      ]"
-                    >
-                      <input
-                        type="radio"
-                        :name="`q-${q.number}`"
-                        :value="opt.id"
-                        :checked="q.correctOptionId === opt.id"
-                        @change="updatePdfQuestionAnswer(qIdx, opt.id)"
-                        class="text-emerald-600"
-                      />
-                      <span class="font-mono text-xs w-4">{{ opt.label }})</span>
-                      <input
-                        v-model="opt.text"
-                        type="text"
-                        class="flex-1 bg-transparent border-0 p-0 text-xs focus:ring-0 focus:outline-hidden"
-                      />
-                      <span v-if="q.correctOptionId === opt.id" class="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold whitespace-nowrap">
-                        ✓ To'g'ri
-                      </span>
-                    </label>
-                  </div>
-                </div>
+              <div class="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                <AiQuestionReviewCard
+                  v-for="(q, qIdx) in pdfGroundedQuestions"
+                  :key="q.id || qIdx"
+                  :question="q"
+                  :index="qIdx"
+                  @update:question="updateGroundedQuestion(qIdx, $event)"
+                  @delete="deleteGroundedQuestion(qIdx)"
+                  @toggle-approval="toggleApproval(qIdx)"
+                />
               </div>
             </div>
           </div>
