@@ -3,6 +3,8 @@ import { onMounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
+import BsbRubricGradingModal from './BsbRubricGradingModal.vue';
+import type { AssessmentResult } from '../../../entities/result/model';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
@@ -12,6 +14,19 @@ const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const searchQuery = ref('');
 const selectedClass = ref('');
 const isExporting = ref(false);
+const gradingResult = ref<AssessmentResult | null>(null);
+const isGradingModalOpen = ref(false);
+
+function openGradingModal(res: AssessmentResult) {
+  gradingResult.value = res;
+  isGradingModalOpen.value = true;
+}
+
+function handleSaveGrading(payload: { attemptId: string; totalScore: number; feedback: string }) {
+  teacherStore.updateStudentScore(payload.attemptId, payload.totalScore, true);
+  isGradingModalOpen.value = false;
+  gradingResult.value = null;
+}
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
@@ -149,12 +164,23 @@ function handleExportCSV() {
                 </span>
               </td>
               <td class="p-3.5 text-right">
-                <router-link
-                  :to="`/t/${tenantSlug}/teacher/students/${res.rosterRecordId}`"
-                  class="text-xs font-semibold text-teal-700 dark:text-teal-400 hover:underline min-h-[36px] inline-flex items-center"
-                >
-                  Ko'rish →
-                </router-link>
+                <div class="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    @click="openGradingModal(res)"
+                    class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/60 transition cursor-pointer min-h-[32px] inline-flex items-center gap-1"
+                    title="Rasmiy mezon asosida baholash"
+                  >
+                    <span>🏛️</span>
+                    <span>Baholash</span>
+                  </button>
+                  <router-link
+                    :to="`/t/${tenantSlug}/teacher/students/${res.rosterRecordId}`"
+                    class="text-xs font-semibold text-teal-700 dark:text-teal-400 hover:underline min-h-[32px] inline-flex items-center px-1"
+                  >
+                    Ko'rish →
+                  </router-link>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -165,6 +191,14 @@ function handleExportCSV() {
         Natijalar topilmadi.
       </div>
     </div>
+
+    <!-- Rubric Grading Modal -->
+    <BsbRubricGradingModal
+      :isOpen="isGradingModalOpen"
+      :result="gradingResult"
+      @close="isGradingModalOpen = false"
+      @save="handleSaveGrading"
+    />
   </div>
 </template>
 

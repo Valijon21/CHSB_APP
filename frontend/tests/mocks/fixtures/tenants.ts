@@ -3,6 +3,7 @@ import type { School } from '@/entities/school/model';
 import type { ClassGroup } from '@/entities/class-group/model';
 import type { StudentRosterRecord } from '@/entities/roster/model';
 import type { Assessment } from '@/entities/assessment/model';
+import { officialBsbAssessments } from '@/entities/assessment/officialBsbData';
 import { chsbAssessmentQuestions } from './questions';
 
 export const mockTenants: Tenant[] = [
@@ -153,7 +154,7 @@ export const mockRosterRecords: StudentRosterRecord[] = [
     lastName: 'Zokirov',
     middleName: 'Bahrom o‘g‘li',
     status: 'eligible',
-    availableAssessmentIds: ['chsb-inf-11-q1'],
+    availableAssessmentIds: ['chsb-inf-11-q1', 'bsb-inf-9-q1', 'bsb-inf-10-q1', 'bsb-inf-5-q1', 'bsb-inf-6-q1', 'bsb-inf-7-q1', 'bsb-inf-11-q1-bsb'],
   },
   {
     id: 'rec-ax-102',
@@ -165,7 +166,7 @@ export const mockRosterRecords: StudentRosterRecord[] = [
     lastName: 'Rustamova',
     middleName: 'Ilhom qizi',
     status: 'eligible',
-    availableAssessmentIds: ['chsb-inf-11-q1'],
+    availableAssessmentIds: ['chsb-inf-11-q1', 'bsb-inf-9-q1', 'bsb-inf-10-q1', 'bsb-inf-5-q1', 'bsb-inf-6-q1', 'bsb-inf-7-q1', 'bsb-inf-11-q1-bsb'],
   },
   {
     id: 'rec-ax-103',
@@ -574,6 +575,7 @@ export const mockRosterRecords: StudentRosterRecord[] = [
 ];
 
 export const mockAssessments: Assessment[] = [
+  ...officialBsbAssessments,
   {
     id: 'chsb-inf-11-q1',
     tenantId: 'tenant-al-xorazmiy',

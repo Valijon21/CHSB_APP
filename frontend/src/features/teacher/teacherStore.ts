@@ -227,10 +227,25 @@ export const useTeacherStore = defineStore('teacher', () => {
     }
   }
 
+  function updateStudentScore(attemptId: string, newScore: number, isVerified = true): void {
+    const resIdx = results.value.findIndex((r) => r.attemptId === attemptId);
+    if (resIdx !== -1) {
+      const current = results.value[resIdx]!;
+      const pct = Math.round((newScore / current.maxScore) * 100);
+      results.value[resIdx] = {
+        ...current,
+        score: newScore,
+        percentage: pct,
+        verifiedByTeacher: isVerified,
+      };
+    }
+  }
+
   return {
     currentTenantId,
     classes,
     addClass,
+    updateStudentScore,
     roster,
     addRosterRecord,
     addRosterRecords,

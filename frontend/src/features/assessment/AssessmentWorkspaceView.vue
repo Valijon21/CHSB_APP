@@ -6,6 +6,8 @@ import { useStudentAdmissionStore } from '../student-admission/admissionStore';
 import { useAssessmentStore } from './assessmentStore';
 import { useExamProctor } from '../../shared/composables/useExamProctor';
 import QuestionBlockRenderer from '../../shared/components/QuestionBlockRenderer.vue';
+import BsbTaskRenderer from './components/BsbTaskRenderer.vue';
+import type { Question } from '../../entities/assessment/model';
 
 const route = useRoute();
 const router = useRouter();
@@ -34,6 +36,42 @@ function handleOptionSelect(optionId: string) {
   if (assessmentStore.currentQuestion) {
     assessmentStore.selectAnswer(assessmentStore.currentQuestion.id, optionId);
   }
+}
+
+function handleBsbAnswerUpdate(serializedVal: string) {
+  if (assessmentStore.currentQuestion) {
+    assessmentStore.selectAnswer(assessmentStore.currentQuestion.id, serializedVal);
+  }
+}
+
+function isBsbTask(q: Question | null | undefined): boolean {
+  if (!q) return false;
+  return Boolean(
+    (q.subQuestions && q.subQuestions.length > 0) ||
+    q.tableData ||
+    q.taskType === 'case_study' ||
+    q.taskType === 'subquestions' ||
+    q.taskType === 'table_completion' ||
+    q.taskType === 'open_text' ||
+    (!q.options || q.options.length === 0)
+  );
+}
+
+function isQuestionAnswered(qId: string): boolean {
+  const ans = assessmentStore.answers[qId];
+  if (!ans) return false;
+  if (typeof ans === 'string' && ans.trim().length > 0) {
+    if (ans.startsWith('{')) {
+      try {
+        const obj = JSON.parse(ans);
+        return Object.values(obj).some(v => typeof v === 'string' && (v as string).trim().length > 0);
+      } catch {
+        return true;
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 function getOptionLabel(opt: { id: string; label?: string }, index: number): string {
@@ -80,6 +118,34 @@ async function handleFinish() {
     @cut.prevent
     @paste.prevent
   >
+    <!-- Official Ministry & Pedagogical Center Header Banner -->
+    <div class="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-xl shrink-0">
+          🏛️
+        </div>
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-teal-800 dark:text-teal-400">
+            Pedagogik mahorat va xalqaro baholash ilmiy-amaliy markazi
+          </h2>
+          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {{ assessmentStore.assessment.title }}
+          </p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">
+          {{ assessmentStore.assessment.grade }}-sinf
+        </span>
+        <span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">
+          {{ assessmentStore.assessment.quarter }}-chorak
+        </span>
+        <span class="px-2.5 py-1 rounded-md bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 font-bold border border-teal-200 dark:border-teal-800">
+          Maksimal ball: {{ assessmentStore.assessment.maxScore }} ball
+        </span>
+      </div>
+    </div>
+
     <!-- Top Progress and Timer Bar -->
     <div class="bg-white dark:bg-slate-800 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-wrap items-center justify-between gap-4 transition-colors">
       <div class="flex items-center gap-3">
@@ -172,8 +238,17 @@ async function handleFinish() {
             />
           </div>
 
-          <!-- Options List (A, B, C, D) -->
-          <div class="space-y-3">
+          <!-- If question has subQuestions, tableData, or taskType is BSB -->
+          <div v-if="isBsbTask(assessmentStore.currentQuestion)" class="mt-4">
+            <BsbTaskRenderer
+              :question="assessmentStore.currentQuestion"
+              :modelValue="assessmentStore.answers[assessmentStore.currentQuestion.id] || ''"
+              @update:modelValue="handleBsbAnswerUpdate"
+            />
+          </div>
+
+          <!-- Options List (A, B, C, D) for Multiple Choice -->
+          <div v-else class="space-y-3">
             <button
               v-for="(opt, optIdx) in assessmentStore.currentQuestion.options"
               :key="opt.id"
@@ -239,7 +314,7 @@ async function handleFinish() {
           <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Savollar navigatsiyasi
           </h3>
-          <span class="text-xs text-slate-400 dark:text-slate-400">15 ta</span>
+          <span class="text-xs text-slate-400 dark:text-slate-400">{{ assessmentStore.totalQuestions }} ta</span>
         </div>
 
         <div class="grid grid-cols-5 gap-2">
@@ -252,7 +327,7 @@ async function handleFinish() {
               'h-9 rounded-lg text-xs font-bold transition flex items-center justify-center cursor-pointer border',
               assessmentStore.currentQuestionIndex === q.order - 1
                 ? 'border-teal-700 dark:border-teal-400 ring-2 ring-teal-700 dark:ring-teal-400 text-teal-900 dark:text-teal-200 bg-teal-50 dark:bg-teal-950/60'
-                : assessmentStore.answers[q.id]
+                : isQuestionAnswered(q.id)
                   ? 'bg-teal-800 dark:bg-teal-600 text-white border-teal-800 dark:border-teal-600'
                   : 'bg-slate-50 dark:bg-slate-700/70 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
             ]"

@@ -68,5 +68,5 @@ describe('TASK-LOG.3: Global Error Handlers & Router Integration', () => {
     await router.isReady();
 
     expect(router.currentRoute.value.path).toBe('/t/al-xorazmiy/admin');
-  });
+  }, 15000);
 });

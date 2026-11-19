@@ -6,6 +6,7 @@ import { useOrganizationStore } from '../../organization/store/organizationStore
 import type { CreateAssessmentInput } from '../../../entities/assessment/model';
 import { extractTextFromPdf } from '../../../shared/utils/pdfExtractor';
 import { parseExamQuestionsFromText, type ParsedQuestionItem } from '../../../shared/utils/pdfQuestionParser';
+import { getBsbStandardByGrade } from '../../../entities/assessment/officialBsbData';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -204,6 +205,47 @@ Javob: B`;
   totalQuestions.value = 3;
 }
 
+function applyBsbStandard(grade?: number) {
+  const g = grade ?? Number(gradeLevel.value);
+  gradeLevel.value = g;
+  if (g <= 7) {
+    maxScore.value = 25;
+    totalQuestions.value = 5;
+    durationMinutes.value = 40;
+    title.value = `${subject.value}, ${g}-sinf. ${quarter.value}-BSB (Rasmiy 25 ball mezon)`;
+  } else {
+    maxScore.value = 50;
+    totalQuestions.value = 5;
+    durationMinutes.value = 40;
+    title.value = `${subject.value}, ${g}-sinf. ${quarter.value}-BSB (Pedagogik Mahorat Markazi 50 ball mezon)`;
+  }
+}
+
+function onGradeChange() {
+  applyBsbStandard();
+}
+
+function loadOfficialBsbQuestions() {
+  applyBsbStandard();
+  const std = getBsbStandardByGrade(gradeLevel.value);
+  let text = '';
+  std.sampleQuestions.forEach((q) => {
+    text += `${q.order}. ${q.blocks[0]?.type === 'paragraph' ? q.blocks[0].text : 'Topshiriq'} [${q.points} ball]\n`;
+    if (q.subQuestions && q.subQuestions.length > 0) {
+      q.subQuestions.forEach((sub) => {
+        text += `  ${sub.label} ${sub.prompt} (${sub.points} ball)\n`;
+      });
+    }
+    if (q.rubricCriteria && q.rubricCriteria.length > 0) {
+      text += `  Baholash mezoni: ${q.rubricCriteria[0]?.guideline || ''}\n`;
+    }
+    text += '\n';
+  });
+  customQuestionsText.value = text.trim();
+  totalQuestions.value = std.sampleQuestions.length;
+  questionMode.value = 'custom';
+}
+
 function handleClose() {
   resetForm();
   emit('close');
@@ -395,10 +437,21 @@ function resetForm() {
             </div>
 
             <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Sinf darajasi *</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="font-bold text-slate-700 dark:text-slate-300">Sinf darajasi *</label>
+                <button
+                  type="button"
+                  @click="applyBsbStandard()"
+                  class="text-[11px] font-bold text-teal-700 dark:text-teal-300 hover:underline cursor-pointer flex items-center gap-1"
+                  title="Rasmiy Vazirlik mezonini avtomatik sozlash"
+                >
+                  <span>🏛️</span>
+                  <span>BSB mezonini qo‘llash ({{ Number(gradeLevel) <= 7 ? '25 ball' : '50 ball' }})</span>
+                </button>
+              </div>
               <select
                 v-model="gradeLevel"
-                @change="autoGenerateTitle"
+                @change="onGradeChange"
                 class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium"
               >
                 <option v-for="g in [5, 6, 7, 8, 9, 10, 11]" :key="g" :value="g">
@@ -682,13 +735,23 @@ function resetForm() {
               <span class="font-bold text-slate-700 dark:text-slate-300">
                 Savollar matni (Aniqlangan: <strong class="text-teal-700 dark:text-teal-300">{{ parsedQuestions.length }} ta</strong>)
               </span>
-              <button
-                type="button"
-                @click="loadSampleQuestions"
-                class="text-[11px] font-semibold text-teal-600 dark:text-teal-400 hover:underline cursor-pointer"
-              >
-                📋 Namunaviy savollarni kiritish
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="loadOfficialBsbQuestions"
+                  class="text-[11px] font-bold text-teal-700 dark:text-teal-300 hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <span>🏛️</span>
+                  <span>Rasmiy BSB topshiriqlari ({{ gradeLevel }}-sinf)</span>
+                </button>
+                <button
+                  type="button"
+                  @click="loadSampleQuestions"
+                  class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:underline cursor-pointer"
+                >
+                  📋 Oddiy test namuna
+                </button>
+              </div>
             </div>
 
             <textarea

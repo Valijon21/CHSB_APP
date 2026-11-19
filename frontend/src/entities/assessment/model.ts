@@ -41,6 +41,44 @@ export const QuestionOptionSchema = z.object({
 
 export type QuestionOption = z.infer<typeof QuestionOptionSchema>;
 
+export const SubQuestionItemSchema = z.object({
+  id: z.string(),
+  label: z.string(), // e.g. 'a)', 'b)', 'c)', 'd)'
+  prompt: z.string(),
+  points: z.number().positive(),
+  rubric: z.string().optional(),
+});
+
+export type SubQuestionItem = z.infer<typeof SubQuestionItemSchema>;
+
+export const RubricCriterionSchema = z.object({
+  id: z.string(),
+  criterion: z.string(),
+  fullScore: z.number(),
+  partialScore: z.number(),
+  zeroScore: z.literal(0),
+  guideline: z.string(),
+});
+
+export type RubricCriterion = z.infer<typeof RubricCriterionSchema>;
+
+export const TableTemplateSchema = z.object({
+  headers: z.array(z.string()),
+  rows: z.array(
+    z.object({
+      label: z.string(),
+      cells: z.array(
+        z.object({
+          key: z.string(),
+          placeholder: z.string().optional(),
+        })
+      ),
+    })
+  ),
+});
+
+export type TableTemplate = z.infer<typeof TableTemplateSchema>;
+
 export const QuestionSchema = z.object({
   id: z.string(),
   order: z.number().int().positive(),
@@ -48,6 +86,10 @@ export const QuestionSchema = z.object({
   points: z.number().positive(),
   blocks: z.array(QuestionBlockSchema),
   options: z.array(QuestionOptionSchema),
+  taskType: z.enum(['multiple_choice', 'subquestions', 'table_completion', 'case_study', 'open_text']).optional(),
+  subQuestions: z.array(SubQuestionItemSchema).optional(),
+  tableData: TableTemplateSchema.optional(),
+  rubricCriteria: z.array(RubricCriterionSchema).optional(),
 });
 
 export type Question = z.infer<typeof QuestionSchema>;
