@@ -10,8 +10,8 @@ const tenantSlug = computed(() => (route.params.tenantSlug as string) || 'al-xor
 
 <template>
   <div class="min-h-screen flex flex-col justify-between bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans transition-colors">
-    <!-- Header -->
-    <header class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/90 backdrop-blur-xs sticky top-0 z-20 shadow-xs">
+    <!-- Header (Sticky & Rigid) -->
+    <header class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/90 backdrop-blur-xs sticky top-0 z-20 shrink-0 shadow-xs">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 rounded-xl bg-teal-700 dark:bg-teal-600 flex items-center justify-center text-white font-black text-base shadow-xs">
