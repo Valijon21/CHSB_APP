@@ -5,6 +5,8 @@
  * and human-in-the-loop review.
  */
 
+import { cleanBsbFillLines } from './pdfQuestionParser';
+
 export interface GroundedSubQuestion {
   id: string;
   label: string; // 'a)', 'b)', 'c)', etc.
@@ -92,7 +94,8 @@ Quyida keltirilgan PDF hujjat matnidan barcha imtihon topshiriqlarini (savollar,
 4. Agar topshiriq rasmiy BSB topshirig'i (ochiq savollar, bandlar: a, b, c, d) bo'lsa: "taskType": "subquestions" deb belgilab, "subQuestions" ga har bir bandning nomi, savoli va ballini yoz.
 5. Agar matnda jadval to'ldirish yoki amaliy vaziyat/keys (masalan, kiberxavfsizlik, Sezar shifri, Wi-Fi) bo'lsa: "taskType": "case_study" yoki "table_completion" deb ko'rsat.
 6. Hujjatdagi "Baholash mezoni" (Rubrics) ko'rsatilgan bo'lsa, uni har bir savolning "rubric" maydoniga aniq yoz.
-7. Maksimal umumiy ball me'yori: ${maxScore} ball.
+7. Qog'oz blankalaridagi o'quvchi qo'lda yozishi uchun qo'yilgan pastki chiziqlar (____), nuqtalar (....) yoki oxiridagi tirelarni savol va band matnlariga qo'shma, ularni tozalab ravon savol matnini yoz.
+8. Maksimal umumiy ball me'yori: ${maxScore} ball.
 
 HUJJAT MATNI:
 """
@@ -266,8 +269,8 @@ export async function extractGroundedQuestionsWithAi(
 
     const questions: GroundedQuestionItem[] = parsedJson.map((item, index) => {
       const num = item.number || index + 1;
-      const title = item.title || `${num}-topshiriq`;
-      const promptText = item.prompt || title;
+      const title = cleanBsbFillLines(item.title || `${num}-topshiriq`);
+      const promptText = cleanBsbFillLines(item.prompt || title);
       const pts = Number(item.points || (maxScore / parsedJson.length).toFixed(1));
 
       // Normalize task type
@@ -288,7 +291,7 @@ export async function extractGroundedQuestionsWithAi(
         return {
           id: opt.id || `opt-${letter.toLowerCase()}`,
           label: letter,
-          text: opt.text || `Variant ${letter}`,
+          text: cleanBsbFillLines(opt.text || `Variant ${letter}`),
         };
       });
 
@@ -298,9 +301,9 @@ export async function extractGroundedQuestionsWithAi(
         return {
           id: sub.id || `${num}-${sIdx + 1}`,
           label: sub.label || defaultLabel,
-          prompt: sub.prompt || `Band ${sIdx + 1}`,
+          prompt: cleanBsbFillLines(sub.prompt || `Band ${sIdx + 1}`),
           points: Number(sub.points || (pts / (item.subQuestions?.length || 1)).toFixed(1)),
-          rubric: sub.rubric,
+          rubric: sub.rubric ? cleanBsbFillLines(sub.rubric) : undefined,
         };
       });
 
@@ -314,7 +317,7 @@ export async function extractGroundedQuestionsWithAi(
         options: optionsList.length > 0 ? optionsList : undefined,
         correctOptionId: item.correctOptionId,
         subQuestions: subList.length > 0 ? subList : undefined,
-        rubric: item.rubric,
+        rubric: item.rubric ? cleanBsbFillLines(item.rubric) : undefined,
         sourceExcerpt: item.sourceExcerpt || promptText,
         isApprovedByHuman: false, // Mandatory Human-in-the-loop review
       };

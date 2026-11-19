@@ -8,7 +8,11 @@ import {
   translateAiErrorMessage,
   type GroundedQuestionItem,
 } from '../src/shared/utils/groundedAiExtractor';
-import { parseExamQuestionsFromText } from '../src/shared/utils/pdfQuestionParser';
+import {
+  parseExamQuestionsFromText,
+  cleanBsbFillLines,
+  isPureBlankLine,
+} from '../src/shared/utils/pdfQuestionParser';
 
 describe('Grounded AI Extractor & Human-in-the-Loop Validation', () => {
   beforeEach(() => {
@@ -196,6 +200,76 @@ Baholash mezoni: To'g'ri ketma-ketlik uchun 10 ball.
       expect(task3.number).toBe(3);
       expect(task3.prompt).toContain('xotira turlarini');
       expect(task3.rubric).toContain('To\'g\'ri ketma-ketlik');
+    });
+
+    it('cleans printed fill-in-the-blank underscore lines and dots properly', () => {
+      expect(cleanBsbFillLines('Protsessor – __ __ ______ _________ _________')).toBe('Protsessor');
+      expect(cleanBsbFillLines(': [ 10 ball ] a ) Kiritish qurilmasi – __ _______________')).toBe('a ) Kiritish qurilmasi');
+      expect(cleanBsbFillLines('______________________________')).toBe('');
+      expect(cleanBsbFillLines('– __ __')).toBe('');
+      expect(cleanBsbFillLines('Kiritish qurilmasi –')).toBe('Kiritish qurilmasi');
+      expect(cleanBsbFillLines('Saqlash qurilmasi - . . . . . .')).toBe('Saqlash qurilmasi');
+    });
+
+    it('identifies pure blank lines meant for student handwriting', () => {
+      expect(isPureBlankLine('______________________________')).toBe(true);
+      expect(isPureBlankLine('__ __ ______ _________ _________')).toBe(true);
+      expect(isPureBlankLine('– ____')).toBe(true);
+      expect(isPureBlankLine('   ')).toBe(true);
+      expect(isPureBlankLine('a) Kiritish qurilmasi')).toBe(false);
+      expect(isPureBlankLine('Protsessor')).toBe(false);
+    });
+
+    it('accurately parses printed BSB task with blank lines and score tags without leaking into prompt', () => {
+      const realMinistrySample = `
+1-topshiriq. Quyida berilgan kompyuter qurilmalari turlarining vazifasini qisqacha izohlang
+: [ 10 ball ] a ) Kiritish qurilmasi – __ _______________
+______________________________
+b) Protsessor – __ __ ______ _________ _________
+c) Chiqarish qurilmasi – __ ________________ ____________
+d) Xotira qurilmasi – __ __
+Baholash mezoni: Har bir to'g'ri izoh uchun 2.5 ball beriladi.
+`;
+
+      const parsed = parseExamQuestionsFromText(realMinistrySample, { maxScore: 50 });
+      expect(parsed.success).toBe(true);
+      expect(parsed.questions.length).toBe(1);
+
+      const task1 = parsed.questions[0]!;
+      expect(task1.number).toBe(1);
+      // Prompt must NOT contain underscores, blank lines or leaked subquestion 'a)'
+      expect(task1.prompt).toBe('Quyida berilgan kompyuter qurilmalari turlarining vazifasini qisqacha izohlang');
+      expect(task1.prompt).not.toContain('_');
+      expect(task1.prompt).not.toContain('10 ball');
+      expect(task1.prompt).not.toContain('Kiritish qurilmasi');
+
+      // Points should be 10 (from [ 10 ball ])
+      expect(task1.points).toBe(10);
+
+      // Must have all 4 subquestions: a, b, c, d
+      expect(task1.subQuestions).toBeDefined();
+      expect(task1.subQuestions).toHaveLength(4);
+
+      // All subquestions must be cleanly stripped of handwriting underscores
+      const subA = task1.subQuestions![0]!;
+      expect(subA.label).toBe('a)');
+      expect(subA.prompt).toBe('Kiritish qurilmasi');
+      expect(subA.points).toBe(2.5);
+
+      const subB = task1.subQuestions![1]!;
+      expect(subB.label).toBe('b)');
+      expect(subB.prompt).toBe('Protsessor');
+      expect(subB.points).toBe(2.5);
+
+      const subC = task1.subQuestions![2]!;
+      expect(subC.label).toBe('c)');
+      expect(subC.prompt).toBe('Chiqarish qurilmasi');
+      expect(subC.points).toBe(2.5);
+
+      const subD = task1.subQuestions![3]!;
+      expect(subD.label).toBe('d)');
+      expect(subD.prompt).toBe('Xotira qurilmasi');
+      expect(subD.points).toBe(2.5);
     });
   });
 
