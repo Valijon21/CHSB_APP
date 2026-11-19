@@ -134,7 +134,7 @@ async function handlePdfFile(file: File) {
         extracted = aiRes.questions;
         lastExtractionSource.value = 'ai';
       } else if (aiRes.error) {
-        pdfWarnings.value.push(`AI ogohlantirishi: ${aiRes.error}. Lokal BSB tahliliga o'tildi.`);
+        pdfWarnings.value.push(`Sun'iy intellekt ogohlantirishi: ${aiRes.error}. BSB tahliliga o'tildi.`);
       }
     }
 
@@ -718,7 +718,7 @@ function resetForm() {
                       : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
                   ]"
                 >
-                  <span>🤖 Gemini 3.5 Flash Lite (AI RAG)</span>
+                  <span>🤖 Sun'iy intellekt</span>
                 </button>
                 <button
                   type="button"
@@ -730,7 +730,7 @@ function resetForm() {
                       : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
                   ]"
                 >
-                  <span>🧠 Lokal BSB algoritmi (Oflayn)</span>
+                  <span>🧠 BSB algoritmi (Oflayn)</span>
                 </button>
               </div>
 
@@ -748,7 +748,7 @@ function resetForm() {
             <div v-if="showApiKeyInput" class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 space-y-2">
               <div class="flex items-center justify-between text-xs">
                 <span class="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1">
-                  <span>🔑 Google Gemini API Kaliti (gemini-3.5-flash-lite)</span>
+                  <span>🔑 Sun'iy intellekt API kaliti</span>
                 </span>
                 <span class="text-[10px] text-amber-700 dark:text-amber-400">Tekin & tezkor model</span>
               </div>
@@ -824,13 +824,13 @@ function resetForm() {
                         v-if="lastExtractionSource === 'ai'"
                         class="px-2 py-0.5 rounded-md bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300 font-bold text-[10px]"
                       >
-                        🤖 Gemini 3.5 AI Grounded
+                        🤖 Sun'iy intellekt
                       </span>
                       <span
                         v-else
                         class="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 font-bold text-[10px]"
                       >
-                        🧠 Lokal BSB algoritmi
+                        🧠 BSB algoritmi
                       </span>
                     </div>
                     <span class="text-[11px] text-teal-700 dark:text-teal-400 font-mono">
