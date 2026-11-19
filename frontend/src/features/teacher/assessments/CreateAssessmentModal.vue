@@ -128,7 +128,7 @@ async function handlePdfFile(file: File) {
           extracted = aiRes.questions;
           lastExtractionSource.value = 'ai';
         } else if (aiRes.error) {
-          pdfWarnings.value.push(`Sun'iy intellekt ogohlantirishi: ${aiRes.error}. BSB tahliliga o'tildi.`);
+          pdfWarnings.value.push(`Sun'iy intellekt: ${aiRes.error}. Standart BSB algoritmi orqali savollar ajratildi.`);
         }
       }
     }

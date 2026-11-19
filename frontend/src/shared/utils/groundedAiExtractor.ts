@@ -140,6 +140,31 @@ interface RawGeminiItem {
 }
 
 /**
+ * Translates Google Gemini API errors into clean, professional Uzbek messages.
+ */
+export function translateAiErrorMessage(rawError: string): string {
+  if (!rawError) return "Sun'iy intellekt bilan bog'lanishda noma'lum xatolik yuz berdi.";
+  const lower = rawError.toLowerCase();
+
+  if (lower.includes('high demand') || lower.includes('spikes in demand') || lower.includes('503')) {
+    return "Google serverlarida ayni daqiqalarda yuqori yuklama yuz berdi (talab juda yuqori). Bu vaqtinchalik holat bo'lib, birozdan so'ng qayta urinib ko'rishingiz mumkin";
+  }
+  if (lower.includes('quota') || lower.includes('rate limit') || lower.includes('resource_exhausted') || lower.includes('429')) {
+    return "Bepul so'rovlar limiti vaqtinchalik to'ldi. Iltimos, 1 daqiqadan so'ng qayta urinib ko'ring";
+  }
+  if (lower.includes('api_key_invalid') || lower.includes('invalid api key') || lower.includes('api key not found') || lower.includes('400')) {
+    return "API kalit noto'g'ri yoki faollashtirilmagan";
+  }
+  if (lower.includes('network') || lower.includes('failed to fetch') || lower.includes('offline') || lower.includes('load failed')) {
+    return "Internetga ulanishda uzilish yuz berdi";
+  }
+  if (lower.includes('not found') || lower.includes('404')) {
+    return "Tanlangan AI modeli mavjud emas yoki yangilanishda";
+  }
+  return rawError;
+}
+
+/**
  * Extracts structured questions from PDF text via Gemini with strict grounding.
  */
 export async function extractGroundedQuestionsWithAi(
@@ -176,29 +201,54 @@ export async function extractGroundedQuestionsWithAi(
   const prompt = buildStrictGroundingPrompt(rawPdfText, maxScore);
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1, // Near-zero temperature for maximum factual precision and determinism
-        },
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: prompt }],
+    let response: Response | null = null;
+    let lastError: Error | null = null;
+
+    // Retry up to 2 times on temporary high demand (503)
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        ],
-      }),
-    });
+          body: JSON.stringify({
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.1, // Near-zero temperature for maximum factual precision and determinism
+            },
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: prompt }],
+              },
+            ],
+          }),
+        });
+
+        // If 503 high demand, wait 1.5s and retry once
+        if (response.status === 503 && attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          continue;
+        }
+
+        break;
+      } catch (fetchErr) {
+        lastError = fetchErr as Error;
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error("Internetga ulanishda uzilish yuz berdi.");
+    }
 
     if (!response.ok) {
       const errJson = await response.json().catch(() => null);
-      const errMsg = errJson?.error?.message || `Gemini API xatoligi (Status: ${response.status})`;
-      throw new Error(errMsg);
+      const rawErrMsg = errJson?.error?.message || `Status: ${response.status}`;
+      throw new Error(translateAiErrorMessage(rawErrMsg));
     }
 
     const data = await response.json();
@@ -278,7 +328,8 @@ export async function extractGroundedQuestionsWithAi(
       warnings: [],
     };
   } catch (err: unknown) {
-    const message = (err as Error)?.message || "AI tahlilida kutilmagan xatolik yuz berdi.";
+    const rawMessage = (err as Error)?.message || "Sun'iy intellekt tahlilida kutilmagan xatolik yuz berdi.";
+    const message = translateAiErrorMessage(rawMessage);
     return {
       success: false,
       questions: [],

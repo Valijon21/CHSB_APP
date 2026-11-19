@@ -5,6 +5,7 @@ import {
   saveStoredGeminiApiKey,
   hasCustomApiKey,
   getCustomApiKey,
+  translateAiErrorMessage,
   type GroundedQuestionItem,
 } from '../src/shared/utils/groundedAiExtractor';
 import { parseExamQuestionsFromText } from '../src/shared/utils/pdfQuestionParser';
@@ -121,7 +122,7 @@ describe('Grounded AI Extractor & Human-in-the-Loop Validation', () => {
     });
 
     it('handles API network failure gracefully without crashing', async () => {
-      vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('Network offline or rate limit exceeded'));
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network offline'));
 
       const result = await extractGroundedQuestionsWithAi('Sample document', {
         apiKey: 'dummy-api-key',
@@ -129,7 +130,20 @@ describe('Grounded AI Extractor & Human-in-the-Loop Validation', () => {
 
       expect(result.success).toBe(false);
       expect(result.questions).toHaveLength(0);
-      expect(result.error).toContain('Network offline');
+      expect(result.error).toContain('Internetga ulanishda uzilish');
+    });
+
+    it('translates Google high demand 503 error into friendly Uzbek explanation', () => {
+      const rawGoogleError = 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.';
+      const translated = translateAiErrorMessage(rawGoogleError);
+      expect(translated).toContain('yuqori yuklama yuz berdi');
+      expect(translated).not.toContain('This model');
+    });
+
+    it('translates rate limit quota errors into Uzbek', () => {
+      const quotaError = 'ResourceExhausted: Quota exceeded for quota metric';
+      const translated = translateAiErrorMessage(quotaError);
+      expect(translated).toContain('limiti vaqtinchalik to\'ldi');
     });
   });
 
