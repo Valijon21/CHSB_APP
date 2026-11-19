@@ -3,6 +3,11 @@ import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
+import {
+  saveStoredGeminiApiKey,
+  getCustomApiKey,
+  hasCustomApiKey,
+} from '../../../shared/utils/groundedAiExtractor';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
@@ -16,6 +21,9 @@ const defaultLanguage = ref('uz');
 const rowsPerPage = ref('25');
 const savedMessage = ref(false);
 
+const customApiKeyInput = ref(getCustomApiKey());
+const isCustomKeyActive = ref(hasCustomApiKey());
+
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
   const tenantId =
@@ -24,7 +32,24 @@ onMounted(async () => {
   await teacherStore.loadTeacherData(tenantId);
 });
 
+function clearCustomKey() {
+  customApiKeyInput.value = '';
+  saveStoredGeminiApiKey('');
+  isCustomKeyActive.value = false;
+  savedMessage.value = true;
+  setTimeout(() => {
+    savedMessage.value = false;
+  }, 2500);
+}
+
 function handleSave() {
+  if (customApiKeyInput.value.trim()) {
+    saveStoredGeminiApiKey(customApiKeyInput.value.trim());
+    isCustomKeyActive.value = true;
+  } else {
+    saveStoredGeminiApiKey('');
+    isCustomKeyActive.value = false;
+  }
   savedMessage.value = true;
   setTimeout(() => {
     savedMessage.value = false;
@@ -103,6 +128,56 @@ function handleSave() {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Sun'iy Intellekt (AI) Sozlamalari -->
+      <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4 transition-colors">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700/80 flex-wrap gap-2">
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+            <span>🤖</span>
+            <span>Sun'iy Intellekt (AI) Sozlamalari</span>
+          </h3>
+          <span
+            :class="[
+              'px-2.5 py-0.5 rounded-md text-[10px] font-bold',
+              isCustomKeyActive
+                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                : 'bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300'
+            ]"
+          >
+            {{ isCustomKeyActive ? "✓ Shaxsiy API kalit faol" : "Standart loyiha kaliti faol" }}
+          </span>
+        </div>
+
+        <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          PDF fayllardan topshiriqlarni avtomatik ajratib olish uchun shaxsiy Google Gemini API kalitingizni kiritishingiz mumkin. Agar bo'sh qoldirsangiz, loyihaning o'zida o'rnatilgan standart kalitdan foydalaniladi.
+        </p>
+
+        <div class="space-y-2">
+          <label for="ai-custom-api-key" class="block font-bold text-slate-700 dark:text-slate-300 text-xs">
+            Shaxsiy Gemini API Kaliti (Ixtiyoriy):
+          </label>
+          <div class="flex gap-2 flex-wrap sm:flex-nowrap">
+            <input
+              id="ai-custom-api-key"
+              v-model="customApiKeyInput"
+              type="password"
+              placeholder="AQ.Ab8... yoki AIzaSy... (bo'sh qoldirilsa standart kalit ishlaydi)"
+              class="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono focus:outline-hidden focus:ring-2 focus:ring-teal-700"
+            />
+            <button
+              v-if="isCustomKeyActive"
+              type="button"
+              @click="clearCustomKey"
+              class="px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition cursor-pointer"
+            >
+              Standartga qaytarish
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500">
+            🔒 Kalit faqat sizning brauzeringizda xavfsiz saqlanadi va begonalarga ko'rinmaydi.
+          </p>
         </div>
       </div>
 

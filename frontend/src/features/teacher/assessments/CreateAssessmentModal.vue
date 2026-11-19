@@ -10,7 +10,6 @@ import { getBsbStandardByGrade } from '../../../entities/assessment/officialBsbD
 import {
   extractGroundedQuestionsWithAi,
   getStoredGeminiApiKey,
-  saveStoredGeminiApiKey,
   type GroundedQuestionItem,
 } from '../../../shared/utils/groundedAiExtractor';
 import AiQuestionReviewCard from './components/AiQuestionReviewCard.vue';
@@ -68,8 +67,6 @@ const pdfWarnings = ref<string[]>([]);
 const pdfDropzoneActive = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const aiExtractionMode = ref<'gemini' | 'local'>('gemini');
-const geminiApiKey = ref<string>(getStoredGeminiApiKey());
-const showApiKeyInput = ref<boolean>(false);
 const lastExtractionSource = ref<'ai' | 'local'>('ai');
 
 const approvedCount = computed(() => pdfGroundedQuestions.value.filter((q) => q.isApprovedByHuman).length);
@@ -88,11 +85,6 @@ function toggleApproval(idx: number) {
   if (item) {
     item.isApprovedByHuman = !item.isApprovedByHuman;
   }
-}
-
-function saveApiKeyLocally() {
-  saveStoredGeminiApiKey(geminiApiKey.value);
-  showApiKeyInput.value = false;
 }
 
 function updateGroundedQuestion(idx: number, updated: GroundedQuestionItem) {
@@ -121,20 +113,23 @@ async function handlePdfFile(file: File) {
     const rawText = await extractTextFromPdf(file);
     let extracted: GroundedQuestionItem[] = [];
 
-    // Mode 1: Gemini 3.5 Flash Lite with Strict Grounding
-    if (aiExtractionMode.value === 'gemini' && geminiApiKey.value.trim()) {
-      saveStoredGeminiApiKey(geminiApiKey.value);
-      const aiRes = await extractGroundedQuestionsWithAi(rawText, {
-        apiKey: geminiApiKey.value.trim(),
-        model: 'gemini-3.5-flash-lite',
-        maxScore: Number(maxScore.value),
-      });
+    // Mode 1: Sun'iy intellekt (Gemini 3.5 Flash Lite) with Strict Grounding
+    // Uses profile key if provided by user, otherwise project built-in key
+    if (aiExtractionMode.value === 'gemini') {
+      const activeKey = getStoredGeminiApiKey();
+      if (activeKey) {
+        const aiRes = await extractGroundedQuestionsWithAi(rawText, {
+          apiKey: activeKey,
+          model: 'gemini-3.5-flash-lite',
+          maxScore: Number(maxScore.value),
+        });
 
-      if (aiRes.success && aiRes.questions.length > 0) {
-        extracted = aiRes.questions;
-        lastExtractionSource.value = 'ai';
-      } else if (aiRes.error) {
-        pdfWarnings.value.push(`Sun'iy intellekt ogohlantirishi: ${aiRes.error}. BSB tahliliga o'tildi.`);
+        if (aiRes.success && aiRes.questions.length > 0) {
+          extracted = aiRes.questions;
+          lastExtractionSource.value = 'ai';
+        } else if (aiRes.error) {
+          pdfWarnings.value.push(`Sun'iy intellekt ogohlantirishi: ${aiRes.error}. BSB tahliliga o'tildi.`);
+        }
       }
     }
 
@@ -440,7 +435,6 @@ function resetForm() {
   pdfGroundedQuestions.value = [];
   pdfWarnings.value = [];
   isPdfProcessing.value = false;
-  showApiKeyInput.value = false;
   lastExtractionSource.value = 'ai';
   if (fileInputRef.value) {
     fileInputRef.value.value = '';
@@ -704,72 +698,33 @@ function resetForm() {
               class="hidden"
             />
 
-            <!-- Top AI Mode Selector & API Key Settings -->
-            <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 flex-wrap">
-              <div class="flex items-center gap-1.5 text-xs font-semibold">
-                <span class="text-slate-500 dark:text-slate-400">Tahlil usuli:</span>
-                <button
-                  type="button"
-                  @click="aiExtractionMode = 'gemini'"
-                  :class="[
-                    'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
-                    aiExtractionMode === 'gemini'
-                      ? 'bg-teal-700 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
-                  ]"
-                >
-                  <span>🤖 Sun'iy intellekt</span>
-                </button>
-                <button
-                  type="button"
-                  @click="aiExtractionMode = 'local'"
-                  :class="[
-                    'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
-                    aiExtractionMode === 'local'
-                      ? 'bg-teal-700 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
-                  ]"
-                >
-                  <span>🧠 BSB algoritmi (Oflayn)</span>
-                </button>
-              </div>
-
+            <!-- Top AI Mode Selector -->
+            <div class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 flex-wrap">
+              <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Tahlil usuli:</span>
               <button
                 type="button"
-                @click="showApiKeyInput = !showApiKeyInput"
-                class="text-xs px-2.5 py-1 rounded-lg text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/40 font-bold transition flex items-center gap-1 cursor-pointer"
+                @click="aiExtractionMode = 'gemini'"
+                :class="[
+                  'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
+                  aiExtractionMode === 'gemini'
+                    ? 'bg-teal-700 text-white shadow-xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
+                ]"
               >
-                <span>🔑</span>
-                <span>API Kalit sozlamasi</span>
+                <span>🤖 Sun'iy intellekt</span>
               </button>
-            </div>
-
-            <!-- API Key Input Drawer -->
-            <div v-if="showApiKeyInput" class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 space-y-2">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1">
-                  <span>🔑 Sun'iy intellekt API kaliti</span>
-                </span>
-                <span class="text-[10px] text-amber-700 dark:text-amber-400">Tekin & tezkor model</span>
-              </div>
-              <div class="flex gap-2">
-                <input
-                  v-model="geminiApiKey"
-                  type="password"
-                  placeholder="AQ.Ab8... yoki AIzaSy..."
-                  class="flex-1 p-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono"
-                />
-                <button
-                  type="button"
-                  @click="saveApiKeyLocally"
-                  class="px-3 py-1 rounded-lg bg-teal-800 text-white text-xs font-bold hover:bg-teal-900 cursor-pointer"
-                >
-                  Saqlash
-                </button>
-              </div>
-              <p class="text-[10px] text-amber-700 dark:text-amber-400">
-                Kalit faqat sizning brauzeringizda xavfsiz saqlanadi va serverga yuborilmaydi.
-              </p>
+              <button
+                type="button"
+                @click="aiExtractionMode = 'local'"
+                :class="[
+                  'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
+                  aiExtractionMode === 'local'
+                    ? 'bg-teal-700 text-white shadow-xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
+                ]"
+              >
+                <span>🧠 BSB algoritmi (Oflayn)</span>
+              </button>
             </div>
 
             <!-- Drag & Drop Dropzone -->

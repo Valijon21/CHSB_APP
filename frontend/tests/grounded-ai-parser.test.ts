@@ -3,6 +3,8 @@ import {
   extractGroundedQuestionsWithAi,
   getStoredGeminiApiKey,
   saveStoredGeminiApiKey,
+  hasCustomApiKey,
+  getCustomApiKey,
   type GroundedQuestionItem,
 } from '../src/shared/utils/groundedAiExtractor';
 import { parseExamQuestionsFromText } from '../src/shared/utils/pdfQuestionParser';
@@ -17,9 +19,15 @@ describe('Grounded AI Extractor & Human-in-the-Loop Validation', () => {
     it('saves and retrieves Gemini API key from localStorage', () => {
       saveStoredGeminiApiKey('test-key-12345');
       expect(getStoredGeminiApiKey()).toBe('test-key-12345');
+      expect(hasCustomApiKey()).toBe(true);
+      expect(getCustomApiKey()).toBe('test-key-12345');
 
       saveStoredGeminiApiKey('');
+      expect(hasCustomApiKey()).toBe(false);
+      expect(getCustomApiKey()).toBe('');
+      // Seamlessly falls back to built-in project key
       expect(typeof getStoredGeminiApiKey()).toBe('string');
+      expect(getStoredGeminiApiKey().length).toBeGreaterThan(10);
     });
   });
 
