@@ -1,7 +1,7 @@
 # Memory Index
 
 ## User Preferences
-- [user] Qat'iy qoida: Har bir so'rovda oldin Reja (Plan .md) -> Tasklarga bo'lish -> Har bir taskdan keyin Testlar yozish -> Git/GitHub push qilish → user-preferences.md
+- [user] Qat'iy qoida: Har bir so'rovda oldin Reja (Plan .md) -> Tasklarga bo'lish -> Har bir taskdan keyin Testlar yozish -> Faqat lokal Git (GitHub-ga push qilinmaydi) → user-preferences.md
 
 ## Project
 - [project] Strict Execution Standard (Plan -> Tasks -> Tests -> Git) → project-conventions.md
