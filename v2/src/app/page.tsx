@@ -39,7 +39,7 @@ export default function Home() {
   return (
     <main className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden bg-slate-950">
       <ChatSidebar onSendPrompt={handleSendPrompt} isLoading={isLoading} />
-      <DynamicDashboard response={response} />
+      <DynamicDashboard response={response} onSelectPrompt={handleSendPrompt} />
     </main>
   );
 }
