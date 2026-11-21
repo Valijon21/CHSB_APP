@@ -79,7 +79,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSendPrompt, isLoadin
             Ulanish Holati:
           </div>
           <p className="text-[11px] text-slate-400">
-            Haqiqiy <code>chsb_db</code> SQLite/PostgreSQL bazasiga to‘g‘ridan-to‘g‘ri (Read-Only) ulangan. 10 ta model, 20 o‘quvchi va 19 ta CHSB baholari tahlil qilinmoqda.
+            CHSB maktab baholash tizimi bazasiga to‘g‘ridan-to‘g‘ri ulangan. 20 nafar o‘quvchi va 19 ta rasmiy imtihon natijalari real vaqtda tahlil qilinmoqda.
           </p>
         </div>
       </div>

@@ -7,11 +7,8 @@ import { StudentRosterTable } from '@/components/widgets/StudentRosterTable';
 import { PISACognitiveRadar } from '@/components/widgets/PISACognitiveRadar';
 import { BloomDistributionChart } from '@/components/widgets/BloomDistributionChart';
 import {
-  Terminal,
   CheckCircle2,
   RotateCcw,
-  Code2,
-  ChevronDown,
   ShieldCheck,
   AlertTriangle,
   Database,
@@ -28,7 +25,6 @@ interface DynamicDashboardProps {
 export const DynamicDashboard: React.FC<DynamicDashboardProps> = ({ response, onSelectPrompt }) => {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedBloom, setSelectedBloom] = useState<string | null>(null);
-  const [showSql, setShowSql] = useState(false);
 
   if (!response) {
     return (
@@ -38,7 +34,7 @@ export const DynamicDashboard: React.FC<DynamicDashboardProps> = ({ response, on
     );
   }
 
-  const { sqlExecuted, data, summary, pedagogicalInsight, openUiComponent, grounding } = response;
+  const { data, summary, pedagogicalInsight, openUiComponent, grounding } = response;
 
   const hasActiveCrossFilter = Boolean(selectedClass || selectedBloom);
 
@@ -76,12 +72,7 @@ export const DynamicDashboard: React.FC<DynamicDashboardProps> = ({ response, on
             {grounding && grounding.isGrounded && (
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-medium shadow-sm">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>100% Bazaga Asoslangan (Zero Hallucination)</span>
-                {grounding.tablesQueried && grounding.tablesQueried.length > 0 && (
-                  <span className="hidden sm:inline text-slate-400 border-l border-emerald-500/30 pl-1.5 ml-1 text-[10px]">
-                    Jadvallar: {grounding.tablesQueried.join(', ')}
-                  </span>
-                )}
+                <span>100% Tasdiqlangan (Zero Hallucination)</span>
               </div>
             )}
 
@@ -98,35 +89,9 @@ export const DynamicDashboard: React.FC<DynamicDashboardProps> = ({ response, on
         </div>
 
         <h2 className="text-xl font-extrabold text-white tracking-tight">{summary}</h2>
-
-        {/* Technical Inspector (SQL / Guardrail Info) */}
-        <div className="mt-3">
-          <button
-            onClick={() => setShowSql(!showSql)}
-            className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-300 transition-colors"
-          >
-            <Code2 className="w-3.5 h-3.5 text-slate-500" />
-            <span>{showSql ? 'Texnik tafsilotlarni yashirish' : 'Texnik tafsilotlar (SQL / Guardrails)'}</span>
-            <ChevronDown className={`w-3 h-3 transition-transform ${showSql ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showSql && (
-            <div className="mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-cyan-400 flex flex-col gap-1.5 overflow-x-auto">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-slate-500 shrink-0" />
-                <span className="text-slate-500">Bajarilgan SQL:</span>
-                <span className="truncate">{sqlExecuted}</span>
-              </div>
-              {grounding && (
-                <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Tekshiruv reytingi:</span>
-                  <span className="text-emerald-400 font-bold">{(grounding.groundingScore * 100).toFixed(0)}% Faktik aniqlik</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {pedagogicalInsight && (
+          <p className="text-xs text-slate-300 mt-2 leading-relaxed max-w-4xl">{pedagogicalInsight}</p>
+        )}
       </div>
 
       {/* Special Guardrail State: Domain Rejection */}
