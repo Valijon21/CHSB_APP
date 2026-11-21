@@ -179,6 +179,27 @@ export const DynamicDashboard: React.FC<DynamicDashboardProps> = ({ response, on
             selectedClass={selectedClass}
             onSelectClass={setSelectedClass}
           />
+
+          {/* Interactive Drill-down: Student Roster when a class is selected */}
+          {selectedClass && response.studentsRoster && (
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <h4 className="text-base font-bold text-white flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
+                  <span>{selectedClass} o‘quvchilarining individual jurnali va baholari</span>
+                </h4>
+                <span className="text-xs text-blue-300 font-medium">
+                  Tanlangan sinf bo‘yicha avtomatik filtrlangan
+                </span>
+              </div>
+              <StudentRosterTable
+                data={response.studentsRoster}
+                externalClassFilter={selectedClass}
+                onClearClassFilter={() => setSelectedClass(null)}
+              />
+            </div>
+          )}
+
           <PISACognitiveRadar insightText={pedagogicalInsight} />
         </>
       )}

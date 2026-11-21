@@ -24,6 +24,7 @@ describe('AI Conversational Analytics Engine', () => {
     const firstRow = result.data[0] as { class_name?: string; avg_percentage?: number };
     assert.ok(firstRow.class_name);
     assert.ok(firstRow.avg_percentage !== undefined);
+    assert.ok(result.studentsRoster && result.studentsRoster.length > 0);
   });
 
   it('should process student at-risk roster query with PISA competency levels', async () => {

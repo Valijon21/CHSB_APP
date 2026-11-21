@@ -29,6 +29,7 @@ export interface AIAnalysisResponse {
     | 'MissingDataNotice'
     | string;
   grounding: GroundingMetadata;
+  studentsRoster?: Record<string, unknown>[];
 }
 
 /**
@@ -91,6 +92,36 @@ export async function processChatQuery(userPrompt: string): Promise<AIAnalysisRe
 
   // Grounded Heuristic Engine
   return executeGroundedHeuristicQuery(normalized, userPrompt);
+}
+
+/**
+ * Helper to fetch complete student roster with PISA competence levels
+ */
+function getStudentRosterRecords(): Record<string, unknown>[] {
+  return queryDatabase(`
+    SELECT 
+      s.roster_code,
+      s.first_name || ' ' || s.last_name as student_name,
+      cg.name as class_name,
+      COALESCE(ar.score, 0) as score,
+      COALESCE(ar.max_score, 40) as max_score,
+      COALESCE(ar.percentage, 0) as percentage,
+      COALESCE(ar.grade, '-') as grade,
+      CASE 
+        WHEN ar.percentage >= 90 THEN '6-Daraja (Iqtidorli)'
+        WHEN ar.percentage >= 75 THEN '4-5 Daraja (Yuqori)'
+        WHEN ar.percentage >= 60 THEN '3-Daraja (O‘rta)'
+        WHEN ar.percentage >= 40 THEN '2-Daraja (Bazaviy)'
+        WHEN ar.percentage IS NOT NULL THEN '1-Daraja (Xavf guruhi)'
+        ELSE 'Topshirmagan'
+      END as pisa_level
+    FROM students s
+    JOIN class_groups cg ON cg.id = s.class_group_id
+    LEFT JOIN assessment_results ar ON ar.student_id = s.id
+    ORDER BY 
+      CASE WHEN ar.percentage IS NULL THEN 1 ELSE 0 END ASC,
+      ar.percentage DESC
+  `.trim());
 }
 
 /**
@@ -204,11 +235,16 @@ function executeGroundedHeuristicQuery(normalized: string, originalPrompt: strin
   let summary = '';
   let insight = '';
 
+  let studentsRoster: Record<string, unknown>[] | undefined;
+
   if (openUiComponent === 'ClassPerformance') {
     summary = 'Sinflar kesimida CHSB imtihon natijalari va baholar taqsimoti tahlil qilindi.';
     const topClass = (data[0]?.class_name as string) || '11-sinf';
     const topPct = (data[0]?.avg_percentage as number) ?? 88.8;
     insight = `Bazada eng yuqori natijani ${topClass} (${topPct}%) qayd etdi. O‘quvchilar asosan 4 va 5 baholarga ega.`;
+
+    // Fetch individual student roster records for drill-down when a class is clicked
+    studentsRoster = getStudentRosterRecords();
   } else if (openUiComponent === 'StudentRoster') {
     summary = 'O‘quvchilarning individual CHSB natijalari va OECD PISA kompetensiya darajalari ro‘yxati.';
     const atRiskCount = data.filter((r) => r.pisa_level === '1-Daraja (Xavf guruhi)').length;
@@ -245,6 +281,7 @@ function executeGroundedHeuristicQuery(normalized: string, originalPrompt: strin
       hallucinationsDetected: grounding.hallucinationsDetected,
       isMissingData: grounding.isMissingData,
     },
+    studentsRoster,
   };
 }
 
@@ -308,6 +345,9 @@ async function executeGeminiQuery(prompt: string, apiKey: string): Promise<AIAna
     validation.cleanedSql
   );
 
+  // Attach student roster for class drill-downs
+  const studentsRoster = parsed.openUiComponent === 'ClassPerformance' ? getStudentRosterRecords() : undefined;
+
   return {
     query: prompt,
     sqlExecuted: validation.cleanedSql,
@@ -322,5 +362,6 @@ async function executeGeminiQuery(prompt: string, apiKey: string): Promise<AIAna
       hallucinationsDetected: grounding.hallucinationsDetected,
       isMissingData: grounding.isMissingData,
     },
+    studentsRoster,
   };
 }
