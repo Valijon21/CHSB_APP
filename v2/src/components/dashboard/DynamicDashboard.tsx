@@ -6,7 +6,7 @@ import { ClassPerformanceChart } from '@/components/widgets/ClassPerformanceChar
 import { StudentRosterTable } from '@/components/widgets/StudentRosterTable';
 import { PISACognitiveRadar } from '@/components/widgets/PISACognitiveRadar';
 import { BloomDistributionChart } from '@/components/widgets/BloomDistributionChart';
-import { Terminal, CheckCircle2, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Terminal, CheckCircle2, SlidersHorizontal, RotateCcw, Code2, ChevronDown } from 'lucide-react';
 import type { AIAnalysisResponse } from '@/lib/ai-engine';
 
 interface DynamicDashboardProps {
@@ -16,6 +16,7 @@ interface DynamicDashboardProps {
 export const DynamicDashboard: React.FC<DynamicDashboardProps> = ({ response }) => {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedBloom, setSelectedBloom] = useState<string | null>(null);
+  const [showSql, setShowSql] = useState(false);
 
   if (!response) {
     return (
@@ -57,11 +58,24 @@ export const DynamicDashboard: React.FC<DynamicDashboardProps> = ({ response }) 
 
         <h2 className="text-xl font-extrabold text-white tracking-tight">{summary}</h2>
 
-        {/* SQL Execution Inspector */}
-        <div className="mt-4 p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs font-mono text-cyan-400 flex items-center gap-2 overflow-x-auto">
-          <Terminal className="w-4 h-4 text-slate-500 shrink-0" />
-          <span className="text-slate-500">Bajarilgan SQL:</span>
-          <span className="truncate">{sqlExecuted}</span>
+        {/* Optional Collapsible Technical Inspector (Hidden by default for clean UX) */}
+        <div className="mt-2">
+          <button
+            onClick={() => setShowSql(!showSql)}
+            className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-300 transition-colors"
+          >
+            <Code2 className="w-3.5 h-3.5 text-slate-500" />
+            <span>{showSql ? 'Texnik SQL so‘rovini yashirish' : 'Texnik tafsilotlar (SQL)'}</span>
+            <ChevronDown className={`w-3 h-3 transition-transform ${showSql ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showSql && (
+            <div className="mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-cyan-400 flex items-center gap-2 overflow-x-auto">
+              <Terminal className="w-4 h-4 text-slate-500 shrink-0" />
+              <span className="text-slate-500">Bajarilgan SQL:</span>
+              <span className="truncate">{sqlExecuted}</span>
+            </div>
+          )}
         </div>
       </div>
 
