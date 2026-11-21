@@ -270,13 +270,6 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
                         {row.grade}
                       </span>
                     </td>
-                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                            : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                        }`}
-                      >
-                        {row.grade}
-                      </span>
-                    </td>
                     <td className="px-4 py-3">
                       <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
                         {row.pisa_level}

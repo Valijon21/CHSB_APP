@@ -20,7 +20,7 @@ describe('Bloom Taxonomy & Roster Export Logic', () => {
     const validation = validateSafeSql(sql);
     assert.equal(validation.isValid, true);
 
-    const rows = queryDatabase(validation.cleanedSql) as Array<{
+    const rows = queryDatabase(validation.cleanedSql!) as Array<{
       bloom_level: string;
       total_questions: number;
       total_points: number;
