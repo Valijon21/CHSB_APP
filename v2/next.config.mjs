@@ -8,6 +8,7 @@ const nextConfig = {
   reactStrictMode: true,
   serverExternalPackages: ['node:sqlite'],
   outputFileTracingRoot: __dirname,
+  devIndicators: false,
 };
 
 export default nextConfig;
