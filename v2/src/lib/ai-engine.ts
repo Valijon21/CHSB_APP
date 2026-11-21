@@ -70,21 +70,24 @@ function executeHeuristicQuery(normalized: string, originalPrompt: string): AIAn
         s.roster_code,
         s.first_name || ' ' || s.last_name as student_name,
         cg.name as class_name,
-        ar.score,
-        ar.max_score,
-        ar.percentage,
-        ar.grade,
+        COALESCE(ar.score, 0) as score,
+        COALESCE(ar.max_score, 40) as max_score,
+        COALESCE(ar.percentage, 0) as percentage,
+        COALESCE(ar.grade, '-') as grade,
         CASE 
           WHEN ar.percentage >= 90 THEN '6-Daraja (Iqtidorli)'
           WHEN ar.percentage >= 75 THEN '4-5 Daraja (Yuqori)'
           WHEN ar.percentage >= 60 THEN '3-Daraja (O‘rta)'
           WHEN ar.percentage >= 40 THEN '2-Daraja (Bazaviy)'
-          ELSE '1-Daraja (Xavf guruhi)'
+          WHEN ar.percentage IS NOT NULL THEN '1-Daraja (Xavf guruhi)'
+          ELSE 'Topshirmagan'
         END as pisa_level
       FROM students s
       JOIN class_groups cg ON cg.id = s.class_group_id
       LEFT JOIN assessment_results ar ON ar.student_id = s.id
-      ORDER BY ar.percentage ASC
+      ORDER BY 
+        CASE WHEN ar.percentage IS NULL THEN 1 ELSE 0 END ASC,
+        ar.percentage ASC
     `.trim();
 
     summary = 'O‘quvchilarning individual CHSB natijalari va OECD PISA kompetensiya darajalari ro‘yxati.';

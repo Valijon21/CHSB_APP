@@ -212,7 +212,8 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
               </tr>
             ) : (
               filtered.map((row, i) => {
-                const isAtRisk = row.grade === '2' || (row.percentage || 0) < 40;
+                const isUnsubmitted = row.pisa_level === 'Topshirmagan' || row.grade === '-';
+                const isAtRisk = !isUnsubmitted && (row.grade === '2' || (row.percentage || 0) < 40);
                 const isExcellent = row.grade === '5';
 
                 return (
@@ -233,31 +234,42 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
                     </td>
                     <td className="px-4 py-3">{row.class_name}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className="font-bold text-white">{row.score}</span> / {row.max_score}
+                      <span className="font-bold text-white">{row.score ?? '-'}</span> / {row.max_score ?? '-'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`font-bold ${
-                          row.percentage >= 75
+                          isUnsubmitted
+                            ? 'text-slate-500'
+                            : (row.percentage ?? 0) >= 75
                             ? 'text-emerald-400'
-                            : row.percentage >= 60
+                            : (row.percentage ?? 0) >= 60
                             ? 'text-blue-400'
-                            : row.percentage >= 40
+                            : (row.percentage ?? 0) >= 40
                             ? 'text-amber-400'
                             : 'text-rose-400'
                         }`}
                       >
-                        {row.percentage}%
+                        {isUnsubmitted ? '—' : `${row.percentage}%`}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
-                          row.grade === '5'
+                          isUnsubmitted
+                            ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                            : row.grade === '5'
                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                             : row.grade === '4'
                             ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                             : row.grade === '3'
+                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }`}
+                      >
+                        {row.grade}
+                      </span>
+                    </td>
                             ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                             : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                         }`}
