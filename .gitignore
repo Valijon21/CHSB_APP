@@ -7,9 +7,12 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Node dependencies & outputs (Root & Frontend)
+# Node dependencies & outputs (Root & Frontend & v2)
 node_modules/
 frontend/node_modules/
+v2/node_modules/
+.next/
+v2/.next/
 dist/
 frontend/dist/
 dist-ssr/
