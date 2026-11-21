@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { queryDatabase } from '../src/lib/db.js';
-import { validateSafeSql } from '../src/lib/sql-validator.js';
+import { queryDatabase } from '../src/lib/db';
+import { validateSafeSql } from '../src/lib/sql-validator';
 
 describe('Bloom Taxonomy & Roster Export Logic', () => {
   it('should query real questions table and group by Bloom cognitive levels', () => {

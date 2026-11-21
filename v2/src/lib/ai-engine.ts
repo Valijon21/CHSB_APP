@@ -1,6 +1,6 @@
-import { queryDatabase } from './db.js';
-import { validateSafeSql } from './sql-validator.js';
-import { CHSB_DATABASE_SCHEMA_SUMMARY, CHSB_SYSTEM_PROMPT } from './semantic-schema.js';
+import { queryDatabase } from './db';
+import { validateSafeSql } from './sql-validator';
+import { CHSB_DATABASE_SCHEMA_SUMMARY, CHSB_SYSTEM_PROMPT } from './semantic-schema';
 
 export interface AIAnalysisResponse {
   query: string;

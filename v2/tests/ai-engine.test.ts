@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { processChatQuery } from '../src/lib/ai-engine.js';
+import { processChatQuery } from '../src/lib/ai-engine';
 
 describe('AI Conversational Analytics Engine', () => {
   it('should process overview prompt and return aggregated dashboard stats', async () => {

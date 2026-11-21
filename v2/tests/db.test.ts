@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getDatabase, queryDatabase } from '../src/lib/db.js';
+import { getDatabase, queryDatabase } from '../src/lib/db';
 
 describe('Database Connection Bridge (CHSB Real SQLite DB)', () => {
   it('should successfully connect to database and retrieve tables', () => {

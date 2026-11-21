@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateSafeSql } from '../src/lib/sql-validator.js';
+import { validateSafeSql } from '../src/lib/sql-validator';
 
 describe('SQL Safety Validator', () => {
   it('should allow valid SELECT query', () => {
