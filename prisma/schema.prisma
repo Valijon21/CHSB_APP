@@ -25,6 +25,7 @@ model Tenant {
   classGroups ClassGroup[]
   students    Student[]
   subjects    Subject[]
+  curriculumResources CurriculumResource[]
 
   @@map("tenants")
 }
@@ -198,4 +199,42 @@ model Subject {
 
   @@unique([tenantId, code])
   @@map("subjects")
+}
+
+model CurriculumResource {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  subjectCode   String   @map("subject_code")
+  gradeLevel    Int      @map("grade_level")
+  quarter       Int      @default(1)
+  lessonNumber  Int      @default(1) @map("lesson_number")
+  title         String
+  topic         String
+  resourceType  String   @map("resource_type") // 'PRESENTATION', 'WORKSHEET', 'WORKBOOK', 'SOLUTION'
+  description   String?
+  contentJson   String   @default("{}") @map("content_json")
+  fileUrl       String?  @map("file_url")
+  downloadCount Int      @default(0) @map("download_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, subjectCode, gradeLevel, quarter])
+  @@map("curriculum_resources")
+}
+
+model AssessmentSolution {
+  id                 String   @id @default(uuid())
+  assessmentId       String   @map("assessment_id")
+  questionId         String   @map("question_id")
+  variantNumber      Int      @default(1) @map("variant_number")
+  stepByStepSolution String   @map("step_by_step_solution")
+  solutionFormulas   String?  @map("solution_formulas")
+  rubricCriteriaJson String   @default("[]") @map("rubric_criteria_json")
+  authorNote         String?  @map("author_note")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([assessmentId, questionId])
+  @@map("assessment_solutions")
 }

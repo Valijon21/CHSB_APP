@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.app.api.v1.endpoints import auth, classes, students, analytics, ai, tenants, assessments, regional, subjects
+from backend.app.api.v1.endpoints import auth, classes, students, analytics, ai, tenants, assessments, regional, subjects, curriculum
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
@@ -11,3 +11,4 @@ api_router.include_router(tenants.router)
 api_router.include_router(assessments.router)
 api_router.include_router(regional.router)
 api_router.include_router(subjects.router)
+api_router.include_router(curriculum.router)

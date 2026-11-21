@@ -41,6 +41,7 @@ const navigationItems = computed(() => {
     { name: 'Sinflar', path: '/teacher/classes', icon: '🏫' },
     { name: "O'quvchilar", path: '/teacher/students', icon: '👥' },
     { name: 'Imtihonlar', path: '/teacher/assessments', icon: '📝' },
+    { name: 'Metodik Resurslar', path: '/teacher/curriculum', icon: '📚' },
     { name: 'Natijalar', path: '/teacher/results', icon: '📈' },
     { name: 'Tahlillar', path: '/teacher/analytics', icon: '📉' },
     { name: 'Hisobotlar', path: '/teacher/reports', icon: '📑' },

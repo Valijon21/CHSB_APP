@@ -132,6 +132,11 @@ const routes: RouteRecordRaw[] = [
             component: () => import('../../features/teacher/assessments/TeacherAssessmentsView.vue'),
           },
           {
+            path: 'curriculum',
+            name: 'TeacherCurriculum',
+            component: () => import('../../features/teacher/curriculum/CurriculumHubView.vue'),
+          },
+          {
             path: 'assessments/:assessmentId',
             name: 'TeacherAssessmentDetail',
             component: () => import('../../features/teacher/assessments/TeacherAssessmentDetailView.vue'),
