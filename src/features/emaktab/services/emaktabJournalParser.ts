@@ -244,3 +244,4 @@ function createEmptyJournal(): EmaktabJournalData {
     students: [],
   };
 }
+

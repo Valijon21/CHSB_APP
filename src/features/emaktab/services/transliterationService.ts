@@ -148,3 +148,4 @@ export function normalizeUnifiedName(rawName: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
