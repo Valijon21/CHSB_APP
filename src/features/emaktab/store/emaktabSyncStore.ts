@@ -126,6 +126,9 @@ export const useEmaktabSyncStore = defineStore('emaktabSync', () => {
   function importRosterFromText(rawText: string, targetClassName?: string) {
     const parsed = parseEmaktabRoster(rawText, targetClassName || className.value);
     emaktabStudents.value = parsed;
+    if (parsed.length > 0 && parsed[0]?.className) {
+      className.value = parsed[0].className;
+    }
     runReconciliation();
   }
 

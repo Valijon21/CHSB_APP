@@ -114,7 +114,7 @@ export function parseEmaktabJournal(rawInput: string): EmaktabJournalData {
 
     // O'quvchilar qatorlarining boshlanish nuqtasi:
     // Masalan: "1.0,Davlatova Nurjaxonbegim,1000001990097..."
-    if (/^\d+(\.0)?,[A-Za-zА-Яа-яЎўҚқҒғҲҳ\s'ʻʼ`-]+,\d{7,15}/.test(line)) {
+    if (/^\d+(\.\d+)?,[^,]+,\d{7,15}/.test(line)) {
       studentRowsStartIndex = i;
       break;
     }
