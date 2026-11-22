@@ -119,3 +119,14 @@ def test_regional_overview(client: TestClient):
     data = response.json()
     assert data["totalSchools"] >= 2
     assert data["regionalAverageScore"] > 0
+
+def test_students_emaktab_fields(client: TestClient):
+    response = client.get("/api/v1/students?tenantSlug=al-xorazmiy")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 70
+    with_emaktab_id = [s for s in data if s.get("emaktabId")]
+    assert len(with_emaktab_id) >= 73
+    with_group = [s for s in data if s.get("groupName")]
+    assert len(with_group) >= 40
+

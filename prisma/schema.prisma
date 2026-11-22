@@ -111,6 +111,8 @@ model Student {
   gender       String        @default("M")
   birthDate    DateTime      @map("birth_date")
   status       StudentStatus @default(ELIGIBLE)
+  emaktabId    String?       @map("emaktab_id")
+  groupName    String?       @map("group_name")
   createdAt    DateTime      @default(now()) @map("created_at")
 
   school   School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)

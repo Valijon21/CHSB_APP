@@ -105,6 +105,8 @@ async def get_class_detail(class_id: str, db: Prisma = Depends(get_prisma)):
             "lastName": s.lastName,
             "middleName": s.middleName,
             "status": s.status.lower(),
+            "emaktabId": s.emaktabId,
+            "groupName": s.groupName,
             "availableAssessmentIds": ["chsb-inf-11-q1"],
         })
         for r in s.results:

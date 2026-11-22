@@ -10,6 +10,8 @@ export const StudentRosterRecordSchema = z.object({
   lastName: z.string().min(1),
   middleName: z.string().optional(),
   status: z.enum(['eligible', 'inactive', 'ambiguous']).default('eligible'),
+  emaktabId: z.string().optional(),
+  groupName: z.string().optional(),
   availableAssessmentIds: z.array(z.string()).default([]),
 });
 

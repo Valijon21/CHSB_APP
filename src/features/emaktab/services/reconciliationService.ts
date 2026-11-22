@@ -7,14 +7,22 @@ import type {
 } from '../../../entities/emaktab/model';
 import { DEFAULT_GRADE_THRESHOLDS } from '../../../entities/emaktab/model';
 
+import { isCyrillic, cyrillicToLatin } from './transliterationService';
+
 /**
- * O'zbek tili harflari, apostroflari va bo'sh joylarni unifikatsiya qiladi.
- * Masalan: "Oʻktamov   Jasurbek  O'g'li" -> "oktamov jasurbek ogli"
+ * O'zbek tili harflari, apostroflari, Kirill/Lotin va bo'sh joylarni unifikatsiya qiladi.
+ * Masalan: "Озодов Озодбек" -> "ozodov ozodbek"
+ *          "Oʻktamov   Jasurbek  O'g'li" -> "oktamov jasurbek ogli"
  */
 export function normalizeUzbekName(input: string): string {
   if (!input) return '';
 
-  return input
+  let converted = input.trim();
+  if (isCyrillic(converted)) {
+    converted = cyrillicToLatin(converted);
+  }
+
+  return converted
     .toLowerCase()
     .trim()
     // Har xil apostrof va urg'u belgilarini tozalash: ‘, ’, `, ʻ, ʼ, '

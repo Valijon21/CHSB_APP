@@ -95,6 +95,8 @@ interface BackendStudentItem {
   gender?: string;
   birthDate?: string;
   status?: string;
+  emaktabId?: string;
+  groupName?: string;
   availableAssessmentIds?: string[];
 }
 
@@ -283,6 +285,8 @@ export class RealRosterRepository implements RosterRepository {
         lastName: s.lastName,
         middleName: s.middleName,
         status: (s.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
+        emaktabId: s.emaktabId,
+        groupName: s.groupName,
         availableAssessmentIds: s.availableAssessmentIds || ['chsb-inf-11-q1'],
       }));
     } catch {
@@ -495,6 +499,8 @@ export class RealTeacherRepository implements TeacherRepository {
         lastName: s.lastName,
         middleName: s.middleName,
         status: (s.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
+        emaktabId: s.emaktabId,
+        groupName: s.groupName,
         availableAssessmentIds: s.availableAssessmentIds || ['chsb-inf-11-q1'],
       }));
     } catch {

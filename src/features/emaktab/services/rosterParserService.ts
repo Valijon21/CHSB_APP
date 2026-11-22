@@ -1,5 +1,6 @@
 import type { EmaktabStudent } from '../../../entities/emaktab/model';
 import { normalizeUzbekName } from './reconciliationService';
+import { parseMultipleEmaktabJournals } from './emaktabJournalParser';
 
 /**
  * eMaktabdan eksport qilingan CSV, matnli ro'yxat yoki buferdan
@@ -16,6 +17,32 @@ export function parseEmaktabRoster(
   // UTF-8 BOM belgisini tozalash
   const cleanedInput = rawInput.replace(/^\uFEFF/, '').trim();
   if (!cleanedInput) return [];
+
+  // Agar to'liq eMaktab jurnali (yoki ko'p qismli jurnal) kiritilgan bo'lsa
+  if (
+    cleanedInput.includes('Sinf:') ||
+    cleanedInput.includes('Fan:') ||
+    cleanedInput.includes('^next_part^') ||
+    /\b10000\d{8}\b/.test(cleanedInput)
+  ) {
+    const journalData = parseMultipleEmaktabJournals(cleanedInput);
+    if (journalData.length > 0 && journalData.some((j) => j.students.length > 0)) {
+      const allStudents: EmaktabStudent[] = [];
+      let idx = 1;
+      for (const j of journalData) {
+        for (const s of j.students) {
+          allStudents.push({
+            emaktabId: s.emaktabId,
+            fullName: s.fullName,
+            normalizedName: s.normalizedName,
+            orderIndex: idx++,
+            className: j.metadata.className || className,
+          });
+        }
+      }
+      return allStudents;
+    }
+  }
 
   // Qatorlarga ajratish
   const lines = cleanedInput

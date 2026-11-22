@@ -17,6 +17,8 @@ class StudentCreate(BaseModel):
     birthDate: str = "2008-05-15"
     rosterCode: str | None = None
     status: str = "eligible"
+    emaktabId: str | None = None
+    groupName: str | None = None
 
 @router.get("")
 async def get_students(
@@ -54,6 +56,8 @@ async def get_students(
             "gender": s.gender,
             "birthDate": s.birthDate.strftime("%Y-%m-%d"),
             "status": s.status.lower(),
+            "emaktabId": s.emaktabId,
+            "groupName": s.groupName,
             "availableAssessmentIds": ["chsb-inf-11-q1"],
             "createdAt": s.createdAt.isoformat(),
         }
@@ -83,6 +87,8 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
             "gender": payload.gender,
             "birthDate": datetime.strptime(payload.birthDate, "%Y-%m-%d"),
             "status": "ELIGIBLE" if payload.status == "eligible" else "INACTIVE",
+            "emaktabId": payload.emaktabId,
+            "groupName": payload.groupName,
         },
         include={"classGroup": True},
     )
@@ -100,6 +106,8 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
         "middleName": created.middleName,
         "fullName": f"{created.lastName} {created.firstName} {created.middleName or ''}".strip(),
         "status": created.status.lower(),
+        "emaktabId": created.emaktabId,
+        "groupName": created.groupName,
         "availableAssessmentIds": ["chsb-inf-11-q1"],
         "createdAt": created.createdAt.isoformat(),
     }
