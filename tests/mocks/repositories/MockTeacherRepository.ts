@@ -31,22 +31,32 @@ export class MockTeacherRepository implements TeacherRepository {
     }
   }
 
+  private normalizeTenant(tenantId: string): string {
+    if (!tenantId) return 'tenant-al-xorazmiy';
+    return tenantId.startsWith('tenant-') ? tenantId : `tenant-${tenantId}`;
+  }
+
   async getClasses(tenantId: string): Promise<ClassGroup[]> {
     await this.delay();
-    return mockClassGroups.filter((c) => c.tenantId === tenantId);
+    const tid = this.normalizeTenant(tenantId);
+    return mockClassGroups.filter((c) => c.tenantId === tid || c.tenantId === tenantId);
   }
 
   async getRoster(tenantId: string, classGroupId?: string): Promise<StudentRosterRecord[]> {
     await this.delay();
+    const tid = this.normalizeTenant(tenantId);
     return mockRosterRecords.filter(
-      (r) => r.tenantId === tenantId && (!classGroupId || r.classGroupId === classGroupId)
+      (r) =>
+        (r.tenantId === tid || r.tenantId === tenantId) &&
+        (!classGroupId || r.classGroupId === classGroupId)
     );
   }
 
   async getAssessments(tenantId: string): Promise<AssessmentSummary[]> {
     await this.delay();
+    const tid = this.normalizeTenant(tenantId);
     return mockAssessments
-      .filter((a) => a.tenantId === tenantId)
+      .filter((a) => a.tenantId === tid || a.tenantId === tenantId)
       .map((a) => ({
         id: a.id,
         tenantId: a.tenantId,

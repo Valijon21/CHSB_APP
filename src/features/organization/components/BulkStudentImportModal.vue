@@ -78,7 +78,11 @@ function handleTabChange(tab: 'file' | 'text') {
 
 function parseInput() {
   fileError.value = null;
-  if (!rawText.value.trim() || !selectedClassId.value) return;
+  if (!rawText.value.trim()) return;
+
+  if (!selectedClassId.value && props.availableClasses.length > 0) {
+    selectedClassId.value = props.availableClasses[0]?.id || '';
+  }
 
   // Binar fayl tekshiruvi
   if (isBinaryText(rawText.value)) {
@@ -88,12 +92,12 @@ function parseInput() {
   }
 
   const cls = selectedClass.value;
-  const className = cls?.name || 'Sinf';
+  const className = cls?.name || '10-A sinf';
 
   const context = {
     tenantSlug: props.tenantSlug,
     schoolId: props.schoolId,
-    classGroupId: selectedClassId.value,
+    classGroupId: selectedClassId.value || 'class-default',
     className,
   };
 
@@ -331,11 +335,15 @@ function downloadSample() {
         <div class="flex items-center gap-2">
           <label class="font-bold text-slate-700 dark:text-slate-300">Biriktiriladigan Sinf:</label>
           <select
+            v-if="availableClasses.length > 0"
             v-model="selectedClassId"
             class="p-1.5 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-teal-700 dark:text-teal-400"
           >
             <option v-for="c in availableClasses" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
+          <span v-else class="text-amber-600 dark:text-amber-400 font-medium italic text-xs">
+            (Hozircha sinflar yo'q — fayldan avtomatik yaratiladi)
+          </span>
         </div>
 
         <button

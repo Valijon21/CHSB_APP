@@ -86,7 +86,16 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
         if default_class:
             class_group_id = default_class.id
         else:
-            raise HTTPException(status_code=400, detail="Tenantga tegishli sinf topilmadi.")
+            new_cls = await db.classgroup.create(
+                data={
+                    "tenantId": tenant.id,
+                    "schoolId": school_id,
+                    "name": "10-A sinf",
+                    "gradeLevel": 10,
+                    "academicYear": "2026-2027",
+                }
+            )
+            class_group_id = new_cls.id
 
     roster_code = payload.rosterCode
     if not roster_code:
