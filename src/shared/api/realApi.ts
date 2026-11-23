@@ -104,12 +104,15 @@ interface BackendClassItem {
   id: string;
   schoolId: string;
   tenantId: string;
+  tenantSlug?: string;
   name: string;
   grade?: number;
   gradeLevel?: number;
   shift?: number;
   academicYear: string;
   studentCount: number;
+  teacherId?: string | null;
+  teacherName?: string | null;
 }
 
 interface BackendAssessmentItem {
@@ -478,6 +481,8 @@ export class RealTeacherRepository implements TeacherRepository {
         grade: c.grade || c.gradeLevel || 11,
         academicYear: c.academicYear,
         studentCount: c.studentCount,
+        teacherId: c.teacherId || undefined,
+        teacherName: c.teacherName || undefined,
       }));
     } catch {
       return [];
@@ -539,17 +544,43 @@ export class RealTeacherRepository implements TeacherRepository {
   }
 
   async getProfile(tenantId: string): Promise<TeacherProfile> {
-    return {
-      id: 'usr-tch-01',
-      tenantId,
-      fullName: 'Dilmurod Ustoz',
-      title: "Oliy toifali informatika fani o'qituvchisi",
-      email: 'teacher@xorazm.uz',
-      phone: '+998901234567',
-      assignedSchoolName: 'Muhammad al-Xorazmiy IT-maktabi',
-      subjects: ['Informatika va AT', 'Sun\'iy Intellekt'],
-      assignedClassIds: ['class-ax-11a', 'class-ax-11b'],
-    };
+    try {
+      const classes = await this.getClasses(tenantId);
+      const teacherClasses = classes.filter(
+        (c) =>
+          c.teacherId === 'usr-teacher-01' ||
+          c.teacherId === 'usr-tch-01' ||
+          (c.teacherName && c.teacherName.toLowerCase().includes('dilmurod'))
+      );
+      const assignedClassIds =
+        teacherClasses.length > 0
+          ? teacherClasses.map((c) => c.id)
+          : ['class-ax-11a', 'class-ax-10a', 'class-ax-10v'];
+
+      return {
+        id: 'usr-teacher-01',
+        tenantId,
+        fullName: 'Dilmurod Rahmataliyevich Yunusov',
+        title: "Oliy toifali informatika fani o'qituvchisi",
+        email: 'teacher@xorazm.uz',
+        phone: '+998901234567',
+        assignedSchoolName: 'Muhammad al-Xorazmiy IT-maktabi',
+        subjects: ['Informatika va AT', 'Sun\'iy Intellekt'],
+        assignedClassIds,
+      };
+    } catch {
+      return {
+        id: 'usr-teacher-01',
+        tenantId,
+        fullName: 'Dilmurod Rahmataliyevich Yunusov',
+        title: "Oliy toifali informatika fani o'qituvchisi",
+        email: 'teacher@xorazm.uz',
+        phone: '+998901234567',
+        assignedSchoolName: 'Muhammad al-Xorazmiy IT-maktabi',
+        subjects: ['Informatika va AT', 'Sun\'iy Intellekt'],
+        assignedClassIds: ['class-ax-11a', 'class-ax-10a', 'class-ax-10v'],
+      };
+    }
   }
 
   async getClassDetail(_tenantId: string, classId: string): Promise<ClassDetail | null> {
@@ -811,17 +842,31 @@ export class RealOrganizationRepository implements OrganizationRepository {
   async getTeachersBySchool(_tenantSlug: string): Promise<TeacherRecord[]> {
     return [
       {
-        id: 'usr-tch-01',
-        schoolId: 'sch-01',
+        id: 'usr-teacher-01',
+        schoolId: 'school-ax-1',
         tenantSlug: 'al-xorazmiy',
-        fullName: 'Dilmurod Ustoz',
+        fullName: 'Dilmurod Rahmataliyevich Yunusov',
         email: 'teacher@xorazm.uz',
         phone: '+998901234567',
         subject: 'Informatika va AT',
         qualification: 'oliy' as const,
         status: 'active' as const,
-        assignedClassIds: ['class-ax-11a', 'class-ax-11b'],
-        assignedClassNames: ['11-A', '11-B'],
+        assignedClassIds: ['class-ax-11a', 'class-ax-10a', 'class-ax-10v'],
+        assignedClassNames: ['11-A', '10-A', '10-V'],
+        createdAt: '2026-11-01T08:00:00Z',
+      },
+      {
+        id: 'usr-teacher-02',
+        schoolId: 'school-ax-1',
+        tenantSlug: 'al-xorazmiy',
+        fullName: 'Dilrabo Turdialiyevna Sharafxonova',
+        email: 'dilrabo@xorazm.uz',
+        phone: '+998912345678',
+        subject: 'Informatika va AT',
+        qualification: 'birinchi' as const,
+        status: 'active' as const,
+        assignedClassIds: ['class-ax-11b', 'class-ax-11v'],
+        assignedClassNames: ['11-B', '11-V'],
         createdAt: '2026-11-01T08:00:00Z',
       },
     ];
@@ -886,8 +931,31 @@ export class RealOrganizationRepository implements OrganizationRepository {
     }));
   }
 
-  async getStudentsBySchool(_tenantSlug: string, _classGroupId?: string): Promise<StudentRecord[]> {
-    return [];
+  async getStudentsBySchool(tenantSlug: string, classGroupId?: string): Promise<StudentRecord[]> {
+    try {
+      const list = await httpClient.get<BackendStudentItem[]>('/students', {
+        params: { tenantSlug, classGroupId },
+      });
+      return list.map((s) => ({
+        id: s.id,
+        tenantSlug,
+        schoolId: s.schoolId,
+        classGroupId: s.classGroupId,
+        className: s.className || '',
+        rosterCode: s.rosterCode,
+        fullName: `${s.lastName} ${s.firstName}`,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        middleName: s.middleName,
+        gender: (s.gender === 'F' ? 'F' : 'M') as 'M' | 'F',
+        birthDate: s.birthDate ? (s.birthDate.split('T')[0] ?? '2009-01-01') : '2009-01-01',
+        status: (s.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
+        emaktabId: s.emaktabId,
+        createdAt: new Date().toISOString(),
+      }));
+    } catch {
+      return [];
+    }
   }
 
   async updateStudent(_id: string, _updates: Partial<StudentInput>): Promise<StudentRecord | null> {
@@ -904,20 +972,66 @@ export class RealOrganizationRepository implements OrganizationRepository {
   }
 
   async createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord> {
-    return {
-      id: `class-${Date.now()}`,
-      schoolId: input.schoolId,
-      tenantSlug: input.tenantSlug,
-      name: input.name,
-      gradeLevel: input.gradeLevel,
-      shift: input.shift,
-      academicYear: input.academicYear,
-      studentCount: 0,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const payload = {
+        schoolId: input.schoolId,
+        tenantSlug: input.tenantSlug,
+        name: input.name,
+        gradeLevel: input.gradeLevel,
+        shift: input.shift || 1,
+        academicYear: input.academicYear || '2026-2027',
+        teacherId: input.headTeacherId || null,
+        teacherName: input.headTeacherName || null,
+      };
+      const res = await httpClient.post<BackendClassItem>('/classes', payload);
+      return {
+        id: res.id,
+        schoolId: res.schoolId,
+        tenantSlug: input.tenantSlug,
+        name: res.name,
+        gradeLevel: res.gradeLevel || res.grade || input.gradeLevel,
+        shift: (res.shift as 1 | 2) || input.shift,
+        academicYear: res.academicYear,
+        headTeacherId: res.teacherId || input.headTeacherId,
+        headTeacherName: res.teacherName || input.headTeacherName,
+        studentCount: res.studentCount || 0,
+        createdAt: new Date().toISOString(),
+      };
+    } catch {
+      return {
+        id: `class-${Date.now()}`,
+        schoolId: input.schoolId,
+        tenantSlug: input.tenantSlug,
+        name: input.name,
+        gradeLevel: input.gradeLevel,
+        shift: input.shift,
+        academicYear: input.academicYear,
+        headTeacherId: input.headTeacherId,
+        headTeacherName: input.headTeacherName,
+        studentCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+    }
   }
 
-  async getClassGroupsBySchool(_tenantSlug: string): Promise<ClassGroupRecord[]> {
-    return [];
+  async getClassGroupsBySchool(tenantSlug: string): Promise<ClassGroupRecord[]> {
+    try {
+      const list = await httpClient.get<BackendClassItem[]>('/classes', { params: { tenantSlug } });
+      return list.map((c) => ({
+        id: c.id,
+        schoolId: c.schoolId,
+        tenantSlug,
+        name: c.name,
+        gradeLevel: c.gradeLevel || c.grade || 11,
+        shift: (c.shift as 1 | 2) || 1,
+        academicYear: c.academicYear,
+        headTeacherId: c.teacherId || undefined,
+        headTeacherName: c.teacherName || undefined,
+        studentCount: c.studentCount || 0,
+        createdAt: new Date().toISOString(),
+      }));
+    } catch {
+      return [];
+    }
   }
 }

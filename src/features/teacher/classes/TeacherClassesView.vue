@@ -43,8 +43,8 @@ const allSchoolClasses = computed(() => {
     gradeLevel: c.grade,
     shift: 1 as const,
     academicYear: c.academicYear,
-    headTeacherId: undefined as string | undefined,
-    headTeacherName: undefined as string | undefined,
+    headTeacherId: c.teacherId,
+    headTeacherName: c.teacherName,
     studentCount: c.studentCount,
     createdAt: new Date().toISOString(),
   }));

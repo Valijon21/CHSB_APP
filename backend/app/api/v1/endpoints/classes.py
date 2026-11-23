@@ -12,16 +12,30 @@ class ClassGroupCreate(BaseModel):
     gradeLevel: int = Field(..., ge=1, le=11)
     shift: int = Field(default=1, ge=1, le=2)
     academicYear: str = "2026-2027"
+    teacherId: str | None = None
+    teacherName: str | None = None
+
+class AssignTeacherPayload(BaseModel):
+    teacherId: str | None = None
+    teacherName: str | None = None
 
 @router.get("")
-async def get_classes(tenantSlug: str = Query("al-xorazmiy"), db: Prisma = Depends(get_prisma)):
+async def get_classes(
+    tenantSlug: str = Query("al-xorazmiy"),
+    teacherId: str | None = Query(None),
+    db: Prisma = Depends(get_prisma),
+):
     tenant = await db.tenant.find_unique(where={"slug": tenantSlug})
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
+    where_filter: dict = {"tenantId": tenant.id}
+    if teacherId:
+        where_filter["teacherId"] = teacherId
+
     classes = await db.classgroup.find_many(
-        where={"tenantId": tenant.id},
-        include={"students": True},
+        where=where_filter,
+        include={"students": True, "teacher": True},
         order={"name": "asc"},
     )
 
@@ -37,6 +51,8 @@ async def get_classes(tenantSlug: str = Query("al-xorazmiy"), db: Prisma = Depen
             "shift": c.shift,
             "academicYear": c.academicYear,
             "studentCount": len(c.students),
+            "teacherId": c.teacherId,
+            "teacherName": c.teacherName or (c.teacher.fullName if c.teacher else None),
             "createdAt": c.createdAt.isoformat(),
         }
         for c in classes
@@ -48,15 +64,32 @@ async def create_class(payload: ClassGroupCreate, db: Prisma = Depends(get_prism
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
+    school = await db.school.find_unique(where={"id": payload.schoolId})
+    school_id = payload.schoolId
+    if not school:
+        default_school = await db.school.find_first(where={"tenantId": tenant.id})
+        if default_school:
+            school_id = default_school.id
+        else:
+            raise HTTPException(status_code=400, detail="Tenantga tegishli maktab topilmadi.")
+
+    teacher_name = payload.teacherName
+    if payload.teacherId and not teacher_name:
+        teacher = await db.user.find_unique(where={"id": payload.teacherId})
+        if teacher:
+            teacher_name = teacher.fullName
+
     new_class = await db.classgroup.create(
         data={
-            "schoolId": payload.schoolId,
+            "schoolId": school_id,
             "tenantId": tenant.id,
             "name": payload.name,
             "gradeLevel": payload.gradeLevel,
             "shift": payload.shift,
             "academicYear": payload.academicYear,
             "studentCount": 0,
+            "teacherId": payload.teacherId,
+            "teacherName": teacher_name,
         }
     )
 
@@ -70,7 +103,40 @@ async def create_class(payload: ClassGroupCreate, db: Prisma = Depends(get_prism
         "shift": new_class.shift,
         "academicYear": new_class.academicYear,
         "studentCount": 0,
+        "teacherId": new_class.teacherId,
+        "teacherName": new_class.teacherName,
         "createdAt": new_class.createdAt.isoformat(),
+    }
+
+@router.patch("/{class_id}/teacher")
+async def assign_teacher(
+    class_id: str,
+    payload: AssignTeacherPayload,
+    db: Prisma = Depends(get_prisma),
+):
+    class_group = await db.classgroup.find_unique(where={"id": class_id})
+    if not class_group:
+        raise HTTPException(status_code=404, detail="Sinf guruhi topilmadi.")
+
+    teacher_name = payload.teacherName
+    if payload.teacherId and not teacher_name:
+        teacher = await db.user.find_unique(where={"id": payload.teacherId})
+        if teacher:
+            teacher_name = teacher.fullName
+
+    updated = await db.classgroup.update(
+        where={"id": class_id},
+        data={
+            "teacherId": payload.teacherId,
+            "teacherName": teacher_name,
+        },
+    )
+
+    return {
+        "id": updated.id,
+        "name": updated.name,
+        "teacherId": updated.teacherId,
+        "teacherName": updated.teacherName,
     }
 
 @router.get("/{class_id}")
@@ -147,6 +213,8 @@ async def get_class_detail(class_id: str, db: Prisma = Depends(get_prisma)):
             "grade": class_group.gradeLevel,
             "academicYear": class_group.academicYear,
             "studentCount": len(students_list),
+            "teacherId": class_group.teacherId,
+            "teacherName": class_group.teacherName,
         },
         "students": students_list,
         "results": results_list,

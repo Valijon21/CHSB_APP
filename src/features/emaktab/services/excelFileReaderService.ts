@@ -112,3 +112,4 @@ export function getFileExtension(filename: string): string {
   if (parts.length <= 1) return '';
   return (parts.pop() || '').toLowerCase().trim();
 }
+

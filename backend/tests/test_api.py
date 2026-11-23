@@ -130,3 +130,58 @@ def test_students_emaktab_fields(client: TestClient):
     with_group = [s for s in data if s.get("groupName")]
     assert len(with_group) >= 40
 
+def test_get_classes_with_teacher(client: TestClient):
+    response = client.get("/api/v1/classes?tenantSlug=al-xorazmiy")
+    assert response.status_code == 200
+    classes = response.json()
+    assert len(classes) >= 5
+    # Verify 11-A has teacher Dilmurod Yunusov
+    c_11a = next((c for c in classes if c["id"] == "class-ax-11a"), None)
+    assert c_11a is not None
+    assert c_11a["teacherId"] == "usr-teacher-01"
+    assert "Dilmurod" in c_11a["teacherName"]
+
+    # Test filtering by teacherId
+    resp_filtered = client.get("/api/v1/classes?tenantSlug=al-xorazmiy&teacherId=usr-teacher-01")
+    assert resp_filtered.status_code == 200
+    filtered_classes = resp_filtered.json()
+    assert len(filtered_classes) >= 3
+    for fc in filtered_classes:
+        assert fc["teacherId"] == "usr-teacher-01"
+
+def test_create_class_and_assign_teacher(client: TestClient):
+    # 1. Create a new class with teacher
+    payload = {
+        "schoolId": "sch-01",
+        "tenantSlug": "al-xorazmiy",
+        "name": "9-G sinf",
+        "gradeLevel": 9,
+        "shift": 1,
+        "academicYear": "2026-2027",
+        "teacherId": "usr-teacher-01",
+    }
+    create_resp = client.post("/api/v1/classes", json=payload)
+    assert create_resp.status_code == 200
+    new_class = create_resp.json()
+    assert new_class["name"] == "9-G sinf"
+    assert new_class["teacherId"] == "usr-teacher-01"
+    assert "Dilmurod" in new_class["teacherName"]
+    class_id = new_class["id"]
+
+    # 2. Reassign teacher via PATCH /classes/{class_id}/teacher
+    patch_resp = client.patch(
+        f"/api/v1/classes/{class_id}/teacher",
+        json={"teacherId": "usr-teacher-02", "teacherName": "Dilrabo Sharafxonova"},
+    )
+    assert patch_resp.status_code == 200
+    patched_data = patch_resp.json()
+    assert patched_data["teacherId"] == "usr-teacher-02"
+    assert patched_data["teacherName"] == "Dilrabo Sharafxonova"
+
+    # 3. Verify in detail
+    detail_resp = client.get(f"/api/v1/classes/{class_id}")
+    assert detail_resp.status_code == 200
+    detail_data = detail_resp.json()
+    assert detail_data["classGroup"]["teacherId"] == "usr-teacher-02"
+
+

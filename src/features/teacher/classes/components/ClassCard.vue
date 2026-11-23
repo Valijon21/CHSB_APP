@@ -49,9 +49,9 @@ const gradeDisplay = props.classItem.gradeLevel ?? (props.classItem as ClassGrou
           <span class="font-bold text-slate-900 dark:text-white font-mono">{{ classItem.studentCount }} nafar</span>
         </div>
 
-        <div v-if="classItem.headTeacherName" class="flex justify-between">
+        <div v-if="classItem.headTeacherName || (classItem as any).teacherName" class="flex justify-between">
           <span class="text-slate-500 dark:text-slate-400">Sinf rahbari:</span>
-          <span class="font-medium text-indigo-700 dark:text-indigo-400 truncate max-w-[160px]">{{ classItem.headTeacherName }}</span>
+          <span class="font-medium text-indigo-700 dark:text-indigo-400 truncate max-w-[160px]">{{ classItem.headTeacherName || (classItem as any).teacherName }}</span>
         </div>
 
         <div class="flex justify-between">

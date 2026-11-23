@@ -144,17 +144,17 @@ async function main() {
   // 10-A (15 real students in 1-guruh)
   // 10-V (27 real students yaxlit)
   const classGroupsData = [
-    { id: 'class-ax-11a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-A sinf', gradeLevel: 11, shift: 1, studentCount: 32 },
-    { id: 'class-ax-10a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-A sinf', gradeLevel: 10, shift: 1, studentCount: 15 },
-    { id: 'class-ax-10v', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-V sinf', gradeLevel: 10, shift: 1, studentCount: 27 },
-    { id: 'class-ax-11b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-B sinf', gradeLevel: 11, shift: 1, studentCount: 5 },
-    { id: 'class-ax-11v', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-V sinf', gradeLevel: 11, shift: 2, studentCount: 0 },
-    { id: 'class-ax-10b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-B sinf', gradeLevel: 10, shift: 1, studentCount: 0 },
-    { id: 'class-ax-9a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-A sinf', gradeLevel: 9, shift: 1, studentCount: 0 },
-    { id: 'class-ax-9b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-B sinf', gradeLevel: 9, shift: 2, studentCount: 0 },
-    { id: 'class-tm-11g1', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '11-Guruh-1 (Harbiy-AT)', gradeLevel: 11, shift: 1, studentCount: 4 },
-    { id: 'class-tm-11g2', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '11-Guruh-2 (Harbiy-AT)', gradeLevel: 11, shift: 1, studentCount: 1 },
-    { id: 'class-tm-10g1', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '10-Guruh-1 (Harbiy-AT)', gradeLevel: 10, shift: 1, studentCount: 0 },
+    { id: 'class-ax-11a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-A sinf', gradeLevel: 11, shift: 1, studentCount: 32, teacherId: 'usr-teacher-01', teacherName: 'Dilmurod Rahmataliyevich Yunusov' },
+    { id: 'class-ax-10a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-A sinf', gradeLevel: 10, shift: 1, studentCount: 15, teacherId: 'usr-teacher-01', teacherName: 'Dilmurod Rahmataliyevich Yunusov' },
+    { id: 'class-ax-10v', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-V sinf', gradeLevel: 10, shift: 1, studentCount: 27, teacherId: 'usr-teacher-01', teacherName: 'Dilmurod Rahmataliyevich Yunusov' },
+    { id: 'class-ax-11b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-B sinf', gradeLevel: 11, shift: 1, studentCount: 5, teacherId: 'usr-teacher-02', teacherName: 'Dilrabo Turdialiyevna Sharafxonova' },
+    { id: 'class-ax-11v', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-V sinf', gradeLevel: 11, shift: 2, studentCount: 0, teacherId: 'usr-teacher-02', teacherName: 'Dilrabo Turdialiyevna Sharafxonova' },
+    { id: 'class-ax-10b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-B sinf', gradeLevel: 10, shift: 1, studentCount: 0, teacherId: null, teacherName: null },
+    { id: 'class-ax-9a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-A sinf', gradeLevel: 9, shift: 1, studentCount: 0, teacherId: null, teacherName: null },
+    { id: 'class-ax-9b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-B sinf', gradeLevel: 9, shift: 2, studentCount: 0, teacherId: null, teacherName: null },
+    { id: 'class-tm-11g1', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '11-Guruh-1 (Harbiy-AT)', gradeLevel: 11, shift: 1, studentCount: 4, teacherId: null, teacherName: null },
+    { id: 'class-tm-11g2', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '11-Guruh-2 (Harbiy-AT)', gradeLevel: 11, shift: 1, studentCount: 1, teacherId: null, teacherName: null },
+    { id: 'class-tm-10g1', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '10-Guruh-1 (Harbiy-AT)', gradeLevel: 10, shift: 1, studentCount: 0, teacherId: null, teacherName: null },
   ];
 
   for (const cg of classGroupsData) {
@@ -167,6 +167,8 @@ async function main() {
         gradeLevel: cg.gradeLevel,
         shift: cg.shift,
         studentCount: cg.studentCount,
+        teacherId: cg.teacherId || null,
+        teacherName: cg.teacherName || null,
         academicYear: '2026-2027',
       },
     });

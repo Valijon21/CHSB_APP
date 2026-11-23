@@ -8,6 +8,8 @@ export const ClassGroupSchema = z.object({
   grade: z.number().int().min(1).max(11), // 11
   academicYear: z.string().default('2026-2027'),
   studentCount: z.number().int().nonnegative().default(0),
+  teacherId: z.string().optional(),
+  teacherName: z.string().optional(),
 });
 
 export type ClassGroup = z.infer<typeof ClassGroupSchema>;
