@@ -184,4 +184,43 @@ def test_create_class_and_assign_teacher(client: TestClient):
     detail_data = detail_resp.json()
     assert detail_data["classGroup"]["teacherId"] == "usr-teacher-02"
 
+def test_bulk_create_and_delete_students(client: TestClient):
+    payload = [
+        {
+            "tenantSlug": "al-xorazmiy",
+            "schoolId": "school-ax-1",
+            "classGroupId": "class-ax-10a",
+            "firstName": "Alisher",
+            "lastName": "Navoiy",
+            "middleName": "G'iyosiddin o'g'li",
+            "gender": "M",
+            "birthDate": "2009-02-09",
+            "emaktabId": "2555715665172689999",
+        },
+        {
+            "tenantSlug": "al-xorazmiy",
+            "schoolId": "school-ax-1",
+            "classGroupId": "class-ax-10a",
+            "firstName": "Nodira",
+            "lastName": "Komilova",
+            "middleName": "Farhod qizi",
+            "gender": "F",
+            "birthDate": "2009-05-18",
+        },
+    ]
+
+    bulk_resp = client.post("/api/v1/students/bulk", json=payload)
+    assert bulk_resp.status_code == 200
+    created_list = bulk_resp.json()
+    assert len(created_list) == 2
+    assert created_list[0]["lastName"] == "Navoiy"
+    assert created_list[0]["emaktabId"] == "2555715665172689999"
+    assert created_list[1]["gender"] == "F"
+
+    # Clean up created students
+    for st in created_list:
+        del_resp = client.delete(f"/api/v1/students/{st['id']}")
+        assert del_resp.status_code == 200
+
+
 

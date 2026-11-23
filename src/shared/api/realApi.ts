@@ -894,41 +894,109 @@ export class RealOrganizationRepository implements OrganizationRepository {
   }
 
   async createStudent(input: StudentInput): Promise<StudentRecord> {
-    return {
-      id: input.rosterCode || `stu-${Date.now()}`,
-      tenantSlug: input.tenantSlug,
-      schoolId: input.schoolId,
-      classGroupId: input.classGroupId,
-      className: input.className,
-      rosterCode: input.rosterCode || `STU-${Date.now()}`,
-      fullName: `${input.lastName} ${input.firstName}`,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      middleName: input.middleName,
-      gender: input.gender,
-      birthDate: input.birthDate,
-      status: input.status,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const payload = {
+        tenantSlug: input.tenantSlug,
+        schoolId: input.schoolId,
+        classGroupId: input.classGroupId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        middleName: input.middleName || null,
+        gender: input.gender,
+        birthDate: input.birthDate,
+        rosterCode: input.rosterCode || null,
+        status: input.status,
+        emaktabId: input.emaktabId || null,
+      };
+      const res = await httpClient.post<BackendStudentItem>('/students', payload);
+      return {
+        id: res.id,
+        tenantSlug: input.tenantSlug,
+        schoolId: res.schoolId,
+        classGroupId: res.classGroupId,
+        className: res.className || input.className,
+        rosterCode: res.rosterCode,
+        fullName: `${res.lastName} ${res.firstName}`,
+        firstName: res.firstName,
+        lastName: res.lastName,
+        middleName: res.middleName,
+        gender: (res.gender === 'F' ? 'F' : 'M') as 'M' | 'F',
+        birthDate: res.birthDate ? (res.birthDate.split('T')[0] ?? '2009-01-01') : '2009-01-01',
+        status: (res.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
+        emaktabId: res.emaktabId,
+        createdAt: new Date().toISOString(),
+      };
+    } catch {
+      return {
+        id: input.rosterCode || `stu-${Date.now()}`,
+        tenantSlug: input.tenantSlug,
+        schoolId: input.schoolId,
+        classGroupId: input.classGroupId,
+        className: input.className,
+        rosterCode: input.rosterCode || `STU-${Date.now()}`,
+        fullName: `${input.lastName} ${input.firstName}`,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        middleName: input.middleName,
+        gender: input.gender,
+        birthDate: input.birthDate,
+        status: input.status,
+        createdAt: new Date().toISOString(),
+      };
+    }
   }
 
   async bulkCreateStudents(inputs: StudentInput[]): Promise<StudentRecord[]> {
-    return inputs.map((input) => ({
-      id: input.rosterCode || `stu-${Date.now()}`,
-      tenantSlug: input.tenantSlug,
-      schoolId: input.schoolId,
-      classGroupId: input.classGroupId,
-      className: input.className,
-      rosterCode: input.rosterCode || `STU-${Date.now()}`,
-      fullName: `${input.lastName} ${input.firstName}`,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      middleName: input.middleName,
-      gender: input.gender,
-      birthDate: input.birthDate,
-      status: input.status,
-      createdAt: new Date().toISOString(),
-    }));
+    try {
+      const payload = inputs.map((input) => ({
+        tenantSlug: input.tenantSlug,
+        schoolId: input.schoolId,
+        classGroupId: input.classGroupId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        middleName: input.middleName || null,
+        gender: input.gender,
+        birthDate: input.birthDate,
+        rosterCode: input.rosterCode || null,
+        status: input.status,
+        emaktabId: input.emaktabId || null,
+      }));
+      const resList = await httpClient.post<BackendStudentItem[]>('/students/bulk', payload);
+      return resList.map((res, i) => ({
+        id: res.id,
+        tenantSlug: inputs[i]?.tenantSlug || 'al-xorazmiy',
+        schoolId: res.schoolId,
+        classGroupId: res.classGroupId,
+        className: res.className || inputs[i]?.className || '',
+        rosterCode: res.rosterCode,
+        fullName: `${res.lastName} ${res.firstName}`,
+        firstName: res.firstName,
+        lastName: res.lastName,
+        middleName: res.middleName,
+        gender: (res.gender === 'F' ? 'F' : 'M') as 'M' | 'F',
+        birthDate: res.birthDate ? (res.birthDate.split('T')[0] ?? '2009-01-01') : '2009-01-01',
+        status: (res.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
+        emaktabId: res.emaktabId,
+        createdAt: new Date().toISOString(),
+      }));
+    } catch {
+      return inputs.map((input) => ({
+        id: input.rosterCode || `stu-${Date.now()}`,
+        tenantSlug: input.tenantSlug,
+        schoolId: input.schoolId,
+        classGroupId: input.classGroupId,
+        className: input.className,
+        rosterCode: input.rosterCode || `STU-${Date.now()}`,
+        fullName: `${input.lastName} ${input.firstName}`,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        middleName: input.middleName,
+        gender: input.gender,
+        birthDate: input.birthDate,
+        status: input.status,
+        createdAt: new Date().toISOString(),
+      }));
+    }
   }
 
   async getStudentsBySchool(tenantSlug: string, classGroupId?: string): Promise<StudentRecord[]> {

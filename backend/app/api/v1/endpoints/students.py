@@ -70,28 +70,70 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
+    school = await db.school.find_unique(where={"id": payload.schoolId})
+    school_id = payload.schoolId
+    if not school:
+        default_school = await db.school.find_first(where={"tenantId": tenant.id})
+        if default_school:
+            school_id = default_school.id
+        else:
+            raise HTTPException(status_code=400, detail="Tenantga tegishli maktab topilmadi.")
+
+    class_group = await db.classgroup.find_unique(where={"id": payload.classGroupId})
+    class_group_id = payload.classGroupId
+    if not class_group:
+        default_class = await db.classgroup.find_first(where={"tenantId": tenant.id})
+        if default_class:
+            class_group_id = default_class.id
+        else:
+            raise HTTPException(status_code=400, detail="Tenantga tegishli sinf topilmadi.")
+
     roster_code = payload.rosterCode
     if not roster_code:
         count = await db.student.count(where={"tenantId": tenant.id})
         roster_code = f"STU-{1100 + count + 1}"
 
+    existing = await db.student.find_unique(where={"rosterCode": roster_code})
+    if existing:
+        import uuid
+        roster_code = f"STU-{uuid.uuid4().hex[:6].upper()}"
+
+    birth_dt = datetime.strptime("2009-01-01", "%Y-%m-%d")
+    if payload.birthDate:
+        try:
+            birth_dt = datetime.strptime(payload.birthDate, "%Y-%m-%d")
+        except ValueError:
+            pass
+
     created = await db.student.create(
         data={
             "tenantId": tenant.id,
-            "schoolId": payload.schoolId,
-            "classGroupId": payload.classGroupId,
+            "schoolId": school_id,
+            "classGroupId": class_group_id,
             "rosterCode": roster_code,
             "firstName": payload.firstName,
             "lastName": payload.lastName,
             "middleName": payload.middleName,
             "gender": payload.gender,
-            "birthDate": datetime.strptime(payload.birthDate, "%Y-%m-%d"),
+            "birthDate": birth_dt,
             "status": "ELIGIBLE" if payload.status == "eligible" else "INACTIVE",
             "emaktabId": payload.emaktabId,
             "groupName": payload.groupName,
         },
         include={"classGroup": True},
     )
+
+    try:
+        await db.classgroup.update(
+            where={"id": class_group_id},
+            data={"studentCount": {"increment": 1}},
+        )
+        await db.school.update(
+            where={"id": school_id},
+            data={"studentCount": {"increment": 1}},
+        )
+    except Exception:
+        pass
 
     return {
         "id": created.id,
@@ -105,6 +147,8 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
         "lastName": created.lastName,
         "middleName": created.middleName,
         "fullName": f"{created.lastName} {created.firstName} {created.middleName or ''}".strip(),
+        "gender": created.gender,
+        "birthDate": created.birthDate.strftime("%Y-%m-%d"),
         "status": created.status.lower(),
         "emaktabId": created.emaktabId,
         "groupName": created.groupName,
