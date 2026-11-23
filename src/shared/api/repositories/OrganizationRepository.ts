@@ -31,5 +31,7 @@ export interface OrganizationRepository {
   // Sinflar (Class Groups)
   createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord>;
   getClassGroupsBySchool(tenantSlug: string): Promise<ClassGroupRecord[]>;
+  deleteClassGroup(id: string): Promise<boolean>;
+  purgeClassStudents(classId: string): Promise<{ success: boolean; purgedCount: number }>;
 }
 

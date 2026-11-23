@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { isBinaryText } from '../../organization/services/smartTableTextParser';
 
 /**
  * Universal Excel / CSV / TXT fayllarni o'qish xizmati.
@@ -10,7 +11,11 @@ export async function readSpreadsheetFile(file: File): Promise<string> {
 
   // 1. Agar oddiy CSV yoki TXT fayl bo'lsa
   if (extension === 'csv' || extension === 'txt') {
-    return await readTextFile(file);
+    const text = await readTextFile(file);
+    if (isBinaryText(text)) {
+      throw new Error("Yuklangan fayl binar (ikkilik) formatda. CSV yoki TXT matnli fayl tanlang.");
+    }
+    return text;
   }
 
   // 2. Agar Excel fayl bo'lsa (.xls yoki .xlsx)
@@ -24,7 +29,11 @@ export async function readSpreadsheetFile(file: File): Promise<string> {
     const arrayBuffer = await readFileAsArrayBuffer(file);
     return parseSpreadsheetBuffer(arrayBuffer);
   } catch {
-    return await readTextFile(file);
+    const text = await readTextFile(file);
+    if (isBinaryText(text)) {
+      throw new Error("Faylni Excel sifatida o'qib bo'lmadi va u binar formatda. Iltimos, haqiqiy .xlsx yoki .xls fayl tanlang.");
+    }
+    return text;
   }
 }
 

@@ -302,6 +302,51 @@ export const useOrganizationStore = defineStore('organization', () => {
     }
   }
 
+  async function deleteClassGroup(id: string): Promise<boolean> {
+    isLoading.value = true;
+    try {
+      const ok = await api.organization.deleteClassGroup(id);
+      if (ok) {
+        classGroups.value = classGroups.value.filter((c) => c.id !== id);
+        students.value = students.value.filter((s) => s.classGroupId !== id);
+
+        try {
+          const teacherStore = useTeacherStore();
+          teacherStore.removeClass(id);
+        } catch {
+          // TeacherStore sync non-blocking
+        }
+      }
+      return ok;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function purgeClassStudents(classId: string): Promise<{ success: boolean; purgedCount: number }> {
+    isLoading.value = true;
+    try {
+      const res = await api.organization.purgeClassStudents(classId);
+      if (res.success) {
+        students.value = students.value.filter((s) => s.classGroupId !== classId);
+        const targetCls = classGroups.value.find((c) => c.id === classId);
+        if (targetCls) {
+          targetCls.studentCount = 0;
+        }
+
+        try {
+          const teacherStore = useTeacherStore();
+          teacherStore.purgeClassRoster(classId);
+        } catch {
+          // TeacherStore sync non-blocking
+        }
+      }
+      return res;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   function setDistrictFilter(districtId: string): void {
     selectedDistrictId.value = districtId;
   }
@@ -338,6 +383,8 @@ export const useOrganizationStore = defineStore('organization', () => {
     bulkImportStudents,
     deleteStudent,
     createClassGroup,
+    deleteClassGroup,
+    purgeClassStudents,
     setDistrictFilter,
     setSearchQuery,
   };

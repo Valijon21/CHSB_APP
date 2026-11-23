@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from backend.app.db.prisma import get_prisma, find_tenant_resilient
+from backend.app.core.logging import logger
 from prisma import Prisma
 
 router = APIRouter(prefix="/classes", tags=["Classes"])
@@ -221,4 +222,76 @@ async def get_class_detail(class_id: str, db: Prisma = Depends(get_prisma)):
         "averageScore": average_score,
         "participationRate": participation_rate,
     }
+
+
+@router.delete("/{class_id}")
+async def delete_class(class_id: str, db: Prisma = Depends(get_prisma)):
+    """Admin huquqi bilan sinfni va unga tegishli barcha o'quvchilarni kaskadli o'chirish."""
+    class_group = await db.classgroup.find_unique(
+        where={"id": class_id},
+        include={"students": True},
+    )
+    if not class_group:
+        raise HTTPException(status_code=404, detail="Sinf guruhi topilmadi.")
+
+    student_count = len(class_group.students)
+    class_name = class_group.name
+    school_id = class_group.schoolId
+
+    await db.classgroup.delete(where={"id": class_id})
+
+    if student_count > 0:
+        await db.school.update(
+            where={"id": school_id},
+            data={"studentCount": {"decrement": student_count}},
+        )
+
+    logger.info(
+        f"Admin audit: Sinf o'chirildi: ID={class_id}, Name={class_name}, O'chirilgan o'quvchilar={student_count}"
+    )
+
+    return {
+        "success": True,
+        "message": f"'{class_name}' sinfi va unga tegishli barcha ma'lumotlar muvaffaqiyatli o'chirildi.",
+        "deletedStudents": student_count,
+        "classId": class_id,
+    }
+
+
+@router.post("/{class_id}/purge")
+async def purge_class_students(class_id: str, db: Prisma = Depends(get_prisma)):
+    """Admin huquqi bilan sinfni saqlagan holda uning barcha o'quvchilarini tozalash (reset qilish)."""
+    class_group = await db.classgroup.find_unique(
+        where={"id": class_id},
+        include={"students": True},
+    )
+    if not class_group:
+        raise HTTPException(status_code=404, detail="Sinf guruhi topilmadi.")
+
+    student_count = len(class_group.students)
+    class_name = class_group.name
+    school_id = class_group.schoolId
+
+    if student_count > 0:
+        await db.student.delete_many(where={"classGroupId": class_id})
+        await db.classgroup.update(
+            where={"id": class_id},
+            data={"studentCount": 0},
+        )
+        await db.school.update(
+            where={"id": school_id},
+            data={"studentCount": {"decrement": student_count}},
+        )
+
+    logger.info(
+        f"Admin audit: Sinf o'quvchilari tozalandi: ID={class_id}, Name={class_name}, Tozalangan={student_count}"
+    )
+
+    return {
+        "success": True,
+        "message": f"'{class_name}' sinfidagi barcha {student_count} nafar o'quvchi tozalandi.",
+        "purgedCount": student_count,
+        "classId": class_id,
+    }
+
 

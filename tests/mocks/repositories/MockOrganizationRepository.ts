@@ -516,5 +516,24 @@ export class MockOrganizationRepository implements OrganizationRepository {
   async getClassGroupsBySchool(tenantSlug: string): Promise<ClassGroupRecord[]> {
     return this.classGroups.filter((c) => c.tenantSlug === tenantSlug);
   }
+
+  async deleteClassGroup(id: string): Promise<boolean> {
+    const idx = this.classGroups.findIndex((c) => c.id === id);
+    if (idx === -1) return false;
+    this.classGroups.splice(idx, 1);
+    this.students = this.students.filter((s) => s.classGroupId !== id);
+    return true;
+  }
+
+  async purgeClassStudents(classId: string): Promise<{ success: boolean; purgedCount: number }> {
+    const initialCount = this.students.length;
+    this.students = this.students.filter((s) => s.classGroupId !== classId);
+    const purgedCount = initialCount - this.students.length;
+    const cls = this.classGroups.find((c) => c.id === classId);
+    if (cls) {
+      cls.studentCount = 0;
+    }
+    return { success: true, purgedCount };
+  }
 }
 

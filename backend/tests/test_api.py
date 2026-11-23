@@ -232,4 +232,110 @@ def test_resilient_tenant_lookup_classes_and_students(client: TestClient):
     assert len(resp_slug.json()) == len(resp_id.json())
 
 
+def test_purge_class_students_endpoint(client: TestClient):
+    # 1. Create a temporary class
+    create_cls = client.post(
+        "/api/v1/classes",
+        json={
+            "schoolId": "school-ax-1",
+            "tenantSlug": "al-xorazmiy",
+            "name": "99-Z Test Purge Sinf",
+            "gradeLevel": 9,
+            "shift": 1,
+            "academicYear": "2026-2027",
+        },
+    )
+    assert create_cls.status_code == 200
+    cls_data = create_cls.json()
+    cls_id = cls_data["id"]
+
+    # 2. Add students to this class
+    bulk_resp = client.post(
+        "/api/v1/students/bulk",
+        json=[
+            {
+                "tenantSlug": "al-xorazmiy",
+                "schoolId": "school-ax-1",
+                "classGroupId": cls_id,
+                "firstName": "Sardor",
+                "lastName": "PurgeTest",
+                "gender": "M",
+                "birthDate": "2009-01-01",
+            },
+            {
+                "tenantSlug": "al-xorazmiy",
+                "schoolId": "school-ax-1",
+                "classGroupId": cls_id,
+                "firstName": "Nilufar",
+                "lastName": "PurgeTest",
+                "gender": "F",
+                "birthDate": "2009-02-02",
+            },
+        ],
+    )
+    assert bulk_resp.status_code == 200
+    assert len(bulk_resp.json()) == 2
+
+    # 3. Purge students from the class
+    purge_resp = client.post(f"/api/v1/classes/{cls_id}/purge")
+    assert purge_resp.status_code == 200
+    purge_data = purge_resp.json()
+    assert purge_data["success"] is True
+    assert purge_data["purgedCount"] == 2
+
+    # Verify class still exists, but has 0 students
+    detail_resp = client.get(f"/api/v1/classes/{cls_id}")
+    assert detail_resp.status_code == 200
+    assert len(detail_resp.json()["students"]) == 0
+
+    # Clean up the test class
+    del_cls = client.delete(f"/api/v1/classes/{cls_id}")
+    assert del_cls.status_code == 200
+
+
+def test_delete_class_endpoint(client: TestClient):
+    # 1. Create a temporary class with a student
+    create_cls = client.post(
+        "/api/v1/classes",
+        json={
+            "schoolId": "school-ax-1",
+            "tenantSlug": "al-xorazmiy",
+            "name": "99-Y Test Delete Sinf",
+            "gradeLevel": 9,
+            "shift": 1,
+            "academicYear": "2026-2027",
+        },
+    )
+    assert create_cls.status_code == 200
+    cls_id = create_cls.json()["id"]
+
+    bulk_resp = client.post(
+        "/api/v1/students/bulk",
+        json=[
+            {
+                "tenantSlug": "al-xorazmiy",
+                "schoolId": "school-ax-1",
+                "classGroupId": cls_id,
+                "firstName": "Javohir",
+                "lastName": "DeleteTest",
+                "gender": "M",
+                "birthDate": "2009-03-03",
+            }
+        ],
+    )
+    assert bulk_resp.status_code == 200
+
+    # 2. Delete the class
+    del_resp = client.delete(f"/api/v1/classes/{cls_id}")
+    assert del_resp.status_code == 200
+    del_data = del_resp.json()
+    assert del_data["success"] is True
+    assert del_data["deletedStudents"] == 1
+
+    # 3. Verify class is 404
+    detail_resp = client.get(f"/api/v1/classes/{cls_id}")
+    assert detail_resp.status_code == 404
+
+
+
 

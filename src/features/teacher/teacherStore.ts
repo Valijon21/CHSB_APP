@@ -192,6 +192,19 @@ export const useTeacherStore = defineStore('teacher', () => {
     }
   }
 
+  function removeClass(id: string): void {
+    classes.value = classes.value.filter((c) => c.id !== id);
+    roster.value = roster.value.filter((r) => r.classGroupId !== id);
+  }
+
+  function purgeClassRoster(classId: string): void {
+    roster.value = roster.value.filter((r) => r.classGroupId !== classId);
+    const cls = classes.value.find((c) => c.id === classId);
+    if (cls) {
+      cls.studentCount = 0;
+    }
+  }
+
   function addRosterRecord(record: StudentRosterRecord): void {
     const existingIdx = roster.value.findIndex((r) => r.id === record.id || r.rosterCode === record.rosterCode);
     if (existingIdx !== -1) {
@@ -215,6 +228,8 @@ export const useTeacherStore = defineStore('teacher', () => {
     currentTenantId,
     classes,
     addClass,
+    removeClass,
+    purgeClassRoster,
     roster,
     addRosterRecord,
     addRosterRecords,

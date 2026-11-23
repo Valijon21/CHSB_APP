@@ -122,6 +122,10 @@ async function handleFileUpload(file: File) {
       throw new Error("Fayl bo'sh yoki o'qib bo'lmadi.");
     }
 
+    if (isBinaryText(csvContent)) {
+      throw new Error("Fayl ikkilik (binary) formatda. Iltimos, haqiqiy Excel (.xlsx, .xls) yoki CSV fayl yuklang.");
+    }
+
     const cls = selectedClass.value;
     const currentClassName = cls?.name || 'Sinf';
 

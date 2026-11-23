@@ -52,11 +52,11 @@ const VALID_NAME_TOKEN_REGEX = /[A-Za-zА-Яа-яЁёЎўҚқҒғҲҳ]{2,}/;
  */
 export function isBinaryText(text: string): boolean {
   if (!text) return false;
-  if (text.includes('\uFFFD') || text.includes('ࡱ')) {
+  if (text.includes('\uFFFD') || text.includes('ࡱ') || text.includes('\u0000')) {
     return true;
   }
-  // Check for control characters (except tab 9, LF 10, CR 13)
-  const limit = Math.min(text.length, 2048);
+  // Check for control characters (except tab 9, LF 10, CR 13) across text
+  const limit = Math.min(text.length, 100000);
   for (let i = 0; i < limit; i++) {
     const code = text.charCodeAt(i);
     if ((code >= 0 && code <= 8) || code === 11 || code === 12 || (code >= 14 && code <= 31)) {
@@ -166,16 +166,27 @@ export function parseSmartTableText(
     }
 
     const tokens = fullName.split(/\s+/).filter(Boolean);
-    if (tokens.length === 0) continue;
+    // Haqiqiy o'quvchi kamida Familiya va Ismdan (2 ta qism) iborat bo'lishi shart!
+    if (tokens.length < 2) continue;
 
-    const lastName = tokens[0] || 'Familiyasiz';
+    const lastName = tokens[0] || '';
+    const firstName = tokens[1] || '';
 
-    // Familiya kamida 2 ta haqiqiy harfdan iborat bo'lishi shart!
-    if (!VALID_NAME_TOKEN_REGEX.test(lastName)) {
+    // Familiya va Ism har biri kamida 2 ta haqiqiy harfdan iborat bo'lishi shart!
+    if (!VALID_NAME_TOKEN_REGEX.test(lastName) || !VALID_NAME_TOKEN_REGEX.test(firstName)) {
       continue;
     }
 
-    const firstName = tokens[1] || 'Ismsiz';
+    // Ismsiz yoki Familiyasiz kabi sun'iy qiymatlarni rad etish
+    if (
+      firstName.toLowerCase() === 'ismsiz' ||
+      lastName.toLowerCase() === 'familiyasiz' ||
+      firstName.toLowerCase() === 'son' ||
+      lastName.toLowerCase() === 'son'
+    ) {
+      continue;
+    }
+
     const middleName = tokens.slice(2).join(' ') || undefined;
 
     // Agar jinsi ko'rsatilmagan bo'lsa, familiya yoki sharifdan aniqlash

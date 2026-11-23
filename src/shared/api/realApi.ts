@@ -1031,11 +1031,7 @@ export class RealOrganizationRepository implements OrganizationRepository {
   }
 
   async deleteStudent(id: string): Promise<boolean> {
-    interface DeleteResponse {
-      success: boolean;
-      message?: string;
-    }
-    const res = await httpClient.delete<DeleteResponse>(`/students/${id}`);
+    const res = await httpClient.delete<{ success: boolean; message?: string }>(`/students/${id}`);
     return res.success;
   }
 
@@ -1100,6 +1096,26 @@ export class RealOrganizationRepository implements OrganizationRepository {
       }));
     } catch {
       return [];
+    }
+  }
+
+  async deleteClassGroup(id: string): Promise<boolean> {
+    try {
+      const res = await httpClient.delete<{ success: boolean; message?: string }>(`/classes/${id}`);
+      return res.success;
+    } catch {
+      return false;
+    }
+  }
+
+  async purgeClassStudents(classId: string): Promise<{ success: boolean; purgedCount: number }> {
+    try {
+      const res = await httpClient.post<{ success: boolean; message: string; purgedCount: number }>(
+        `/classes/${classId}/purge`
+      );
+      return { success: res.success, purgedCount: res.purgedCount };
+    } catch {
+      return { success: false, purgedCount: 0 };
     }
   }
 }
