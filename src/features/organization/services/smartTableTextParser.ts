@@ -21,7 +21,50 @@ const HEADER_KEYWORDS = [
   'emaktab',
   'id raqami',
   'status',
+  'son',
+  'sinf',
+  'fan',
+  'ballar',
+  'baho',
+  'chorak',
+  'noyabr',
+  'dekabr',
+  'yanvar',
+  'fevral',
+  'mart',
+  'aprel',
+  'may',
+  'iyun',
+  'next_part',
+  'gurux',
+  'guruh',
+  'o‘quvchining',
+  'o\'quvchining',
+  'yarim yillik',
 ];
+
+// Haqiqiy inson ism-familiyasi kamida 2 ta harfdan iborat bo'lishi shart
+const VALID_NAME_TOKEN_REGEX = /[A-Za-zА-Яа-яЁёЎўҚқҒғҲҳ]{2,}/;
+
+/**
+ * Matn ikkilik (binary) Excel fayli baytlari yoki almashtirish belgilaridan
+ * iborat ekanligini tekshiradi.
+ */
+export function isBinaryText(text: string): boolean {
+  if (!text) return false;
+  if (text.includes('\uFFFD') || text.includes('ࡱ')) {
+    return true;
+  }
+  // Check for control characters (except tab 9, LF 10, CR 13)
+  const limit = Math.min(text.length, 2048);
+  for (let i = 0; i < limit; i++) {
+    const code = text.charCodeAt(i);
+    if ((code >= 0 && code <= 8) || code === 11 || code === 12 || (code >= 14 && code <= 31)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Matn yoki Excel/Jadvaldan nusxalangan satrlarni aqlli tahlil qiladi.
@@ -37,7 +80,7 @@ export function parseSmartTableText(
   }
 
   // Binar fayl (masalan .xls OLE baytlari) xato tashlanganda tekshirish
-  if (rawText.includes('\u0000') || /[\uD800-\uDFFF]/.test(rawText) || rawText.includes('ࡱ')) {
+  if (isBinaryText(rawText)) {
     return [];
   }
 
@@ -97,10 +140,15 @@ export function parseSmartTableText(
         continue;
       }
 
-      // 6. Qolgan matn ism qismlari hisoblanadi
-      // Tozalash: oldidagi raqamlarni olib tashlash (masalan "1. Aliyev" -> "Aliyev")
+      // 6. Sarlavha so'zlari bo'lsa (masalan "Son", "Oy", "Noyabr", "Ballar"), tashlab ketish
+      if (isHeaderWord(cell)) {
+        continue;
+      }
+
+      // 7. Qolgan matn ism qismlari hisoblanadi
       const cleaned = cleanLeadingIndex(cell);
-      if (cleaned.length >= 2 && !/^\d+$/.test(cleaned)) {
+      // Kamida 2 ta haqiqiy harf bo'lishi shart!
+      if (cleaned.length >= 2 && VALID_NAME_TOKEN_REGEX.test(cleaned)) {
         nameCandidates.push(cleaned);
       }
     }
@@ -121,6 +169,12 @@ export function parseSmartTableText(
     if (tokens.length === 0) continue;
 
     const lastName = tokens[0] || 'Familiyasiz';
+
+    // Familiya kamida 2 ta haqiqiy harfdan iborat bo'lishi shart!
+    if (!VALID_NAME_TOKEN_REGEX.test(lastName)) {
+      continue;
+    }
+
     const firstName = tokens[1] || 'Ismsiz';
     const middleName = tokens.slice(2).join(' ') || undefined;
 
@@ -144,6 +198,11 @@ export function parseSmartTableText(
   }
 
   return result;
+}
+
+function isHeaderWord(word: string): boolean {
+  const lower = word.toLowerCase().trim();
+  return HEADER_KEYWORDS.some((kw) => lower === kw || lower.startsWith(kw));
 }
 
 function isHeaderLine(line: string): boolean {

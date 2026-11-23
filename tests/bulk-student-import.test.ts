@@ -95,5 +95,45 @@ X/X №\tFamiliya va Ism\tJinsi\tTug'ilgan sana\tO'chirish
 
     expect(wrapper.text()).toContain('ikkilik (binary) Excel faylini matn sifatida nusxalagansiz');
   });
+
+  it('correctly handles file upload for eMaktab journal file and extracts real students', async () => {
+    const csvData = [
+      'Sinf: 10-A (1-gurux) 2026/2027 o‘quv yili,,,,,,,,,,,,,,,,,,,,',
+      'Fan: Informatika va axbarotlar texnologiyasi,,,,,,,,,,,,,,,,,,,,',
+      '1691610383141616760,,,,,,,,,,,,,,,,,,,,',
+      'o‘qituvchining FIO: Dilmurod Rahmataliyevich Yunusov,,,,,,,,,,,,,,,,,,,,',
+      ',,,,,,,,,,,,,,,,,,,,',
+      'X/X №,Oy,,Noyabr,,,,,,Dekabr,,,,,,,FB,Ballar,Tavsiya. Baho,2 Chorak ,1 yarim yillik',
+      ',Son,,10,11,17,18,24,25,1,2,9,15,16,22,23,,,,,',
+      ',O‘quvchining ism va familiyasi,,,,,,,,,,,,,,,,,,,',
+      ',,,2555715665172681667,2555715665172681666',
+      '1,Abdullayeva Dilafro‘z,1000003546584,7,,8,,,,,,,,,,,0,0,0,,',
+      '2,Akbaraliyeva Shahlo,1000011564262,,7,,8,,,,,,,,,,0,0,0,,',
+    ].join('\n');
+
+    const file = new File([csvData], '10-A-Informatika-20_11_2026.csv', { type: 'text/csv' });
+
+    const wrapper = mount(BulkStudentImportModal, {
+      props: {
+        isOpen: true,
+        schoolId: 'school-ax-1',
+        tenantSlug: 'al-xorazmiy',
+        availableClasses: mockClasses,
+      },
+    });
+
+    const fileInput = wrapper.find('input[type="file"]');
+    Object.defineProperty(fileInput.element, 'files', {
+      value: [file],
+    });
+    await fileInput.trigger('change');
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('2 nafar o\'quvchi aniqlandi');
+    expect(wrapper.text()).toContain('Abdullayeva');
+    expect(wrapper.text()).toContain('Akbaraliyeva');
+  });
 });
 

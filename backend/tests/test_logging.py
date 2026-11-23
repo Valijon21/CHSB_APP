@@ -33,3 +33,4 @@ def test_system_logs_endpoint(client: TestClient):
     dl_resp = client.get("/api/v1/system/logs/download?log_type=app")
     assert dl_resp.status_code == 200
     assert dl_resp.headers["content-type"].startswith("text/plain")
+

@@ -3,7 +3,7 @@ import { ref, toRef, computed } from 'vue';
 import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import type { StudentInput } from '../../../entities/organization/model';
 import type { ClassGroupRecord } from '../../../entities/organization/model';
-import { parseSmartTableText } from '../services/smartTableTextParser';
+import { parseSmartTableText, isBinaryText } from '../services/smartTableTextParser';
 import { readSpreadsheetFile } from '../../emaktab/services/excelFileReaderService';
 import { parseEmaktabJournal } from '../../emaktab/services/emaktabJournalParser';
 
@@ -49,7 +49,7 @@ function parseInput() {
   if (!rawText.value.trim() || !selectedClassId.value) return;
 
   // Binar fayl tekshiruvi
-  if (rawText.value.includes('ࡱ') || rawText.value.includes('\u0000')) {
+  if (isBinaryText(rawText.value)) {
     fileError.value =
       "Diqqat: Siz ikkilik (binary) Excel faylini matn sifatida nusxalagansiz. Iltimos, faylni '📁 Excel / CSV Fayl Yuklash' bo'limi orqali to'g'ridan-to'g'ri yuklang.";
     return;
@@ -173,6 +173,28 @@ function onFileDrop(event: DragEvent) {
   }
 }
 
+function onDropAnywhere(event: DragEvent) {
+  isDragging.value = false;
+  if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+    const file = event.dataTransfer.files[0];
+    if (file) {
+      activeTab.value = 'file';
+      handleFileUpload(file);
+    }
+  }
+}
+
+function onTextareaPaste(event: ClipboardEvent) {
+  if (event.clipboardData?.files && event.clipboardData.files.length > 0) {
+    event.preventDefault();
+    const file = event.clipboardData.files[0];
+    if (file) {
+      activeTab.value = 'file';
+      handleFileUpload(file);
+    }
+  }
+}
+
 function removeStudent(index: number) {
   parsedStudents.value.splice(index, 1);
   if (parsedStudents.value.length === 0) {
@@ -229,9 +251,13 @@ function downloadSample() {
     role="dialog"
     aria-modal="true"
     aria-labelledby="bulk-student-import-modal-title"
+    @dragover.prevent="isDragging = true"
+    @drop.prevent.stop="onDropAnywhere"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
   >
     <div
+      @dragover.prevent="isDragging = true"
+      @drop.prevent.stop="onDropAnywhere"
       class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 max-w-2xl w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto"
     >
       <!-- Modal Header -->
@@ -366,6 +392,8 @@ function downloadSample() {
           <textarea
             v-model="rawText"
             rows="6"
+            @drop.prevent.stop="onDropAnywhere"
+            @paste="onTextareaPaste"
             placeholder="O'quvchilar ro'yxatini bu yerga joylashtiring (har bir qatorda bitta o'quvchi).&#10;Masalan:&#10;1. Olimov Jasurbek, M, 2008-04-12&#10;2. Aliyeva Madina, F, 2008-09-20&#10;yoki eMaktab jadvalidan nusxalangan matn"
             class="w-full text-xs font-mono p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
           ></textarea>

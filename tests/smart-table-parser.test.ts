@@ -80,5 +80,36 @@ T/r\tFamiliya, Ism\teMaktab ID\tJinsi
     const result = parseSmartTableText(binaryJunk, context);
     expect(result).toHaveLength(0);
   });
+
+  it('rejects garbage symbol lines without real alphabetic names', () => {
+    const garbageInput = `
+№\tFamiliya va Ism\tJinsi\tTug'ilgan sana\tO'chirish
+1\tࡱ\tO'g'il\t2009-01-01\t✕
+2\t}\tO'g'il\t2009-01-01\t✕
+3\t^j\tO'g'il\t2009-01-01\t✕
+4\t15\tO'g'il\t2009-01-01\t✕
+    `;
+    const result = parseSmartTableText(garbageInput, context);
+    expect(result).toHaveLength(0);
+  });
+
+  it('correctly filters out eMaktab header words like Son, Oy, Ballar and extracts real students', () => {
+    const emaktabPastedTable = `
+X/X №\tOy\tNoyabr\tDekabr\tFB\tBallar
+Son\t10\t11\t17\t18\t24
+O‘quvchining ism va familiyasi
+2555715665172681667\t2555715665172681666
+1\tAbdullayeva Dilafro‘z\t1000003546584\t7\t8
+2\tAkbaraliyeva Shahlo\t1000011564262\t7\t8
+    `;
+    const result = parseSmartTableText(emaktabPastedTable, context);
+    expect(result).toHaveLength(2);
+    expect(result[0]?.lastName).toBe('Abdullayeva');
+    expect(result[0]?.firstName).toBe("Dilafro'z");
+    expect(result[0]?.gender).toBe('F');
+    expect(result[1]?.lastName).toBe('Akbaraliyeva');
+    expect(result[1]?.firstName).toBe('Shahlo');
+    expect(result[1]?.gender).toBe('F');
+  });
 });
 

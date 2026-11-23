@@ -53,3 +53,4 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             )
         finally:
             trace_id_ctx.reset(token)
+

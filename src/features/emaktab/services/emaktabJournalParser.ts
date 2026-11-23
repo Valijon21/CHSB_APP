@@ -59,7 +59,7 @@ export function parseEmaktabJournal(rawInput: string): EmaktabJournalData {
 
   let studentRowsStartIndex = -1;
 
-  for (let i = 0; i < Math.min(lines.length, 12); i++) {
+  for (let i = 0; i < Math.min(lines.length, 30); i++) {
     const line = lines[i]!;
     const lineLower = line.toLowerCase();
 
