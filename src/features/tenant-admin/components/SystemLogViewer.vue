@@ -74,6 +74,15 @@ async function handleDownloadJson() {
   URL.revokeObjectURL(url);
 }
 
+function handleDownloadServerLogs() {
+  const downloadUrl = '/api/v1/system/logs/download?log_type=app';
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = 'backend_app.log';
+  a.target = '_blank';
+  a.click();
+}
+
 async function handleClearLogs() {
   if (confirm("Haqiqatan ham barcha loglarni tozalashni xohlaysizmi?")) {
     await logger.clearLogs();
@@ -125,6 +134,13 @@ onMounted(() => {
           class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition flex items-center gap-1 cursor-pointer"
         >
           💾 JSON Yuklab olish
+        </button>
+        <button
+          type="button"
+          @click="handleDownloadServerLogs"
+          class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition flex items-center gap-1 cursor-pointer"
+        >
+          📄 Server Logini Yuklab Olish (app.log)
         </button>
         <button
           type="button"
