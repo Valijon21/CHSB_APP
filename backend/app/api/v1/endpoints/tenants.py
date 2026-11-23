@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from backend.app.db.prisma import get_prisma
+from backend.app.db.prisma import get_prisma, find_tenant_resilient
 from prisma import Prisma
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
@@ -22,10 +22,10 @@ async def get_tenants(db: Prisma = Depends(get_prisma)):
 
 @router.get("/{slug}/context")
 async def get_tenant_public_context(slug: str, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_unique(
-        where={"slug": slug},
-        include={"schools": True},
-    )
+    tenant = await find_tenant_resilient(slug, db)
+    if tenant:
+        # Load schools relation
+        tenant = await db.tenant.find_unique(where={"id": tenant.id}, include={"schools": True})
     if not tenant:
         raise HTTPException(status_code=404, detail="Maktab/Tashkilot topilmadi.")
 

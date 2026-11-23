@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from backend.app.db.prisma import get_prisma
+from backend.app.db.prisma import get_prisma, find_tenant_resilient
 from prisma import Prisma
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 @router.get("/{tenant_slug}")
 async def get_tenant_analytics(tenant_slug: str, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_unique(where={"slug": tenant_slug})
+    tenant = await find_tenant_resilient(tenant_slug, db)
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 

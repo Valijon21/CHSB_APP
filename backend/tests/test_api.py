@@ -222,5 +222,19 @@ def test_bulk_create_and_delete_students(client: TestClient):
         del_resp = client.delete(f"/api/v1/students/{st['id']}")
         assert del_resp.status_code == 200
 
+def test_resilient_tenant_lookup_classes_and_students(client: TestClient):
+    # Test with pure slug
+    resp_slug = client.get("/api/v1/classes?tenantSlug=al-xorazmiy")
+    assert resp_slug.status_code == 200
+    assert len(resp_slug.json()) > 0
+
+    # Test with prefixed tenantId
+    resp_id = client.get("/api/v1/classes?tenantSlug=tenant-al-xorazmiy")
+    assert resp_id.status_code == 200
+    assert len(resp_id.json()) > 0
+
+    # Both should return the same classes
+    assert len(resp_slug.json()) == len(resp_id.json())
+
 
 

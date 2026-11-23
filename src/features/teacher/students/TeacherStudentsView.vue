@@ -45,10 +45,8 @@ const availableClassRecords = computed<ClassGroupRecord[]>(() => {
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
-  const tenantId =
-    tenantStore.currentTenant?.tenantId ||
-    (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
-  await teacherStore.loadTeacherData(tenantId);
+  const activeSlug = tenantStore.currentTenant?.tenantSlug || tenantSlug || 'al-xorazmiy';
+  await teacherStore.loadTeacherData(activeSlug);
 });
 
 function handleSearch() {
@@ -61,13 +59,27 @@ function handleClassFilter(e: Event) {
 }
 
 async function handleCreateStudent(input: StudentInput) {
-  const created = await orgStore.createStudent(input);
-  toast.success(`${created.firstName} ${created.lastName} muvaffaqiyatli qo'shildi!`, "O'quvchi qo'shildi");
+  try {
+    const created = await orgStore.createStudent(input);
+    toast.success(`${created.firstName} ${created.lastName} muvaffaqiyatli qo'shildi!`, "O'quvchi qo'shildi");
+    const activeSlug = tenantStore.currentTenant?.tenantSlug || tenantSlug || 'al-xorazmiy';
+    await teacherStore.loadTeacherData(activeSlug);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "O'quvchi qo'shishda xatolik yuz berdi.";
+    toast.error(msg, 'Xatolik');
+  }
 }
 
 async function handleBulkImport(inputs: StudentInput[]) {
-  const createdList = await orgStore.bulkImportStudents(inputs);
-  toast.success(`${createdList.length} nafar o'quvchi muvaffaqiyatli import qilindi!`, 'Ommaviy import');
+  try {
+    const createdList = await orgStore.bulkImportStudents(inputs);
+    toast.success(`${createdList.length} nafar o'quvchi muvaffaqiyatli import qilindi!`, 'Ommaviy import');
+    const activeSlug = tenantStore.currentTenant?.tenantSlug || tenantSlug || 'al-xorazmiy';
+    await teacherStore.loadTeacherData(activeSlug);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Ommaviy importda xatolik yuz berdi.";
+    toast.error(msg, 'Xatolik');
+  }
 }
 </script>
 

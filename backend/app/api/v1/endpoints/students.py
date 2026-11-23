@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from datetime import datetime
-from backend.app.db.prisma import get_prisma
+from backend.app.db.prisma import get_prisma, find_tenant_resilient
 from prisma import Prisma
 
 router = APIRouter(prefix="/students", tags=["Students"])
@@ -26,7 +26,7 @@ async def get_students(
     classGroupId: str | None = None,
     db: Prisma = Depends(get_prisma),
 ):
-    tenant = await db.tenant.find_unique(where={"slug": tenantSlug})
+    tenant = await find_tenant_resilient(tenantSlug, db)
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
@@ -66,7 +66,7 @@ async def get_students(
 
 @router.post("")
 async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_unique(where={"slug": payload.tenantSlug})
+    tenant = await find_tenant_resilient(payload.tenantSlug, db)
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 

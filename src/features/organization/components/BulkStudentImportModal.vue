@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, toRef, computed } from 'vue';
+import { ref, toRef, computed, watch } from 'vue';
 import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import type { StudentInput } from '../../../entities/organization/model';
 import type { ClassGroupRecord } from '../../../entities/organization/model';
@@ -37,6 +37,38 @@ const isDragging = ref(false);
 
 const selectedClass = computed(() => {
   return props.availableClasses.find((c) => c.id === selectedClassId.value);
+});
+
+// Asinxron kelgan sinflar ro'yxatini darhol tanlash
+watch(
+  () => props.availableClasses,
+  (newClasses) => {
+    if (newClasses.length > 0 && (!selectedClassId.value || !newClasses.some((c) => c.id === selectedClassId.value))) {
+      selectedClassId.value = newClasses[0]?.id || '';
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open && props.availableClasses.length > 0) {
+      if (!selectedClassId.value || !props.availableClasses.some((c) => c.id === selectedClassId.value)) {
+        selectedClassId.value = props.availableClasses[0]?.id || '';
+      }
+    }
+  }
+);
+
+// Tanlangan sinf o'zgarsa, tahlil qilingan o'quvchilar sinfini yangilash
+watch(selectedClassId, (newId) => {
+  const cls = selectedClass.value;
+  const className = cls?.name || 'Sinf';
+  for (const st of parsedStudents.value) {
+    st.classGroupId = newId;
+    st.className = className;
+  }
 });
 
 function handleTabChange(tab: 'file' | 'text') {
@@ -94,9 +126,11 @@ async function handleFileUpload(file: File) {
     if (journalData.students.length > 0) {
       // Agar jurnalda sinf nomi bo'lsa va sinflar ro'yxatida mavjud bo'lsa, moslashtirish
       if (journalData.metadata.className) {
-        const matchedCls = props.availableClasses.find(
-          (c) => c.name.toLowerCase().replace(/\s+/g, '') === journalData.metadata.className.toLowerCase().replace(/\s+/g, '')
-        );
+        const rawClass = journalData.metadata.className.toLowerCase().replace(/\s+/g, '').replace(/sinf$/i, '');
+        const matchedCls = props.availableClasses.find((c) => {
+          const cNorm = c.name.toLowerCase().replace(/\s+/g, '').replace(/sinf$/i, '');
+          return cNorm === rawClass || cNorm.startsWith(rawClass) || rawClass.startsWith(cNorm) || cNorm.includes(rawClass);
+        });
         if (matchedCls) {
           selectedClassId.value = matchedCls.id;
         }
@@ -204,7 +238,13 @@ function removeStudent(index: number) {
 
 function handleConfirm() {
   if (parsedStudents.value.length > 0) {
-    emit('bulk-import', [...parsedStudents.value]);
+    const activeCls = selectedClass.value;
+    const finalStudents = parsedStudents.value.map((st) => ({
+      ...st,
+      classGroupId: selectedClassId.value || st.classGroupId,
+      className: activeCls?.name || st.className,
+    }));
+    emit('bulk-import', finalStudents);
     reset();
     emit('close');
   }

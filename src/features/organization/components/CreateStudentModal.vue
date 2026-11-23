@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, toRef } from 'vue';
+import { ref, toRef, watch } from 'vue';
 import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import type { StudentInput, StudentGender } from '../../../entities/organization/model';
 import type { ClassGroupRecord } from '../../../entities/organization/model';
@@ -27,6 +27,27 @@ const firstName = ref('');
 const lastName = ref('');
 const middleName = ref('');
 const selectedClassId = ref(props.availableClasses[0]?.id || '');
+
+watch(
+  () => props.availableClasses,
+  (newClasses) => {
+    if (newClasses.length > 0 && (!selectedClassId.value || !newClasses.some((c) => c.id === selectedClassId.value))) {
+      selectedClassId.value = newClasses[0]?.id || '';
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open && props.availableClasses.length > 0) {
+      if (!selectedClassId.value || !props.availableClasses.some((c) => c.id === selectedClassId.value)) {
+        selectedClassId.value = props.availableClasses[0]?.id || '';
+      }
+    }
+  }
+);
 const gender = ref<StudentGender>('M');
 const birthDate = ref('2009-01-01');
 const rosterCode = ref('');
