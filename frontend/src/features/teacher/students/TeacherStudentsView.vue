@@ -40,16 +40,20 @@ const paginatedRoster = computed(() => {
   return displayedRoster.value.slice(start, start + pageSize.value);
 });
 
+const currentSchoolId = computed(() => {
+  return teacherStore.classes[0]?.schoolId || 'school-ax-1';
+});
+
 const availableClassRecords = computed<ClassGroupRecord[]>(() => {
   return teacherStore.classes.map((c) => ({
     id: c.id,
     name: c.name,
-    schoolId: tenantStore.currentTenant?.tenantId || 'sch-01',
+    schoolId: c.schoolId || currentSchoolId.value,
     tenantSlug,
-    gradeLevel: 10,
+    gradeLevel: c.grade || 10,
     shift: 1,
-    academicYear: '2026-2027',
-    studentCount: 0,
+    academicYear: c.academicYear || '2026-2027',
+    studentCount: c.studentCount || 0,
     createdAt: '',
   }));
 });
@@ -507,7 +511,7 @@ async function handleConfirmDelete() {
     <!-- 1. Yangi O'quvchi Qo'shish Modali -->
     <CreateStudentModal
       :is-open="isCreateModalOpen"
-      :school-id="tenantStore.currentTenant?.tenantId || 'sch-01'"
+      :school-id="currentSchoolId"
       :tenant-slug="tenantSlug"
       :available-classes="availableClassRecords"
       @close="isCreateModalOpen = false"
@@ -518,7 +522,7 @@ async function handleConfirmDelete() {
     <!-- 2. Ommaviy Import Modali -->
     <BulkStudentImportModal
       :is-open="isBulkModalOpen"
-      :school-id="tenantStore.currentTenant?.tenantId || 'sch-01'"
+      :school-id="currentSchoolId"
       :tenant-slug="tenantSlug"
       :available-classes="availableClassRecords"
       :is-submitting="isBulkImporting"

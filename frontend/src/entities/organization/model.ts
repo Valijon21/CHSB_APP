@@ -129,6 +129,7 @@ export const ClassGroupInputSchema = z.object({
   gradeLevel: z.number().int().min(1).max(11, 'Sinf darajasi 1 dan 11 gacha bo\'lishi shart'),
   shift: z.union([z.literal(1), z.literal(2)]).default(1),
   academicYear: z.string().default('2026-2027'),
+  hasGroups: z.boolean().optional(),
   headTeacherId: z.string().optional(),
   headTeacherName: z.string().optional(),
 });
@@ -138,7 +139,6 @@ export type ClassGroupInput = z.infer<typeof ClassGroupInputSchema>;
 export const ClassGroupRecordSchema = ClassGroupInputSchema.extend({
   id: z.string().min(1),
   studentCount: z.number().int().nonnegative().default(0),
-  hasGroups: z.boolean().optional().default(true),
   groupCounts: z.record(z.string(), z.number()).optional(),
   createdAt: z.string(),
 });

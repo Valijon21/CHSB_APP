@@ -60,9 +60,38 @@ async def create_class(payload: ClassGroupCreate, db: Prisma = Depends(get_prism
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
+    # Safely resolve valid schoolId within this tenant
+    school = await db.school.find_first(
+        where={"id": payload.schoolId, "tenantId": tenant.id}
+    )
+    if not school:
+        school = await db.school.find_first(where={"tenantId": tenant.id})
+    school_id = school.id if school else payload.schoolId
+
+    # Return existing class if already present in this tenant
+    existing = await db.classgroup.find_first(
+        where={"tenantId": tenant.id, "name": payload.name}
+    )
+    if existing:
+        return {
+            "id": existing.id,
+            "schoolId": existing.schoolId,
+            "tenantId": tenant.id,
+            "tenantSlug": tenant.slug,
+            "name": existing.name,
+            "grade": existing.gradeLevel,
+            "gradeLevel": existing.gradeLevel,
+            "shift": existing.shift,
+            "academicYear": existing.academicYear,
+            "studentCount": existing.studentCount,
+            "hasGroups": existing.hasGroups,
+            "groupCounts": {},
+            "createdAt": existing.createdAt.isoformat(),
+        }
+
     new_class = await db.classgroup.create(
         data={
-            "schoolId": payload.schoolId,
+            "schoolId": school_id,
             "tenantId": tenant.id,
             "name": payload.name,
             "gradeLevel": payload.gradeLevel,
@@ -79,6 +108,7 @@ async def create_class(payload: ClassGroupCreate, db: Prisma = Depends(get_prism
         "tenantId": tenant.id,
         "tenantSlug": tenant.slug,
         "name": new_class.name,
+        "grade": new_class.gradeLevel,
         "gradeLevel": new_class.gradeLevel,
         "shift": new_class.shift,
         "academicYear": new_class.academicYear,

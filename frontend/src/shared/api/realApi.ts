@@ -97,12 +97,14 @@ interface BackendStudentItem {
   firstName: string;
   lastName: string;
   middleName?: string;
+  fullName?: string;
   gender?: string;
   birthDate?: string;
   group?: string;
   emaktabId?: string;
   status?: string;
   availableAssessmentIds?: string[];
+  createdAt?: string;
 }
 
 interface BackendClassItem {
@@ -963,11 +965,11 @@ export class RealOrganizationRepository implements OrganizationRepository {
         lastName: s.lastName,
         middleName: s.middleName,
         gender: (s.gender === 'F' ? 'F' : 'M') as any,
-        birthDate: s.birthDate,
+        birthDate: s.birthDate || '2008-05-15',
         status: (s.status === 'inactive' ? 'inactive' : 'eligible') as any,
         group: s.group || null,
-        emaktabId: s.emaktabId || null,
-        createdAt: s.createdAt,
+        emaktabId: s.emaktabId || undefined,
+        createdAt: s.createdAt || new Date().toISOString(),
       }));
     } catch {
       return [];

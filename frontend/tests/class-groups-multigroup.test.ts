@@ -105,7 +105,7 @@ T/r	eMaktab ID	O'quvchi F.I.SH	Jinsi
           name: 'Zuxra Abduraximova',
           className: '11-A',
           group: '1-guruh',
-          status: 'ready',
+          status: 'eligible',
         },
         {
           id: 'stu-02',
@@ -113,7 +113,7 @@ T/r	eMaktab ID	O'quvchi F.I.SH	Jinsi
           name: 'Dilfuza Bozorova',
           className: '11-A',
           group: '1-guruh',
-          status: 'ready',
+          status: 'eligible',
         },
         {
           id: 'stu-16',
@@ -121,7 +121,7 @@ T/r	eMaktab ID	O'quvchi F.I.SH	Jinsi
           name: 'Bobur Mirzayev',
           className: '11-A',
           group: '2-guruh',
-          status: 'ready',
+          status: 'eligible',
         },
         {
           id: 'stu-17',
@@ -129,9 +129,9 @@ T/r	eMaktab ID	O'quvchi F.I.SH	Jinsi
           name: 'Sarvar Xalilov',
           className: '11-A',
           group: '2-guruh',
-          status: 'ready',
+          status: 'eligible',
         },
-      ];
+      ] as any;
 
       // 1. Filter by 1-guruh
       teacherStore.filterByGroup('1-guruh');
@@ -157,7 +157,7 @@ T/r	eMaktab ID	O'quvchi F.I.SH	Jinsi
       const admissionStore = useStudentAdmissionStore();
 
       admissionStore.currentMatch = {
-        rosterId: 'stu-1101',
+        rosterRecordId: 'stu-1101',
         studentId: 'stu-1101',
         rosterCode: 'STU-1101',
         displayName: 'Zuxra Abduraximova',
@@ -168,7 +168,7 @@ T/r	eMaktab ID	O'quvchi F.I.SH	Jinsi
         tenantSlug: 'al-xorazmiy',
         status: 'eligible',
         availableAssessmentIds: ['asm-11-inf-01'],
-      };
+      } as any;
 
       const wrapper = mount(StudentVerifyView, {
         global: {

@@ -91,15 +91,17 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
     # Safely resolve valid class group and school within tenant
-    class_group = await db.classgroup.find_first(
-        where={"id": payload.classGroupId, "tenantId": tenant.id}
-    )
-    if not class_group:
+    class_group = None
+    if payload.classGroupId:
         class_group = await db.classgroup.find_first(
-            where={"tenantId": tenant.id}
+            where={"id": payload.classGroupId, "tenantId": tenant.id}
+        )
+    if not class_group and payload.className:
+        class_group = await db.classgroup.find_first(
+            where={"tenantId": tenant.id, "name": payload.className}
         )
     if not class_group:
-        raise HTTPException(status_code=400, detail="Muassasada sinf topilmadi.")
+        raise HTTPException(status_code=400, detail="Muassasada ko'rsatilgan sinf topilmadi.")
 
     class_group_id = class_group.id
     school_id = class_group.schoolId
@@ -195,15 +197,17 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
     tenant_map = {t.slug: t for t in tenants}
     tenant_map.update({t.id: t for t in tenants})
 
-    target_class_ids = [item.classGroupId for item in inputs if item.classGroupId]
-    existing_classes = await db.classgroup.find_many(
-        where={"id": {"in": target_class_ids}}
-    ) if target_class_ids else []
-    class_map = {c.id: c for c in existing_classes}
+    tenant_ids = [t.id for t in tenant_map.values()]
+    all_classes = await db.classgroup.find_many(
+        where={"tenantId": {"in": tenant_ids}}
+    ) if tenant_ids else []
+    class_map = {c.id: c for c in all_classes}
+    class_name_map = {(c.tenantId, c.name.strip().lower()): c for c in all_classes}
 
+    all_class_ids = [c.id for c in all_classes]
     existing_students = await db.student.find_many(
-        where={"classGroupId": {"in": target_class_ids}}
-    ) if target_class_ids else []
+        where={"classGroupId": {"in": all_class_ids}}
+    ) if all_class_ids else []
 
     seen_emaktab_ids: set[tuple[str, str]] = {
         (s.classGroupId, s.emaktabId) for s in existing_students if s.classGroupId and s.emaktabId
@@ -228,10 +232,8 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
             continue
 
         class_group = class_map.get(item.classGroupId)
-        if not class_group:
-            class_group = await db.classgroup.find_first(where={"tenantId": tenant.id})
-            if class_group:
-                class_map[class_group.id] = class_group
+        if not class_group and item.className:
+            class_group = class_name_map.get((tenant.id, item.className.strip().lower()))
         if not class_group:
             continue
 

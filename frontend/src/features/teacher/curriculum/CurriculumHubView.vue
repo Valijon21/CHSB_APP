@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useTenantStore } from '../../tenant-context/tenantStore';
-
 const route = useRoute();
-const tenantStore = useTenantStore();
 const tenantSlug = computed(() => (route.params.tenantSlug as string) || 'al-xorazmiy');
 
 // State
@@ -104,18 +101,6 @@ const currentWorksheet = computed(() => {
   if (ws) {
     try {
       return { ...ws, parsed: JSON.parse(ws.contentJson) };
-    } catch {
-      return null;
-    }
-  }
-  return null;
-});
-
-const currentWorkbook = computed(() => {
-  const wb = resources.value.find((r) => r.resourceType === 'WORKBOOK');
-  if (wb) {
-    try {
-      return { ...wb, parsed: JSON.parse(wb.contentJson) };
     } catch {
       return null;
     }

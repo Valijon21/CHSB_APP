@@ -47,7 +47,7 @@ watch(
   () => props.availableClasses,
   (classes) => {
     if ((!selectedClassId.value || !classes.some((c) => c.id === selectedClassId.value)) && classes.length > 0) {
-      selectedClassId.value = classes[0].id;
+      if (classes[0]) selectedClassId.value = classes[0].id;
     }
   },
   { immediate: true }
@@ -58,7 +58,7 @@ watch(
   (open) => {
     if (open) {
       if ((!selectedClassId.value || !props.availableClasses.some((c) => c.id === selectedClassId.value)) && props.availableClasses.length > 0) {
-        selectedClassId.value = props.availableClasses[0].id;
+        if (props.availableClasses[0]) selectedClassId.value = props.availableClasses[0].id;
       }
     } else {
       reset();
@@ -442,13 +442,6 @@ async function readFile(file: File) {
   }
 }
 
-function setGroup(group: '1-guruh' | '2-guruh' | null) {
-  selectedGroup.value = group;
-  parsedStudents.value.forEach((s) => {
-    s.group = group || undefined;
-  });
-}
-
 async function handleAiExtract() {
   if (!rawText.value.trim() || !selectedClassId.value) return;
 
@@ -457,7 +450,7 @@ async function handleAiExtract() {
 
   try {
     const res = await extractStudentsRosterWithAi(rawText.value, {
-      defaultGroup: selectedGroup.value,
+      defaultGroup: selectedGroup.value || undefined,
     });
 
     if (res.success && res.students.length > 0) {
@@ -539,7 +532,7 @@ function parseInput() {
       let gender: StudentGender = 'M';
       let birthDate = '2009-01-01';
 
-      if (/^\d{1,3}(\.0)?$/.test(parts[0]) && parts[1]) {
+      if (parts[0] && /^\d{1,3}(\.0)?$/.test(parts[0]) && parts[1]) {
         rawName = cleanPrefix(parts[1]);
         if (parts[2] && /^\d{7,}$/.test(parts[2])) {
           emaktabId = parts[2];
@@ -564,7 +557,7 @@ function parseInput() {
         continue;
       }
 
-      let lastName = nameTokens[0];
+      let lastName = nameTokens[0] || 'O\'quvchi';
       let firstName = nameTokens[1] || 'O\'quvchi';
       let middleName = nameTokens.slice(2).join(' ') || undefined;
 

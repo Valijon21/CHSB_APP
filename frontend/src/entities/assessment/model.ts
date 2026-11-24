@@ -106,7 +106,7 @@ export const AssessmentSchema = z.object({
   durationSeconds: z.number().int().positive(),
   questionCount: z.number().int().positive(),
   maxScore: z.number().positive(),
-  targetGroup: z.string().optional().default('all'),
+  targetGroup: z.string().optional(),
   status: z.enum(['scheduled', 'available', 'closed']),
   questions: z.array(QuestionSchema),
 });

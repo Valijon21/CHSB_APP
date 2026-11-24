@@ -1,10 +1,13 @@
+import { setActivePinia, createPinia } from 'pinia';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { extractStudentsRosterWithAi } from '../src/shared/utils/groundedAiExtractor';
 import BulkStudentImportModal from '../src/features/organization/components/BulkStudentImportModal.vue';
+import type { ClassGroupRecord } from '../src/entities/organization/model';
 
 describe('Excel Parser & AI RAG Integration', () => {
   beforeEach(() => {
+    setActivePinia(createPinia());
     vi.restoreAllMocks();
   });
 
@@ -57,19 +60,19 @@ describe('Excel Parser & AI RAG Integration', () => {
       expect(res.success).toBe(true);
       expect(res.students).toHaveLength(2);
 
-      expect(res.students[0].fullName).toBe('Abduraximova Zuxra Farxod qizi');
-      expect(res.students[0].lastName).toBe('Abduraximova');
-      expect(res.students[0].firstName).toBe('Zuxra');
-      expect(res.students[0].emaktabId).toBe('1000001990090');
-      expect(res.students[0].gender).toBe('F');
+      expect(res.students?.[0]?.fullName).toBe('Abduraximova Zuxra Farxod qizi');
+      expect(res.students?.[0]?.lastName).toBe('Abduraximova');
+      expect(res.students?.[0]?.firstName).toBe('Zuxra');
+      expect(res.students?.[0]?.emaktabId).toBe('1000001990090');
+      expect(res.students?.[0]?.gender).toBe('F');
 
-      expect(res.students[1].fullName).toBe("Ergashev Jasur Akram o'g'li");
-      expect(res.students[1].gender).toBe('M');
+      expect(res.students?.[1]?.fullName).toBe("Ergashev Jasur Akram o'g'li");
+      expect(res.students?.[1]?.gender).toBe('M');
     });
   });
 
   describe('BulkStudentImportModal Quality & Zero Junk Filter', () => {
-    const mockClasses = [
+    const mockClasses: ClassGroupRecord[] = [
       {
         id: 'cls-11a',
         schoolId: 'sch-01',
@@ -177,7 +180,7 @@ describe('Excel Parser & AI RAG Integration', () => {
               tenantSlug: 'al-xorazmiy',
               name: '10-V sinf',
               gradeLevel: 10,
-              shift: 1,
+              shift: 1 as const,
               academicYear: '2026-2027',
               studentCount: 0,
               createdAt: '',
