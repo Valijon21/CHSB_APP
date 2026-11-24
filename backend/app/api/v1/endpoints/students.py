@@ -128,6 +128,41 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
         results.append(res)
     return results
 
+@router.delete("")
+async def delete_all_students(
+    tenantSlug: str | None = Query(None),
+    db: Prisma = Depends(get_prisma),
+):
+    where_clause: dict = {}
+    if tenantSlug:
+        tenant = await db.tenant.find_first(
+            where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
+        )
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+        where_clause["tenantId"] = tenant.id
+
+    students = await db.student.find_many(where=where_clause)
+    student_ids = [s.id for s in students]
+    if student_ids:
+        await db.assessmentresult.delete_many(where={"studentId": {"in": student_ids}})
+        await db.assessmentattempt.delete_many(where={"studentId": {"in": student_ids}})
+
+    deleted_count = await db.student.delete_many(where=where_clause)
+
+    if tenantSlug and 'tenant' in locals() and tenant:
+        await db.classgroup.update_many(where={"tenantId": tenant.id}, data={"studentCount": 0})
+        await db.school.update_many(where={"tenantId": tenant.id}, data={"studentCount": 0})
+    else:
+        await db.classgroup.update_many(data={"studentCount": 0})
+        await db.school.update_many(data={"studentCount": 0})
+
+    return {
+        "success": True,
+        "deletedCount": deleted_count,
+        "message": f"{deleted_count} nafar o'quvchi ma'lumotlari to'liq o'chirildi.",
+    }
+
 @router.delete("/{student_id}")
 async def delete_student(student_id: str, db: Prisma = Depends(get_prisma)):
     await db.student.delete(where={"id": student_id})

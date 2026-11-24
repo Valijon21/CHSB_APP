@@ -138,3 +138,29 @@ def test_parse_student_roster_file_api(client: TestClient):
     assert data["students"][0]["fullName"] == "Abduraximova Zuxra Farxod qizi"
     assert data["students"][0]["emaktabId"] == "1000001990090"
     assert data["students"][0]["gender"] == "F"
+
+def test_delete_all_students_endpoint(client: TestClient):
+    create_res = client.post(
+        "/api/v1/students",
+        json={
+            "tenantSlug": "al-xorazmiy",
+            "schoolId": "school-ax-1",
+            "classGroupId": "class-ax-11a",
+            "firstName": "TestStudent",
+            "lastName": "DeleteMe",
+            "gender": "M",
+            "birthDate": "2008-01-01",
+            "status": "eligible",
+            "group": "1-guruh",
+        },
+    )
+    assert create_res.status_code == 200
+    stu_id = create_res.json()["id"]
+
+    del_single = client.delete(f"/api/v1/students/{stu_id}")
+    assert del_single.status_code == 200
+
+    del_res = client.delete("/api/v1/students?tenantSlug=temurbeklar-maktabi")
+    assert del_res.status_code == 200
+    assert del_res.json()["success"] is True
+    assert "deletedCount" in del_res.json()
