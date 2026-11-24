@@ -258,7 +258,7 @@ export class RealRosterRepository implements RosterRepository {
           displayName: `${s.firstName} ${s.lastName}`,
           schoolName: res.schoolName || 'Al-Xorazmiy nomidagi IT-maktab',
           className: s.className || '11-sinf',
-          group: s.group || '1-guruh',
+          group: s.group || null,
           emaktabId: s.emaktabId || null,
           eligibilityStatus: (s.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
           availableAssessmentIds: res.availableAssessmentIds || ['chsb-inf-11-q1'],
@@ -287,7 +287,7 @@ export class RealRosterRepository implements RosterRepository {
         firstName: found.firstName,
         lastName: found.lastName,
         middleName: found.middleName,
-        group: found.group || '1-guruh',
+        group: found.group || null,
         emaktabId: found.emaktabId || null,
         status: (found.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
         availableAssessmentIds: found.availableAssessmentIds || ['chsb-inf-11-q1'],
@@ -525,7 +525,7 @@ export class RealTeacherRepository implements TeacherRepository {
         firstName: s.firstName,
         lastName: s.lastName,
         middleName: s.middleName,
-        group: s.group || '1-guruh',
+        group: s.group || null,
         emaktabId: s.emaktabId || null,
         status: (s.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
         availableAssessmentIds: s.availableAssessmentIds || ['chsb-inf-11-q1'],
@@ -911,7 +911,7 @@ export class RealOrganizationRepository implements OrganizationRepository {
         birthDate: input.birthDate || '2008-05-15',
         rosterCode: input.rosterCode || undefined,
         status: input.status,
-        group: input.group || '1-guruh',
+        group: input.group || null,
         emaktabId: input.emaktabId || undefined,
       };
       const res = await httpClient.post<StudentRecord>('/students', payload);
@@ -935,7 +935,7 @@ export class RealOrganizationRepository implements OrganizationRepository {
         birthDate: input.birthDate || '2008-05-15',
         rosterCode: input.rosterCode || undefined,
         status: input.status,
-        group: input.group || '1-guruh',
+        group: input.group || null,
         emaktabId: input.emaktabId || undefined,
       }));
       const res = await httpClient.post<StudentRecord[]>('/students/bulk', payload);
@@ -965,7 +965,7 @@ export class RealOrganizationRepository implements OrganizationRepository {
         gender: (s.gender === 'F' ? 'F' : 'M') as any,
         birthDate: s.birthDate,
         status: (s.status === 'inactive' ? 'inactive' : 'eligible') as any,
-        group: s.group || '1-guruh',
+        group: s.group || null,
         emaktabId: s.emaktabId || null,
         createdAt: s.createdAt,
       }));
@@ -1010,21 +1010,30 @@ export class RealOrganizationRepository implements OrganizationRepository {
   }
 
   async createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord> {
-    return {
-      id: `class-${Date.now()}`,
-      schoolId: input.schoolId,
-      tenantSlug: input.tenantSlug,
-      name: input.name,
-      gradeLevel: input.gradeLevel,
-      shift: input.shift,
-      academicYear: input.academicYear,
-      studentCount: 0,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const res = await httpClient.post<ClassGroupRecord>('/classes', input);
+      return res;
+    } catch {
+      return {
+        id: `class-${Date.now()}`,
+        schoolId: input.schoolId,
+        tenantSlug: input.tenantSlug,
+        name: input.name,
+        gradeLevel: input.gradeLevel,
+        shift: input.shift,
+        academicYear: input.academicYear,
+        studentCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+    }
   }
 
-  async getClassGroupsBySchool(_tenantSlug: string): Promise<ClassGroupRecord[]> {
-    return [];
+  async getClassGroupsBySchool(tenantSlug: string): Promise<ClassGroupRecord[]> {
+    try {
+      return await httpClient.get<ClassGroupRecord[]>(`/classes?tenantSlug=${encodeURIComponent(tenantSlug)}`);
+    } catch {
+      return [];
+    }
   }
 
   async getSubjects(tenantSlug: string): Promise<SubjectRecord[]> {

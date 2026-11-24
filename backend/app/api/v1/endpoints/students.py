@@ -74,7 +74,7 @@ async def get_students(
             "gender": s.gender,
             "birthDate": s.birthDate.strftime("%Y-%m-%d"),
             "status": s.status.lower(),
-            "group": s.group or "1-guruh",
+            "group": s.group,
             "emaktabId": s.emaktabId,
             "availableAssessmentIds": ["chsb-inf-11-q1"],
             "createdAt": s.createdAt.isoformat(),

@@ -102,11 +102,11 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
         tenant_id=tenant.id,
     )
 
-    student_group = student.group or "1-guruh"
+    student_group = student.group
     class_display = (
         f"{student.classGroup.name} ({student_group})"
-        if student.classGroup
-        else "Noma'lum sinf"
+        if student.classGroup and student_group
+        else (student.classGroup.name if student.classGroup else "Noma'lum sinf")
     )
 
     grade = student.classGroup.gradeLevel if student.classGroup else 11

@@ -31,7 +31,7 @@ async def get_classes(tenantSlug: str = Query("al-xorazmiy"), db: Prisma = Depen
     for c in classes:
         g_counts: dict[str, int] = {}
         for s in c.students:
-            grp = s.group or "1-guruh"
+            grp = s.group or "Umumiy sinf"
             g_counts[grp] = g_counts.get(grp, 0) + 1
 
         res_classes.append({
@@ -108,16 +108,19 @@ async def get_class_detail(class_id: str, group: str | None = None, db: Prisma =
 
     total_group_counts: dict[str, int] = {}
     for s in class_group.students:
-        grp = s.group or "1-guruh"
+        grp = s.group or "Umumiy sinf"
         total_group_counts[grp] = total_group_counts.get(grp, 0) + 1
 
     students_list = []
     results_list = []
 
     for s in class_group.students:
-        s_group = s.group or "1-guruh"
-        if group and group != "ALL" and s_group != group:
-            continue
+        if group and group != "ALL":
+            if group in ["Guruhsiz", "Umumiy sinf", "NONE"]:
+                if s.group is not None:
+                    continue
+            elif s.group != group:
+                continue
 
         students_list.append({
             "id": s.id,
@@ -129,7 +132,7 @@ async def get_class_detail(class_id: str, group: str | None = None, db: Prisma =
             "lastName": s.lastName,
             "middleName": s.middleName,
             "gender": s.gender,
-            "group": s_group,
+            "group": s.group,
             "emaktabId": s.emaktabId,
             "status": s.status.lower(),
             "availableAssessmentIds": ["chsb-inf-11-q1"],

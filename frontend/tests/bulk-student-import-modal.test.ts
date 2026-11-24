@@ -183,5 +183,7 @@ describe('BulkStudentImportModal.vue', () => {
     // Only the new student must be emitted!
     expect(importedList).toHaveLength(1);
     expect(importedList[0].firstName).toBe('Oquvchi');
+    expect(importedList[0].group).toBe(null);
+    expect(importedList[0].classGroupId).toBe('cls-10-v');
   });
 });

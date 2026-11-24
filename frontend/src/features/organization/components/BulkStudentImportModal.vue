@@ -8,6 +8,7 @@ import TablePagination from '../../../shared/components/TablePagination.vue';
 import { extractStudentsRosterWithAi } from '../../../shared/utils/groundedAiExtractor';
 import { parseExcelFileClientSide } from '../../emaktab/services/clientExcelParser';
 import { useTeacherStore } from '../../teacher/teacherStore';
+import { useOrganizationStore } from '../store/organizationStore';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -79,6 +80,21 @@ watch(
 );
 
 const teacherStore = useTeacherStore();
+const orgStore = useOrganizationStore();
+
+function normalizeClassCode(name?: string | null): string {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .replace(/sinf/g, '')
+    .replace(/[\s-_]/g, '')
+    .replace(/в/g, 'v')
+    .replace(/а/g, 'a')
+    .replace(/б/g, 'b')
+    .replace(/г/g, 'g')
+    .replace(/д/g, 'd')
+    .trim();
+}
 
 function normalizeName(str?: string | null): string {
   if (!str) return '';
@@ -224,10 +240,36 @@ async function readFile(file: File) {
 
         if (clientRes.detectedClass) {
           autoDetectedClass.value = clientRes.detectedClass;
-          const normDetected = clientRes.detectedClass.toLowerCase().replace(/[\s-_]/g, '');
-          const matched = props.availableClasses.find((c) =>
-            c.name.toLowerCase().replace(/[\s-_sinf]/g, '').includes(normDetected)
-          );
+          const normDetected = normalizeClassCode(clientRes.detectedClass);
+          let matched = props.availableClasses.find((c) => {
+            const normC = normalizeClassCode(c.name);
+            return normC === normDetected || normC.includes(normDetected) || normDetected.includes(normC);
+          });
+
+          if (!matched) {
+            // Auto-create class group in database and store!
+            const gradeMatch = clientRes.detectedClass.match(/^(\d+)/);
+            const grade = gradeMatch ? parseInt(gradeMatch[1]!, 10) : 10;
+            const newClassName = `${clientRes.detectedClass} sinf`;
+
+            try {
+              const created = await orgStore.createClassGroup({
+                schoolId: props.schoolId,
+                tenantSlug: props.tenantSlug,
+                name: newClassName,
+                gradeLevel: grade,
+                shift: 1,
+                academicYear: '2026-2027',
+              });
+              matched = created;
+              if (!props.availableClasses.some((c) => c.id === created.id)) {
+                props.availableClasses.push(created);
+              }
+            } catch (err) {
+              console.warn("Failed to auto-create class group:", err);
+            }
+          }
+
           if (matched) {
             selectedClassId.value = matched.id;
           }
@@ -246,7 +288,7 @@ async function readFile(file: File) {
           middleName: s.middleName,
           gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
           birthDate: s.birthDate || '2009-01-01',
-          group: s.group || selectedGroup.value || undefined,
+          group: s.group || selectedGroup.value || null,
           emaktabId: s.emaktabId,
           status: 'eligible',
         }));
@@ -311,10 +353,35 @@ async function readFile(file: File) {
 
         if (data.detectedClass) {
           autoDetectedClass.value = data.detectedClass;
-          const normDetected = data.detectedClass.toLowerCase().replace(/[\s-_]/g, '');
-          const matched = props.availableClasses.find((c) =>
-            c.name.toLowerCase().replace(/[\s-_sinf]/g, '').includes(normDetected)
-          );
+          const normDetected = normalizeClassCode(data.detectedClass);
+          let matched = props.availableClasses.find((c) => {
+            const normC = normalizeClassCode(c.name);
+            return normC === normDetected || normC.includes(normDetected) || normDetected.includes(normC);
+          });
+
+          if (!matched) {
+            const gradeMatch = data.detectedClass.match(/^(\d+)/);
+            const grade = gradeMatch ? parseInt(gradeMatch[1]!, 10) : 10;
+            const newClassName = `${data.detectedClass} sinf`;
+
+            try {
+              const created = await orgStore.createClassGroup({
+                schoolId: props.schoolId,
+                tenantSlug: props.tenantSlug,
+                name: newClassName,
+                gradeLevel: grade,
+                shift: 1,
+                academicYear: '2026-2027',
+              });
+              matched = created;
+              if (!props.availableClasses.some((c) => c.id === created.id)) {
+                props.availableClasses.push(created);
+              }
+            } catch (err) {
+              console.warn("Failed to auto-create class group:", err);
+            }
+          }
+
           if (matched) {
             selectedClassId.value = matched.id;
           }
@@ -333,7 +400,7 @@ async function readFile(file: File) {
           middleName: s.middleName || undefined,
           gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
           birthDate: s.birthDate || '2009-01-01',
-          group: s.group || selectedGroup.value || undefined,
+          group: s.group || selectedGroup.value || null,
           emaktabId: s.emaktabId,
           status: 'eligible',
         }));
@@ -516,7 +583,7 @@ function parseInput() {
         middleName,
         gender,
         birthDate,
-        group: selectedGroup.value || undefined,
+        group: selectedGroup.value || null,
         emaktabId,
         status: 'eligible',
       });
@@ -542,11 +609,18 @@ function removeStudent(index: number) {
 
 function handleConfirm() {
   if (newStudentsToImport.value.length > 0 && !props.isSubmitting) {
+    const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+    const finalClassName = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
     emit(
       'bulk-import',
       newStudentsToImport.value.map((s) => {
         const { isDuplicate, duplicateReason, ...clean } = s;
-        return clean;
+        return {
+          ...clean,
+          classGroupId: selectedClassId.value,
+          className: finalClassName,
+          group: clean.group || null,
+        };
       })
     );
   }
