@@ -13,6 +13,7 @@ const props = defineProps<{
   schoolId: string;
   tenantSlug: string;
   availableClasses: ClassGroupRecord[];
+  isSubmitting?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -53,8 +54,12 @@ watch(
 watch(
   () => props.isOpen,
   (open) => {
-    if (open && (!selectedClassId.value || !props.availableClasses.some((c) => c.id === selectedClassId.value)) && props.availableClasses.length > 0) {
-      selectedClassId.value = props.availableClasses[0].id;
+    if (open) {
+      if ((!selectedClassId.value || !props.availableClasses.some((c) => c.id === selectedClassId.value)) && props.availableClasses.length > 0) {
+        selectedClassId.value = props.availableClasses[0].id;
+      }
+    } else {
+      reset();
     }
   }
 );
@@ -113,7 +118,8 @@ async function readFile(file: File) {
   }
 
   // 1. Client-side deterministic Excel parser (Instant, offline, zero-network dependency)
-  if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv')) {
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls') || lowerName.endsWith('.csv')) {
     try {
       const clientRes = await parseExcelFileClientSide(file, selectedGroup.value);
       if (clientRes.success && clientRes.students.length > 0) {
@@ -170,9 +176,7 @@ async function readFile(file: File) {
       formData.append('group', selectedGroup.value);
     }
 
-    const apiBase =
-      import.meta.env.VITE_API_BASE_URL ||
-      (import.meta.env.DEV ? 'http://localhost:8000/api/v1' : '/api/v1');
+    const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v1';
     const endpoint = apiBase.endsWith('/')
       ? `${apiBase}students/parse-file`
       : `${apiBase}/students/parse-file`;
@@ -244,7 +248,7 @@ async function readFile(file: File) {
   }
 
   // 2. Client-side fallback for CSV / text
-  if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+  if (lowerName.endsWith('.csv') || lowerName.endsWith('.txt')) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -432,10 +436,8 @@ function removeStudent(index: number) {
 }
 
 function handleConfirm() {
-  if (parsedStudents.value.length > 0) {
+  if (parsedStudents.value.length > 0 && !props.isSubmitting) {
     emit('bulk-import', [...parsedStudents.value]);
-    reset();
-    emit('close');
   }
 }
 
@@ -754,10 +756,15 @@ function downloadSample() {
             </button>
             <button
               type="button"
+              :disabled="props.isSubmitting"
               @click="handleConfirm"
-              class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer min-h-[38px] flex items-center gap-1.5"
+              class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer min-h-[38px] flex items-center gap-1.5"
             >
-              <span>Tasdiqlash va Bazaga Saqlash ({{ parsedStudents.length }} ta)</span>
+              <svg v-if="props.isSubmitting" class="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>{{ props.isSubmitting ? "Bazaga saqlanmoqda..." : `Tasdiqlash va Bazaga Saqlash (${parsedStudents.length} ta)` }}</span>
             </button>
           </div>
         </div>

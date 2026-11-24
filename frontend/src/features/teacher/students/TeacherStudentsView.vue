@@ -22,6 +22,7 @@ const statusFilter = ref<'all' | 'eligible' | 'inactive'>('all');
 
 const isCreateModalOpen = ref(false);
 const isBulkModalOpen = ref(false);
+const isBulkImporting = ref(false);
 
 // Pagination State
 const currentPage = ref(1);
@@ -83,21 +84,38 @@ function handleStatusFilterChange() {
 }
 
 async function handleCreateStudent(input: StudentInput) {
-  const created = await orgStore.createStudent(input);
-  toast.success(`${created.firstName} ${created.lastName} muvaffaqiyatli qo'shildi!`, "O'quvchi qo'shildi");
-  const tenantId =
-    tenantStore.currentTenant?.tenantId ||
-    (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
-  await teacherStore.loadTeacherData(tenantId, true);
+  try {
+    const created = await orgStore.createStudent(input);
+    toast.success(`${created.firstName} ${created.lastName} muvaffaqiyatli qo'shildi!`, "O'quvchi qo'shildi");
+    const tenantId =
+      tenantStore.currentTenant?.tenantId ||
+      (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
+    await teacherStore.loadTeacherData(tenantId, true);
+  } catch (err: any) {
+    toast.error(err?.message || "O'quvchi qo'shishda xatolik yuz berdi", 'Xatolik');
+  }
 }
 
 async function handleBulkImport(inputs: StudentInput[]) {
-  const createdList = await orgStore.bulkImportStudents(inputs);
-  toast.success(`${createdList.length} nafar o'quvchi muvaffaqiyatli import qilindi!`, 'Ommaviy import');
-  const tenantId =
-    tenantStore.currentTenant?.tenantId ||
-    (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
-  await teacherStore.loadTeacherData(tenantId, true);
+  isBulkImporting.value = true;
+  try {
+    const createdList = await orgStore.bulkImportStudents(inputs);
+    toast.success(`${createdList.length} nafar o'quvchi muvaffaqiyatli import qilindi!`, 'Ommaviy import');
+    const tenantId =
+      tenantStore.currentTenant?.tenantId ||
+      (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
+    await teacherStore.loadTeacherData(tenantId, true);
+    teacherStore.selectedClassId = null;
+    teacherStore.selectedGroupFilter = 'ALL';
+    teacherStore.setSearchQuery('');
+    searchInput.value = '';
+    currentPage.value = 1;
+    isBulkModalOpen.value = false;
+  } catch (err: any) {
+    toast.error(err?.message || "O'quvchilarni import qilishda xatolik yuz berdi", 'Import xatosi');
+  } finally {
+    isBulkImporting.value = false;
+  }
 }
 </script>
 
@@ -317,6 +335,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
       :school-id="tenantStore.currentTenant?.tenantId || 'sch-01'"
       :tenant-slug="tenantSlug"
       :available-classes="availableClassRecords"
+      :is-submitting="isBulkImporting"
       @close="isBulkModalOpen = false"
       @bulk-import="handleBulkImport"
     />

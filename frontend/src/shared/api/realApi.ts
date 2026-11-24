@@ -1,4 +1,5 @@
 import { httpClient } from './httpClient';
+import { logger } from '../services/logger/LoggerService';
 import type { TenantRepository } from './repositories/TenantRepository';
 import type { RosterRepository } from './repositories/RosterRepository';
 import type { AssessmentRepository } from './repositories/AssessmentRepository';
@@ -915,23 +916,9 @@ export class RealOrganizationRepository implements OrganizationRepository {
       };
       const res = await httpClient.post<StudentRecord>('/students', payload);
       return res;
-    } catch {
-      return {
-        id: input.rosterCode || `stu-${Date.now()}`,
-        tenantSlug: input.tenantSlug,
-        schoolId: input.schoolId,
-        classGroupId: input.classGroupId,
-        className: input.className,
-        rosterCode: input.rosterCode || `STU-${Date.now()}`,
-        fullName: `${input.lastName} ${input.firstName}`,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        middleName: input.middleName,
-        gender: input.gender,
-        birthDate: input.birthDate,
-        status: input.status,
-        createdAt: new Date().toISOString(),
-      };
+    } catch (err) {
+      logger.error('Failed to create student', { err, input });
+      throw err;
     }
   }
 
@@ -953,23 +940,9 @@ export class RealOrganizationRepository implements OrganizationRepository {
       }));
       const res = await httpClient.post<StudentRecord[]>('/students/bulk', payload);
       return res;
-    } catch {
-      return inputs.map((input) => ({
-        id: input.rosterCode || `stu-${Date.now()}`,
-        tenantSlug: input.tenantSlug,
-        schoolId: input.schoolId,
-        classGroupId: input.classGroupId,
-        className: input.className,
-        rosterCode: input.rosterCode || `STU-${Date.now()}`,
-        fullName: `${input.lastName} ${input.firstName}`,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        middleName: input.middleName,
-        gender: input.gender,
-        birthDate: input.birthDate,
-        status: input.status,
-        createdAt: new Date().toISOString(),
-      }));
+    } catch (err) {
+      logger.error('Failed to bulk create students', { err, count: inputs.length });
+      throw err;
     }
   }
 
