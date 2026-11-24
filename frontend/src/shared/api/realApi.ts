@@ -475,7 +475,7 @@ export class RealAttemptRepository implements AttemptRepository {
 export class RealResultRepository implements ResultRepository {
   async getResultByAttemptId(_tenantId: string, attemptId: string): Promise<AssessmentResult | null> {
     try {
-      return await httpClient.get<AssessmentResult>(`/results/attempt/${attemptId}`);
+      return await httpClient.get<AssessmentResult>(`/assessments/results/attempt/${attemptId}`);
     } catch {
       return null;
     }
@@ -483,7 +483,7 @@ export class RealResultRepository implements ResultRepository {
 
   async getResultsByTenant(tenantId: string): Promise<AssessmentResult[]> {
     try {
-      return await httpClient.get<AssessmentResult[]>(`/results/tenant/${tenantId}`);
+      return await httpClient.get<AssessmentResult[]>(`/assessments/results/tenant/${tenantId}`);
     } catch {
       return [];
     }
@@ -578,7 +578,7 @@ export class RealTeacherRepository implements TeacherRepository {
 
   async getResults(tenantId: string): Promise<AssessmentResult[]> {
     try {
-      return await httpClient.get<AssessmentResult[]>(`/results/tenant/${tenantId}`);
+      return await httpClient.get<AssessmentResult[]>(`/assessments/results/tenant/${tenantId}`);
     } catch {
       return [];
     }
@@ -612,7 +612,7 @@ export class RealTeacherRepository implements TeacherRepository {
       const found = students.find((s) => s.id === studentId || s.rosterCode === studentId);
       if (!found) return null;
 
-      const results = await httpClient.get<AssessmentResult[]>(`/results/tenant/${tenantId}`);
+      const results = await httpClient.get<AssessmentResult[]>(`/assessments/results/tenant/${tenantId}`);
       const studentResults = results.filter((r) => r.rosterRecordId === found.id);
       const avg =
         studentResults.length > 0
@@ -898,45 +898,107 @@ export class RealOrganizationRepository implements OrganizationRepository {
   }
 
   async createStudent(input: StudentInput): Promise<StudentRecord> {
-    return {
-      id: input.rosterCode || `stu-${Date.now()}`,
-      tenantSlug: input.tenantSlug,
-      schoolId: input.schoolId,
-      classGroupId: input.classGroupId,
-      className: input.className,
-      rosterCode: input.rosterCode || `STU-${Date.now()}`,
-      fullName: `${input.lastName} ${input.firstName}`,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      middleName: input.middleName,
-      gender: input.gender,
-      birthDate: input.birthDate,
-      status: input.status,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const payload = {
+        tenantSlug: input.tenantSlug,
+        schoolId: input.schoolId,
+        classGroupId: input.classGroupId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        middleName: input.middleName || undefined,
+        gender: input.gender,
+        birthDate: input.birthDate || '2008-05-15',
+        rosterCode: input.rosterCode || undefined,
+        status: input.status,
+        group: input.group || '1-guruh',
+        emaktabId: input.emaktabId || undefined,
+      };
+      const res = await httpClient.post<StudentRecord>('/students', payload);
+      return res;
+    } catch {
+      return {
+        id: input.rosterCode || `stu-${Date.now()}`,
+        tenantSlug: input.tenantSlug,
+        schoolId: input.schoolId,
+        classGroupId: input.classGroupId,
+        className: input.className,
+        rosterCode: input.rosterCode || `STU-${Date.now()}`,
+        fullName: `${input.lastName} ${input.firstName}`,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        middleName: input.middleName,
+        gender: input.gender,
+        birthDate: input.birthDate,
+        status: input.status,
+        createdAt: new Date().toISOString(),
+      };
+    }
   }
 
   async bulkCreateStudents(inputs: StudentInput[]): Promise<StudentRecord[]> {
-    return inputs.map((input) => ({
-      id: input.rosterCode || `stu-${Date.now()}`,
-      tenantSlug: input.tenantSlug,
-      schoolId: input.schoolId,
-      classGroupId: input.classGroupId,
-      className: input.className,
-      rosterCode: input.rosterCode || `STU-${Date.now()}`,
-      fullName: `${input.lastName} ${input.firstName}`,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      middleName: input.middleName,
-      gender: input.gender,
-      birthDate: input.birthDate,
-      status: input.status,
-      createdAt: new Date().toISOString(),
-    }));
+    try {
+      const payload = inputs.map((input) => ({
+        tenantSlug: input.tenantSlug,
+        schoolId: input.schoolId,
+        classGroupId: input.classGroupId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        middleName: input.middleName || undefined,
+        gender: input.gender,
+        birthDate: input.birthDate || '2008-05-15',
+        rosterCode: input.rosterCode || undefined,
+        status: input.status,
+        group: input.group || '1-guruh',
+        emaktabId: input.emaktabId || undefined,
+      }));
+      const res = await httpClient.post<StudentRecord[]>('/students/bulk', payload);
+      return res;
+    } catch {
+      return inputs.map((input) => ({
+        id: input.rosterCode || `stu-${Date.now()}`,
+        tenantSlug: input.tenantSlug,
+        schoolId: input.schoolId,
+        classGroupId: input.classGroupId,
+        className: input.className,
+        rosterCode: input.rosterCode || `STU-${Date.now()}`,
+        fullName: `${input.lastName} ${input.firstName}`,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        middleName: input.middleName,
+        gender: input.gender,
+        birthDate: input.birthDate,
+        status: input.status,
+        createdAt: new Date().toISOString(),
+      }));
+    }
   }
 
-  async getStudentsBySchool(_tenantSlug: string, _classGroupId?: string): Promise<StudentRecord[]> {
-    return [];
+  async getStudentsBySchool(tenantSlug: string, classGroupId?: string): Promise<StudentRecord[]> {
+    try {
+      const list = await httpClient.get<BackendStudentItem[]>('/students', {
+        params: { tenantSlug, classGroupId },
+      });
+      return list.map((s) => ({
+        id: s.id,
+        tenantSlug: s.tenantSlug || tenantSlug,
+        schoolId: s.schoolId,
+        classGroupId: s.classGroupId,
+        className: s.className || '',
+        rosterCode: s.rosterCode,
+        fullName: s.fullName || `${s.lastName} ${s.firstName}`,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        middleName: s.middleName,
+        gender: (s.gender === 'F' ? 'F' : 'M') as any,
+        birthDate: s.birthDate,
+        status: (s.status === 'inactive' ? 'inactive' : 'eligible') as any,
+        group: s.group || '1-guruh',
+        emaktabId: s.emaktabId || null,
+        createdAt: s.createdAt,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   async updateStudent(_id: string, _updates: Partial<StudentInput>): Promise<StudentRecord | null> {

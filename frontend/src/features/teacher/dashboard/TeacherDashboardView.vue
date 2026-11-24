@@ -15,7 +15,7 @@ onMounted(async () => {
   const tenantId =
     tenantStore.currentTenant?.tenantId ||
     (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
-  await teacherStore.loadTeacherData(tenantId);
+  await teacherStore.loadTeacherData(tenantId, true);
 });
 </script>
 

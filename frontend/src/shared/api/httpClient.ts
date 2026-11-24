@@ -74,6 +74,7 @@ class HttpClient {
     }
 
     const fetchOptions: RequestInit = {
+      cache: 'no-store',
       ...rest,
       headers: reqHeaders,
     };

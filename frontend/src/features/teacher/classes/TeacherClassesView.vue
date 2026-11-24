@@ -25,7 +25,7 @@ onMounted(async () => {
     tenantStore.currentTenant?.tenantId ||
     (tenantSlug.value === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
   await Promise.all([
-    teacherStore.loadTeacherData(tenantId),
+    teacherStore.loadTeacherData(tenantId, true),
     orgStore.loadSchoolContext(tenantSlug.value),
   ]);
 });

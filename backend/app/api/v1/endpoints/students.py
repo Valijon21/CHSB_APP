@@ -9,10 +9,11 @@ router = APIRouter(prefix="/students", tags=["Students"])
 
 class StudentCreate(BaseModel):
     tenantSlug: str
-    schoolId: str
-    classGroupId: str
-    firstName: str = Field(..., min_length=2)
-    lastName: str = Field(..., min_length=2)
+    schoolId: str | None = None
+    classGroupId: str | None = None
+    className: str | None = None
+    firstName: str = Field(..., min_length=1)
+    lastName: str = Field(..., min_length=1)
     middleName: str | None = None
     gender: str = "M"
     birthDate: str = "2008-05-15"
@@ -78,27 +79,60 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
+    # Safely resolve valid class group and school within tenant
+    class_group = await db.classgroup.find_first(
+        where={"id": payload.classGroupId, "tenantId": tenant.id}
+    )
+    if not class_group:
+        class_group = await db.classgroup.find_first(
+            where={"tenantId": tenant.id}
+        )
+    if not class_group:
+        raise HTTPException(status_code=400, detail="Muassasada sinf topilmadi.")
+
+    class_group_id = class_group.id
+    school_id = class_group.schoolId
+
     roster_code = payload.rosterCode
     if not roster_code:
         count = await db.student.count(where={"tenantId": tenant.id})
         roster_code = f"STU-{1100 + count + 1}"
+    else:
+        existing = await db.student.find_first(where={"rosterCode": roster_code})
+        if existing:
+            roster_code = f"{roster_code}-{int(datetime.now().timestamp())}"
+
+    try:
+        b_date = datetime.strptime(payload.birthDate, "%Y-%m-%d")
+    except Exception:
+        b_date = datetime(2008, 5, 15)
 
     created = await db.student.create(
         data={
             "tenantId": tenant.id,
-            "schoolId": payload.schoolId,
-            "classGroupId": payload.classGroupId,
+            "schoolId": school_id,
+            "classGroupId": class_group_id,
             "rosterCode": roster_code,
             "firstName": payload.firstName,
             "lastName": payload.lastName,
             "middleName": payload.middleName,
             "gender": payload.gender,
-            "birthDate": datetime.strptime(payload.birthDate, "%Y-%m-%d"),
+            "birthDate": b_date,
             "status": "ELIGIBLE" if payload.status == "eligible" else "INACTIVE",
             "group": payload.group or "1-guruh",
             "emaktabId": payload.emaktabId,
         },
         include={"classGroup": True},
+    )
+
+    # Increment student counts on class group and school
+    await db.classgroup.update(
+        where={"id": class_group_id},
+        data={"studentCount": {"increment": 1}},
+    )
+    await db.school.update(
+        where={"id": school_id},
+        data={"studentCount": {"increment": 1}},
     )
 
     return {
@@ -133,29 +167,33 @@ async def delete_all_students(
     tenantSlug: str | None = Query(None),
     db: Prisma = Depends(get_prisma),
 ):
-    where_clause: dict = {}
-    if tenantSlug:
-        tenant = await db.tenant.find_first(
-            where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-        )
-        if not tenant:
-            raise HTTPException(status_code=404, detail="Tenant topilmadi.")
-        where_clause["tenantId"] = tenant.id
+    if not tenantSlug:
+        await db.assessmentresult.delete_many()
+        await db.assessmentattempt.delete_many()
+        deleted_count = await db.student.delete_many()
+        await db.classgroup.update_many(where={}, data={"studentCount": 0})
+        await db.school.update_many(where={}, data={"studentCount": 0})
+        return {
+            "success": True,
+            "deletedCount": deleted_count,
+            "message": f"Barcha ({deleted_count} nafar) o'quvchi ma'lumotlari to'liq o'chirildi.",
+        }
 
-    students = await db.student.find_many(where=where_clause)
+    tenant = await db.tenant.find_first(
+        where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
+    )
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+
+    students = await db.student.find_many(where={"tenantId": tenant.id})
     student_ids = [s.id for s in students]
     if student_ids:
         await db.assessmentresult.delete_many(where={"studentId": {"in": student_ids}})
         await db.assessmentattempt.delete_many(where={"studentId": {"in": student_ids}})
 
-    deleted_count = await db.student.delete_many(where=where_clause)
-
-    if tenantSlug and 'tenant' in locals() and tenant:
-        await db.classgroup.update_many(where={"tenantId": tenant.id}, data={"studentCount": 0})
-        await db.school.update_many(where={"tenantId": tenant.id}, data={"studentCount": 0})
-    else:
-        await db.classgroup.update_many(data={"studentCount": 0})
-        await db.school.update_many(data={"studentCount": 0})
+    deleted_count = await db.student.delete_many(where={"tenantId": tenant.id})
+    await db.classgroup.update_many(where={"tenantId": tenant.id}, data={"studentCount": 0})
+    await db.school.update_many(where={"tenantId": tenant.id}, data={"studentCount": 0})
 
     return {
         "success": True,

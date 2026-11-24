@@ -198,6 +198,8 @@ export const useOrganizationStore = defineStore('organization', () => {
           firstName: created.firstName,
           lastName: created.lastName,
           middleName: created.middleName,
+          group: created.group || '1-guruh',
+          emaktabId: created.emaktabId,
           status: created.status === 'eligible' ? 'eligible' : 'inactive',
           availableAssessmentIds: [],
         });
@@ -239,6 +241,8 @@ export const useOrganizationStore = defineStore('organization', () => {
           firstName: st.firstName,
           lastName: st.lastName,
           middleName: st.middleName,
+          group: st.group || '1-guruh',
+          emaktabId: st.emaktabId,
           status: st.status === 'eligible' ? ('eligible' as const) : ('inactive' as const),
           availableAssessmentIds: [],
         }));
