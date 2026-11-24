@@ -121,6 +121,7 @@ async function main() {
     { id: 'class-ax-11v', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-V sinf', gradeLevel: 11, shift: 2, studentCount: 25, hasGroups: true },
     { id: 'class-ax-10a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-A sinf', gradeLevel: 10, shift: 1, studentCount: 27, hasGroups: true },
     { id: 'class-ax-10b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-B sinf', gradeLevel: 10, shift: 1, studentCount: 24, hasGroups: true },
+    { id: 'class-ax-10v', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-V sinf', gradeLevel: 10, shift: 1, studentCount: 0, hasGroups: true },
     { id: 'class-ax-9a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-A sinf', gradeLevel: 9, shift: 1, studentCount: 26, hasGroups: false },
     { id: 'class-ax-9b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-B sinf', gradeLevel: 9, shift: 2, studentCount: 25, hasGroups: false },
     { id: 'class-tm-11g1', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '11-Guruh-1 (Harbiy-AT)', gradeLevel: 11, shift: 1, studentCount: 24, hasGroups: false },

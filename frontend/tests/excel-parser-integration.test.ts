@@ -139,5 +139,66 @@ describe('Excel Parser & AI RAG Integration', () => {
       expect(wrapper.text()).toContain('1-10');
       expect(wrapper.text()).toContain('15 ta');
     });
+
+    it('handles binary Excel file upload via parse-file API and auto-matches class', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          fileName: '10-V-Informatika-20_11_2026.xls',
+          detectedGroup: '1-guruh',
+          detectedClass: '10-V',
+          totalParsed: 27,
+          students: [
+            {
+              orderIndex: 1,
+              fullName: 'Abbosova Bahora',
+              firstName: 'Bahora',
+              lastName: 'Abbosova',
+              emaktabId: '1000005839035',
+              gender: 'F',
+              birthDate: '2009-01-01',
+              group: '1-guruh',
+            },
+          ],
+        }),
+      } as any);
+
+      const wrapper = mount(BulkStudentImportModal, {
+        props: {
+          isOpen: true,
+          schoolId: 'sch-01',
+          tenantSlug: 'al-xorazmiy',
+          availableClasses: [
+            ...mockClasses,
+            {
+              id: 'cls-10v',
+              schoolId: 'sch-01',
+              tenantSlug: 'al-xorazmiy',
+              name: '10-V sinf',
+              gradeLevel: 10,
+              shift: 1,
+              academicYear: '2026-2027',
+              studentCount: 0,
+              createdAt: '',
+            },
+          ],
+        },
+      });
+
+      const file = new File(['mock binary content'], '10-V-Informatika-20_11_2026.xls', {
+        type: 'application/vnd.ms-excel',
+      });
+      const fileInput = wrapper.find('input[type="file"]');
+      Object.defineProperty(fileInput.element, 'files', {
+        value: [file],
+        writable: true,
+      });
+      await fileInput.trigger('change');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain('Abbosova Bahora');
+      expect(wrapper.text()).toContain('1000005839035');
+    });
   });
 });

@@ -28,10 +28,23 @@ class ParseFileResult(BaseModel):
     success: bool
     fileName: str
     detectedGroup: str
+    detectedClass: Optional[str] = None
     totalParsed: int
     students: List[ParsedStudent]
     warnings: List[str] = []
     error: Optional[str] = None
+
+
+def detect_class_from_name_or_text(text: str) -> Optional[str]:
+    """Fayl nomi yoki sarlavhadan sinf nomini aniqlash (masalan: 10-V, 11-A, 9-B)"""
+    m = re.search(r'(?:^|[^0-9])(1[0-1]|[1-9])[-_\s]*([A-Za-zА-Яа-я])(?=[^A-Za-zА-Яа-я0-9]|$)', text)
+    if m:
+        grade = m.group(1)
+        letter = m.group(2).upper()
+        cyr_to_lat = {'А': 'A', 'В': 'V', 'Б': 'B', 'Г': 'G', 'Д': 'D'}
+        letter = cyr_to_lat.get(letter, letter)
+        return f"{grade}-{letter}"
+    return None
 
 
 def detect_group_from_name_or_text(text: str) -> str:
@@ -54,13 +67,13 @@ def infer_gender_from_name(full_name: str, explicit_gender: Optional[str] = None
 
     words = full_name.lower().split()
     for w in words:
-        if w in ['qizi', 'ayol', 'qiz']:
+        if w in ['qizi', 'ayol', 'qiz', 'қизи', 'кизи', 'аёл', 'қиз']:
             return 'F'
-        if w in ["o'g'li", "o‘g‘li", "og'li", "erkak"]:
+        if w in ["o'g'li", "o‘g‘li", "og'li", "erkak", 'ўғли', 'угли', 'эркак']:
             return 'M'
-        if w.endswith(('ova', 'eva', 'zoda')):
+        if w.endswith(('ova', 'eva', 'zoda', 'bonu', 'xon', 'ова', 'ева', 'зода', 'бону', 'хон', 'нур')):
             return 'F'
-        if w.endswith(('ov', 'ev', 'bek', 'jon', 'boy')):
+        if w.endswith(('ov', 'ev', 'bek', 'jon', 'boy', 'ов', 'ев', 'бек', 'жон', 'бой', 'назар')):
             return 'M'
 
     return 'M'
@@ -275,6 +288,23 @@ def parse_rows_to_students(rows: List[List[str]], default_group: str = '1-guruh'
                 elif not raw_name and is_valid_student_name(cell):
                     raw_name = cell
 
+        # Agar ism bo'lsa-yu, emaktab_id hali aniqlanmagan bo'lsa, qatordagi barcha katakchalarni tekshirish
+        if not emaktab_id:
+            for c_idx, cell in enumerate(row):
+                if c_idx != name_col:
+                    m = re.search(r'\b\d{7,14}\b', str(cell).strip())
+                    if m:
+                        emaktab_id = m.group(0)
+                        break
+
+        # Agar ism topilmasa yoki yaroqsiz bo'lsa, boshqa katakchalardan tekshirish
+        if not is_valid_student_name(raw_name):
+            for c_idx, cell in enumerate(row):
+                cand = str(cell).strip()
+                if is_valid_student_name(cand):
+                    raw_name = cand
+                    break
+
         # Agar ism topilmasa yoki yaroqsiz bo'lsa, qat'iyan chetlab o'tish (0 junk!)
         if not is_valid_student_name(raw_name):
             continue
@@ -305,6 +335,7 @@ def parse_excel_or_csv_file(file_name: str, file_bytes: bytes, group_override: O
     """Istalgan .xlsx, .xls yoki .csv faylni to'liq xatosiz tahlil qilish"""
     lower_name = file_name.lower()
     detected_group = group_override or detect_group_from_name_or_text(file_name)
+    detected_class = detect_class_from_name_or_text(file_name)
 
     try:
         if lower_name.endswith('.xls'):
@@ -319,10 +350,19 @@ def parse_excel_or_csv_file(file_name: str, file_bytes: bytes, group_override: O
                 success=False,
                 fileName=file_name,
                 detectedGroup=detected_group,
+                detectedClass=detected_class,
                 totalParsed=0,
                 students=[],
                 error="Fayl bo'sh yoki o'qib bo'lmadi."
             )
+
+        if not detected_class:
+            for r in rows[:10]:
+                row_str = " ".join(r)
+                cls_found = detect_class_from_name_or_text(row_str)
+                if cls_found:
+                    detected_class = cls_found
+                    break
 
         students = parse_rows_to_students(rows, default_group=detected_group)
 
@@ -330,6 +370,7 @@ def parse_excel_or_csv_file(file_name: str, file_bytes: bytes, group_override: O
             success=True,
             fileName=file_name,
             detectedGroup=detected_group,
+            detectedClass=detected_class,
             totalParsed=len(students),
             students=students,
             warnings=[]
@@ -339,6 +380,7 @@ def parse_excel_or_csv_file(file_name: str, file_bytes: bytes, group_override: O
             success=False,
             fileName=file_name,
             detectedGroup=detected_group,
+            detectedClass=detected_class,
             totalParsed=0,
             students=[],
             error=f"Faylni tahlil qilishda xatolik yuz berdi: {str(e)}"

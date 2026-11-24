@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, toRef, computed } from 'vue';
+import { ref, toRef, computed, watch } from 'vue';
 import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import type { StudentInput, StudentGender } from '../../../entities/organization/model';
 import type { ClassGroupRecord } from '../../../entities/organization/model';
@@ -27,6 +27,7 @@ useModalA11y(toRef(props, 'isOpen'), () => {
 const selectedClassId = ref(props.availableClasses[0]?.id || '');
 const selectedGroup = ref<'1-guruh' | '2-guruh'>('1-guruh');
 const autoDetectedGroup = ref<string | null>(null);
+const autoDetectedClass = ref<string | null>(null);
 const rawText = ref('');
 const parsedStudents = ref<StudentInput[]>([]);
 const isParsed = ref(false);
@@ -36,6 +37,26 @@ const isAiExtracting = ref(false);
 const errorMessage = ref<string | null>(null);
 const uploadedFileName = ref<string | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+
+// Watch availableClasses to ensure selectedClassId is populated
+watch(
+  () => props.availableClasses,
+  (classes) => {
+    if ((!selectedClassId.value || !classes.some((c) => c.id === selectedClassId.value)) && classes.length > 0) {
+      selectedClassId.value = classes[0].id;
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open && (!selectedClassId.value || !props.availableClasses.some((c) => c.id === selectedClassId.value)) && props.availableClasses.length > 0) {
+      selectedClassId.value = props.availableClasses[0].id;
+    }
+  }
+);
 
 // Pagination in preview
 const previewPage = ref(1);
@@ -85,21 +106,52 @@ async function readFile(file: File) {
       formData.append('group', selectedGroup.value);
     }
 
-    const res = await fetch('/api/v1/students/parse-file', {
-      method: 'POST',
-      body: formData,
-    });
+    const apiBase =
+      import.meta.env.VITE_API_BASE_URL ||
+      (import.meta.env.DEV ? 'http://localhost:8000/api/v1' : '/api/v1');
+    const endpoint = apiBase.endsWith('/')
+      ? `${apiBase}students/parse-file`
+      : `${apiBase}/students/parse-file`;
 
-    if (res.ok) {
+    let res: Response | null = null;
+    try {
+      res = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+    } catch {
+      // Direct connection error fallback to relative path (Vite proxy)
+      try {
+        res = await fetch('/api/v1/students/parse-file', {
+          method: 'POST',
+          body: formData,
+        });
+      } catch {
+        res = null;
+      }
+    }
+
+    if (res && res.ok) {
       const data = await res.json();
       if (data.success && Array.isArray(data.students) && data.students.length > 0) {
-        const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
-        const className = cls?.name || 'Sinf';
-
         if (data.detectedGroup) {
           selectedGroup.value = data.detectedGroup as '1-guruh' | '2-guruh';
           autoDetectedGroup.value = data.detectedGroup;
         }
+
+        if (data.detectedClass) {
+          autoDetectedClass.value = data.detectedClass;
+          const normDetected = data.detectedClass.toLowerCase().replace(/[\s-_]/g, '');
+          const matched = props.availableClasses.find((c) =>
+            c.name.toLowerCase().replace(/[\s-_sinf]/g, '').includes(normDetected)
+          );
+          if (matched) {
+            selectedClassId.value = matched.id;
+          }
+        }
+
+        const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+        const className = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
 
         parsedStudents.value = data.students.map((s: any) => ({
           tenantSlug: props.tenantSlug,
@@ -406,6 +458,7 @@ function downloadSample() {
               v-model="selectedClassId"
               class="p-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-teal-800 dark:text-teal-300"
             >
+              <option v-if="availableClasses.length === 0" value="">Sinf tanlanmagan</option>
               <option v-for="c in availableClasses" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </div>
@@ -439,8 +492,13 @@ function downloadSample() {
             </button>
           </div>
 
+          <span v-if="autoDetectedClass" class="px-2 py-1 rounded-md bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-semibold text-[11px] border border-teal-300 dark:border-teal-700 flex items-center gap-1">
+            <span>✓ Sinf:</span>
+            <strong>{{ autoDetectedClass }}</strong>
+          </span>
+
           <span v-if="autoDetectedGroup" class="px-2 py-1 rounded-md bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-semibold text-[11px] border border-teal-300 dark:border-teal-700 flex items-center gap-1">
-            <span>✓ Fayldan aniqlandi:</span>
+            <span>✓ Guruh:</span>
             <strong>{{ autoDetectedGroup }}</strong>
           </span>
         </div>

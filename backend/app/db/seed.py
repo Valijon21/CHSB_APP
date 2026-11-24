@@ -161,6 +161,7 @@ async def auto_seed_db(db: Prisma, force: bool = False):
         {"id": "class-ax-11v", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-V sinf", "gradeLevel": 11, "shift": 2, "studentCount": 25, "hasGroups": True},
         {"id": "class-ax-10a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-A sinf", "gradeLevel": 10, "shift": 1, "studentCount": 27, "hasGroups": True},
         {"id": "class-ax-10b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-B sinf", "gradeLevel": 10, "shift": 1, "studentCount": 24, "hasGroups": True},
+        {"id": "class-ax-10v", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-V sinf", "gradeLevel": 10, "shift": 1, "studentCount": 0, "hasGroups": True},
         {"id": "class-ax-9a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "9-A sinf", "gradeLevel": 9, "shift": 1, "studentCount": 26, "hasGroups": False},
         {"id": "class-ax-9b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "9-B sinf", "gradeLevel": 9, "shift": 2, "studentCount": 25, "hasGroups": False},
         {"id": "class-tm-11g1", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "11-Guruh-1 (Harbiy-AT)", "gradeLevel": 11, "shift": 1, "studentCount": 24, "hasGroups": False},

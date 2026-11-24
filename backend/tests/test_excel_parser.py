@@ -3,6 +3,7 @@ import io
 import zipfile
 from backend.app.services.excel_parser import (
     detect_group_from_name_or_text,
+    detect_class_from_name_or_text,
     split_full_name,
     infer_gender_from_name,
     is_valid_student_name,
@@ -16,6 +17,12 @@ def test_detect_group_from_name_or_text():
     assert detect_group_from_name_or_text("11-A (1-guruh)") == "1-guruh"
     assert detect_group_from_name_or_text("11-A (2-guruh)") == "2-guruh"
     assert detect_group_from_name_or_text("Matematika 9-A") == "1-guruh"
+
+def test_detect_class_from_name_or_text():
+    assert detect_class_from_name_or_text("10-V-Informatika-20_11_2026.xls") == "10-V"
+    assert detect_class_from_name_or_text("11-A_Informatika.xls") == "11-A"
+    assert detect_class_from_name_or_text("Sinf: 10-V 2026/2027") == "10-V"
+    assert detect_class_from_name_or_text("9-B sinf") == "9-B"
 
 def test_split_full_name():
     last, first, mid = split_full_name("Abduraximova Zuxra Farxod qizi")
@@ -33,6 +40,10 @@ def test_infer_gender_from_name():
     assert infer_gender_from_name("Ergashev Jasur Akram o'g'li") == "M"
     assert infer_gender_from_name("Bozorova Dilfuza") == "F"
     assert infer_gender_from_name("Zokirov Alisher") == "M"
+    # Cyrillic names
+    assert infer_gender_from_name("Давлаталиев Жахонгир") == "M"
+    assert infer_gender_from_name("Жўнашова Мохинур") == "F"
+    assert infer_gender_from_name("Исакбоева Мохирабону") == "F"
     assert infer_gender_from_name("Some Student", explicit_gender="Ayol") == "F"
     assert infer_gender_from_name("Some Student", explicit_gender="Erkak") == "M"
 
