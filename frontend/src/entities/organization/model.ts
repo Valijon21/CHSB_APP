@@ -103,6 +103,7 @@ export const StudentInputSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tug\'ilgan sana YYYY-MM-DD formatida bo\'lishi kerak (masalan: 2009-05-15)'),
   rosterCode: z.string().optional(),
   emaktabId: z.string().optional(),
+  group: z.string().optional().default('1-guruh'),
   status: StudentStatusSchema.default('eligible'),
 });
 
@@ -137,6 +138,8 @@ export type ClassGroupInput = z.infer<typeof ClassGroupInputSchema>;
 export const ClassGroupRecordSchema = ClassGroupInputSchema.extend({
   id: z.string().min(1),
   studentCount: z.number().int().nonnegative().default(0),
+  hasGroups: z.boolean().optional().default(true),
+  groupCounts: z.record(z.string(), z.number()).optional(),
   createdAt: z.string(),
 });
 

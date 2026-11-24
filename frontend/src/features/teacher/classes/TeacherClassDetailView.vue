@@ -18,8 +18,17 @@ const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const classId = (route.params.classId as string) || '';
 
 const searchQuery = ref('');
+const selectedGroupTab = ref<'ALL' | '1-guruh' | '2-guruh'>('ALL');
 const selectedGradeFilter = ref<'ALL' | '5' | '4' | '3' | 'PENDING'>('ALL');
 const sortBy = ref<'score_desc' | 'score_asc' | 'name_asc'>('score_desc');
+
+const countGroup1 = computed(() => {
+  return teacherStore.classDetail?.students.filter((s) => s.group === '1-guruh').length ?? 0;
+});
+
+const countGroup2 = computed(() => {
+  return teacherStore.classDetail?.students.filter((s) => s.group === '2-guruh').length ?? 0;
+});
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
@@ -177,6 +186,11 @@ const displayedStudents = computed<StudentTableItem[]>(() => {
     const grade = result ? getGradeScale(result.percentage) : undefined;
     return { student: stu, result, grade };
   });
+
+  // Filter by group tab
+  if (selectedGroupTab.value !== 'ALL') {
+    list = list.filter((item) => (item.student.group || '1-guruh') === selectedGroupTab.value);
+  }
 
   // Filter by search query
   const q = searchQuery.value.trim().toLowerCase();
@@ -416,19 +430,66 @@ function handleExportCSV() {
       <!-- Interactive Roster Table & Toolbar -->
       <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs overflow-hidden transition-colors">
         <!-- Table Toolbar -->
-        <div class="p-4 border-b border-slate-100 dark:border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div>
-            <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              Sinf O'quvchilari va Natijalari ({{ displayedStudents.length }})
-            </h2>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">
-              Har bir o'quvchining shaxsiy ko'rsatkichlari va 5 ballik baho shkalasi
-            </p>
+        <div class="p-4 border-b border-slate-100 dark:border-slate-700/80 space-y-3">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Sinf O'quvchilari va Natijalari ({{ displayedStudents.length }})
+              </h2>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                Har bir o'quvchining shaxsiy ko'rsatkichlari, guruhi va 5 ballik baho shkalasi
+              </p>
+            </div>
+
+            <!-- Group Switcher Tabs -->
+            <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-700/60 rounded-xl">
+              <button
+                type="button"
+                @click="selectedGroupTab = 'ALL'"
+                :class="[
+                  'px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5',
+                  selectedGroupTab === 'ALL'
+                    ? 'bg-teal-800 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                ]"
+              >
+                <span>Barchasi</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{{ teacherStore.classDetail?.students.length || 0 }}</span>
+              </button>
+
+              <button
+                type="button"
+                @click="selectedGroupTab = '1-guruh'"
+                :class="[
+                  'px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5',
+                  selectedGroupTab === '1-guruh'
+                    ? 'bg-teal-800 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                ]"
+              >
+                <span>1-guruh</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{{ countGroup1 }}</span>
+              </button>
+
+              <button
+                type="button"
+                @click="selectedGroupTab = '2-guruh'"
+                :class="[
+                  'px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5',
+                  selectedGroupTab === '2-guruh'
+                    ? 'bg-teal-800 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                ]"
+              >
+                <span>2-guruh</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{{ countGroup2 }}</span>
+              </button>
+            </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/60">
             <!-- Search Input -->
-            <div class="relative min-w-[200px]">
+            <div class="relative min-w-[200px] flex-1 max-w-xs">
               <input
                 v-model="searchQuery"
                 type="text"
@@ -439,29 +500,31 @@ function handleExportCSV() {
               <span class="absolute left-2.5 top-2 text-slate-400 text-xs">🔍</span>
             </div>
 
-            <!-- Grade Filter -->
-            <select
-              v-model="selectedGradeFilter"
-              aria-label="Baho bo'yicha saralash"
-              class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden text-xs"
-            >
-              <option value="ALL">Barcha baholar</option>
-              <option value="5">5 - A'lo</option>
-              <option value="4">4 - Yaxshi</option>
-              <option value="3">3 - Qoniqarli</option>
-              <option value="PENDING">Topshirmagan</option>
-            </select>
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Grade Filter -->
+              <select
+                v-model="selectedGradeFilter"
+                aria-label="Baho bo'yicha saralash"
+                class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden text-xs"
+              >
+                <option value="ALL">Barcha baholar</option>
+                <option value="5">5 - A'lo</option>
+                <option value="4">4 - Yaxshi</option>
+                <option value="3">3 - Qoniqarli</option>
+                <option value="PENDING">Topshirmagan</option>
+              </select>
 
-            <!-- Sort By -->
-            <select
-              v-model="sortBy"
-              aria-label="Natijalarni tartiblash"
-              class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden text-xs"
-            >
-              <option value="score_desc">Ball: Kamayish tartibida</option>
-              <option value="score_asc">Ball: O'sish tartibida</option>
-              <option value="name_asc">Ism: A – Z</option>
-            </select>
+              <!-- Sort By -->
+              <select
+                v-model="sortBy"
+                aria-label="Natijalarni tartiblash"
+                class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden text-xs"
+              >
+                <option value="score_desc">Ball: Kamayish tartibida</option>
+                <option value="score_asc">Ball: O'sish tartibida</option>
+                <option value="name_asc">Ism: A – Z</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -473,6 +536,7 @@ function handleExportCSV() {
                 <th class="p-3.5">№</th>
                 <th class="p-3.5">O'quvchi F.I.SH.</th>
                 <th class="p-3.5">Roster Kodi</th>
+                <th class="p-3.5 text-center">Guruh</th>
                 <th class="p-3.5">Holati</th>
                 <th class="p-3.5 text-center">CHSB Bali</th>
                 <th class="p-3.5 text-center">Foiz (%)</th>
@@ -487,11 +551,21 @@ function handleExportCSV() {
                 class="hover:bg-slate-50/60 dark:hover:bg-slate-700/40 transition"
               >
                 <td class="p-3.5 text-slate-400 font-mono">{{ idx + 1 }}</td>
-                <td class="p-3.5 font-bold text-slate-900 dark:text-white">
-                  {{ item.student.lastName }} {{ item.student.firstName }} {{ item.student.middleName || '' }}
+                <td class="p-3.5">
+                  <div class="font-bold text-slate-900 dark:text-white">
+                    {{ item.student.lastName }} {{ item.student.firstName }} {{ item.student.middleName || '' }}
+                  </div>
+                  <div v-if="item.student.emaktabId" class="text-[10px] font-mono text-slate-400 dark:text-slate-400">
+                    eMaktab ID: {{ item.student.emaktabId }}
+                  </div>
                 </td>
                 <td class="p-3.5 font-mono text-teal-800 dark:text-teal-400 font-semibold">
                   {{ item.student.rosterCode }}
+                </td>
+                <td class="p-3.5 text-center">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                    {{ item.student.group || '1-guruh' }}
+                  </span>
                 </td>
                 <td class="p-3.5">
                   <span

@@ -82,6 +82,12 @@ async function handleCreateAssessment(input: CreateAssessmentInput) {
             <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
               {{ asm.grade }}-sinf
             </span>
+            <span v-if="asm.targetGroup && asm.targetGroup !== 'all'" class="px-2.5 py-0.5 rounded text-xs font-bold bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 border border-teal-300 dark:border-teal-700">
+              🏷️ {{ asm.targetGroup }}
+            </span>
+            <span v-else class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+              Butun sinf
+            </span>
             <span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
               {{ asm.quarter }}-chorak
             </span>

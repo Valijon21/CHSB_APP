@@ -27,6 +27,7 @@ const shift = ref<1 | 2>(1);
 const academicYear = ref('2026-2027');
 const headTeacherId = ref('');
 const track = ref('Umumiy ta\'lim');
+const hasGroups = ref<boolean>(true);
 const errorMessage = ref<string | null>(null);
 
 const selectedTeacher = computed(() => {
@@ -41,6 +42,7 @@ function resetForm() {
   academicYear.value = '2026-2027';
   headTeacherId.value = '';
   track.value = 'Umumiy ta\'lim';
+  hasGroups.value = true;
   errorMessage.value = null;
 }
 
@@ -66,6 +68,7 @@ function handleSubmit() {
     gradeLevel: Number(gradeLevel.value),
     shift: shift.value,
     academicYear: academicYear.value,
+    hasGroups: hasGroups.value,
     headTeacherId: headTeacherId.value || undefined,
     headTeacherName: selectedTeacher.value?.fullName || undefined,
   };
@@ -222,6 +225,22 @@ function handleSubmit() {
               <option value="Xorijiy tillar">Xorijiy tillar</option>
             </select>
           </div>
+        </div>
+
+        <!-- 2-guruhga bo'linish tizimi -->
+        <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 flex items-center justify-between">
+          <div>
+            <span class="block font-semibold text-slate-800 dark:text-slate-200 text-xs">
+              Guruhlarga bo'linish (2-guruh tizimi)
+            </span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">
+              Informatika, Chet tili, Texnologiya fanlarida 1-guruh va 2-guruhga ajratish
+            </span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" v-model="hasGroups" class="sr-only peer" />
+            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-700"></div>
+          </label>
         </div>
 
         <!-- Head Teacher (Sinf rahbari) Selector -->

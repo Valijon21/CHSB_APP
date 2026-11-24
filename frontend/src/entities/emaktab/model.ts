@@ -7,6 +7,7 @@ export const EmaktabStudentSchema = z.object({
   gender: z.enum(['M', 'F']).optional(),
   orderIndex: z.number().int().nonnegative(),
   className: z.string().optional(),
+  group: z.string().optional(),
 });
 
 export type EmaktabStudent = z.infer<typeof EmaktabStudentSchema>;

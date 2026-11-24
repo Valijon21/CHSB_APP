@@ -50,6 +50,7 @@ const quarter = ref<number>(1);
 const durationMinutes = ref<number>(40);
 const totalQuestions = ref<number>(15);
 const maxScore = ref<number>(40);
+const targetGroup = ref<string>('all');
 const errorMessage = ref<string | null>(null);
 const isSubmitting = ref<boolean>(false);
 
@@ -411,6 +412,7 @@ function handleSubmit() {
     durationMinutes: Number(durationMinutes.value),
     totalQuestions: Number(totalQuestions.value),
     maxScore: Number(maxScore.value),
+    targetGroup: targetGroup.value,
     questions: finalQuestions,
   });
 
@@ -426,6 +428,7 @@ function resetForm() {
   durationMinutes.value = 40;
   totalQuestions.value = 15;
   maxScore.value = 40;
+  targetGroup.value = 'all';
   activeTab.value = 'params';
   questionMode.value = 'auto';
   customQuestionsText.value = '';
@@ -593,6 +596,53 @@ function resetForm() {
                 placeholder="Masalan: Informatika va AT, 9-sinf. 1-ChSB"
                 class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium"
               />
+            </div>
+          </div>
+
+          <!-- Mo'ljallangan Guruh (Guruhga bo'linadigan fanlar uchun) -->
+          <div class="p-3 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="font-bold text-slate-700 dark:text-slate-300 text-xs">
+                Mo'ljallangan Guruh (Guruhga bo'lingan fanlar uchun):
+              </label>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400">Informatika, Chet tili, Texnologiya</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <label
+                :class="[
+                  'flex items-center justify-center p-2 rounded-lg border text-xs font-semibold cursor-pointer transition',
+                  targetGroup === 'all'
+                    ? 'border-teal-700 bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 font-bold'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                ]"
+              >
+                <input type="radio" value="all" v-model="targetGroup" class="sr-only" />
+                <span>Butun sinf (Barchasi)</span>
+              </label>
+
+              <label
+                :class="[
+                  'flex items-center justify-center p-2 rounded-lg border text-xs font-semibold cursor-pointer transition',
+                  targetGroup === '1-guruh'
+                    ? 'border-teal-700 bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 font-bold'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                ]"
+              >
+                <input type="radio" value="1-guruh" v-model="targetGroup" class="sr-only" />
+                <span>1-guruh</span>
+              </label>
+
+              <label
+                :class="[
+                  'flex items-center justify-center p-2 rounded-lg border text-xs font-semibold cursor-pointer transition',
+                  targetGroup === '2-guruh'
+                    ? 'border-teal-700 bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 font-bold'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                ]"
+              >
+                <input type="radio" value="2-guruh" v-model="targetGroup" class="sr-only" />
+                <span>2-guruh</span>
+              </label>
             </div>
           </div>
 

@@ -3,6 +3,7 @@ import { ref, toRef } from 'vue';
 import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import type { StudentInput, StudentGender } from '../../../entities/organization/model';
 import type { ClassGroupRecord } from '../../../entities/organization/model';
+import { detectGroupFromText } from '../../emaktab/services/rosterParserService';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -22,6 +23,8 @@ useModalA11y(toRef(props, 'isOpen'), () => {
 });
 
 const selectedClassId = ref(props.availableClasses[0]?.id || '');
+const selectedGroup = ref<'1-guruh' | '2-guruh'>('1-guruh');
+const autoDetectedGroup = ref<string | null>(null);
 const rawText = ref('');
 const parsedStudents = ref<StudentInput[]>([]);
 const isParsed = ref(false);
@@ -51,19 +54,45 @@ function handleFileDrop(e: DragEvent) {
 
 function readFile(file: File) {
   uploadedFileName.value = file.name;
+  const detected = detectGroupFromText(file.name);
+  if (detected) {
+    selectedGroup.value = detected;
+    autoDetectedGroup.value = detected;
+  }
+
   const reader = new FileReader();
   reader.onload = (event) => {
     const text = event.target?.result as string;
     if (text) {
       rawText.value = text;
+      const textDetected = detectGroupFromText(text);
+      if (textDetected) {
+        selectedGroup.value = textDetected;
+        autoDetectedGroup.value = textDetected;
+      }
       parseInput();
     }
   };
   reader.readAsText(file);
 }
 
+function setGroup(group: '1-guruh' | '2-guruh') {
+  selectedGroup.value = group;
+  parsedStudents.value.forEach((s) => {
+    s.group = group;
+  });
+}
+
 function parseInput() {
   if (!rawText.value.trim() || !selectedClassId.value) return;
+
+  if (!autoDetectedGroup.value) {
+    const detected = detectGroupFromText(rawText.value);
+    if (detected) {
+      selectedGroup.value = detected;
+      autoDetectedGroup.value = detected;
+    }
+  }
 
   const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
   const className = cls?.name || 'Sinf';
@@ -80,15 +109,29 @@ function parseInput() {
     const parts = line.split(/[,;\t]/).map((p) => p.trim());
     if (parts.length >= 1) {
       let rawName = cleanPrefix(parts[0] ?? '');
+      let emaktabId: string | undefined = undefined;
       let gender: StudentGender = 'M';
       let birthDate = '2009-01-01';
 
-      if (parts[1]) {
-        const g = parts[1].toUpperCase();
-        if (g === 'M' || g === 'F') gender = g;
+      // Check if parts[0] is index (e.g. "1" or "1.0") and parts[1] is student name
+      if (/^\d{1,3}(\.0)?$/.test(parts[0]) && parts[1]) {
+        rawName = cleanPrefix(parts[1]);
+        if (parts[2] && /^\d{7,}$/.test(parts[2])) {
+          emaktabId = parts[2];
+        }
+      } else if (parts[1] && /^\d{7,}$/.test(parts[1])) {
+        emaktabId = parts[1];
       }
-      if (parts[2] && /^\d{4}-\d{2}-\d{2}$/.test(parts[2])) {
-        birthDate = parts[2];
+
+      if (parts[1] && (parts[1].toUpperCase() === 'M' || parts[1].toUpperCase() === 'F')) {
+        gender = parts[1].toUpperCase() as StudentGender;
+      } else if (parts[2] && (parts[2].toUpperCase() === 'M' || parts[2].toUpperCase() === 'F')) {
+        gender = parts[2].toUpperCase() as StudentGender;
+      }
+
+      const dateMatch = parts.find((p) => /^\d{4}-\d{2}-\d{2}$/.test(p));
+      if (dateMatch) {
+        birthDate = dateMatch;
       }
 
       const nameTokens = rawName.split(' ').filter(Boolean);
@@ -106,6 +149,8 @@ function parseInput() {
         middleName,
         gender,
         birthDate,
+        group: selectedGroup.value,
+        emaktabId,
         status: 'eligible',
       });
     }
@@ -135,6 +180,7 @@ function reset() {
   parsedStudents.value = [];
   isParsed.value = false;
   uploadedFileName.value = null;
+  autoDetectedGroup.value = null;
   if (fileInputRef.value) fileInputRef.value.value = '';
 }
 
@@ -200,16 +246,52 @@ function downloadSample() {
         </button>
       </div>
 
-      <!-- 1. Sinf tanlash va Namuna yuklash -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-        <div class="flex items-center gap-2">
-          <label class="font-bold text-slate-700 dark:text-slate-300">Biriktiriladigan Sinf:</label>
-          <select
-            v-model="selectedClassId"
-            class="p-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-teal-800 dark:text-teal-300"
-          >
-            <option v-for="c in availableClasses" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
+      <!-- 1. Sinf tanlash, Guruh tanlash va Namuna yuklash -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-2">
+            <label class="font-bold text-slate-700 dark:text-slate-300">Sinf:</label>
+            <select
+              v-model="selectedClassId"
+              class="p-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-teal-800 dark:text-teal-300"
+            >
+              <option v-for="c in availableClasses" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+
+          <!-- Guruh tanlash (1-guruh / 2-guruh) -->
+          <div class="flex items-center gap-1.5 p-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <span class="text-[11px] font-semibold text-slate-500 px-1.5">Guruh:</span>
+            <button
+              type="button"
+              @click="setGroup('1-guruh')"
+              :class="[
+                'px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
+                selectedGroup === '1-guruh'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              ]"
+            >
+              1-guruh
+            </button>
+            <button
+              type="button"
+              @click="setGroup('2-guruh')"
+              :class="[
+                'px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
+                selectedGroup === '2-guruh'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              ]"
+            >
+              2-guruh
+            </button>
+          </div>
+
+          <span v-if="autoDetectedGroup" class="px-2 py-1 rounded-md bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-semibold text-[11px] border border-teal-300 dark:border-teal-700 flex items-center gap-1">
+            <span>✓ Fayldan aniqlandi:</span>
+            <strong>{{ autoDetectedGroup }}</strong>
+          </span>
         </div>
 
         <button
@@ -220,7 +302,7 @@ function downloadSample() {
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          Namuna CSV / Excel shablonini yuklab olish
+          Namuna shablon
         </button>
       </div>
 
@@ -256,7 +338,7 @@ function downloadSample() {
               Excel (.xlsx, .xls) yoki CSV faylini shu yerga tashlang
             </span>
             <span class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 block">
-              yoki kompyuterdan tanlash uchun bosing
+              eMaktab jurnali eksporti yoki nusxalangan ro'yxatni yuklang (1-guruh / 2-guruh avtomatik aniqlanadi)
             </span>
           </div>
           <span v-if="uploadedFileName" class="px-2.5 py-1 rounded bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 font-mono text-[11px] font-semibold">
@@ -273,7 +355,7 @@ function downloadSample() {
         <textarea
           v-model="rawText"
           rows="5"
-          placeholder="Excel jadvalidan nusxalangan qatorlarni bu yerga joylashtiring (har bir qatorda bitta o'quvchi).&#10;Masalan:&#10;1. Olimov Jasurbek, M, 2009-04-12&#10;2. Aliyeva Madina, F, 2009-09-20"
+          placeholder="Excel jadvalidan nusxalangan qatorlarni bu yerga joylashtiring (har bir qatorda bitta o'quvchi).&#10;Masalan:&#10;1. Abduraximova Zuxra, M, 2009-04-12&#10;2. Miradjonova Shabnam, F, 2009-09-20"
           class="w-full text-xs font-mono p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700"
         ></textarea>
 
@@ -310,6 +392,7 @@ function downloadSample() {
               <tr>
                 <th class="p-2.5 w-10 text-center">№</th>
                 <th class="p-2.5">Familiya va Ism</th>
+                <th class="p-2.5 text-center">Guruh</th>
                 <th class="p-2.5 text-center">Jinsi</th>
                 <th class="p-2.5 text-center">Tug'ilgan sana</th>
                 <th class="p-2.5 text-right">O'chirish</th>
@@ -318,7 +401,19 @@ function downloadSample() {
             <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
               <tr v-for="(stu, idx) in parsedStudents" :key="idx" class="hover:bg-slate-50/50 dark:hover:bg-slate-700/40">
                 <td class="p-2.5 text-center font-mono text-slate-400">{{ idx + 1 }}</td>
-                <td class="p-2.5 font-bold text-slate-900 dark:text-white">{{ stu.lastName }} {{ stu.firstName }} {{ stu.middleName || '' }}</td>
+                <td class="p-2.5">
+                  <div class="font-bold text-slate-900 dark:text-white">
+                    {{ stu.lastName }} {{ stu.firstName }} {{ stu.middleName || '' }}
+                  </div>
+                  <div v-if="stu.emaktabId" class="text-[10px] font-mono text-slate-400 dark:text-slate-400">
+                    eMaktab ID: {{ stu.emaktabId }}
+                  </div>
+                </td>
+                <td class="p-2.5 text-center">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                    {{ stu.group || selectedGroup }}
+                  </span>
+                </td>
                 <td class="p-2.5 text-center">
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold" :class="stu.gender === 'M' ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' : 'bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300'">
                     {{ stu.gender === 'M' ? "O'g'il" : "Qiz" }}
@@ -342,7 +437,7 @@ function downloadSample() {
 
         <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
           <span class="text-xs text-slate-500 dark:text-slate-400">
-            Biriktirilmoqda: <strong class="text-teal-800 dark:text-teal-300">{{ availableClasses.find(c => c.id === selectedClassId)?.name }}</strong>
+            Biriktirilmoqda: <strong class="text-teal-800 dark:text-teal-300">{{ availableClasses.find(c => c.id === selectedClassId)?.name }} ({{ selectedGroup }})</strong>
           </span>
 
           <div class="flex items-center gap-2">

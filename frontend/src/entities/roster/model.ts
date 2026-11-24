@@ -9,6 +9,8 @@ export const StudentRosterRecordSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   middleName: z.string().optional(),
+  group: z.string().optional().nullable(),
+  emaktabId: z.string().optional().nullable(),
   status: z.enum(['eligible', 'inactive', 'ambiguous']).default('eligible'),
   availableAssessmentIds: z.array(z.string()).default([]),
 });
@@ -27,6 +29,8 @@ export const RosterMatchSchema = z.object({
   displayName: z.string(),
   schoolName: z.string(),
   className: z.string(),
+  group: z.string().optional().nullable(),
+  emaktabId: z.string().optional().nullable(),
   eligibilityStatus: z.enum(['eligible', 'inactive', 'ambiguous']),
   availableAssessmentIds: z.array(z.string()),
 });

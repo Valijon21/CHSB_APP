@@ -86,12 +86,12 @@ model Assessment {
 ## 🌊 3. Bosqichma-bosqich Atomik Vazifalar (Wave & Task Breakdown)
 
 ### 🌊 Wave 1: Ma'lumotlar Bazasi va Haqiqiy eMaktab Roster Seeder
-- [ ] **Task 1.1: Prisma sxemasini yangilash**
+- [x] **Task 1.1: Prisma sxemasini yangilash**
   - `Student` ga `group` va `emaktabId` maydonlarini qo'shish;
   - `ClassGroup` ga `hasGroups` maydonini qo'shish;
   - `Assessment` ga `targetGroup` maydonini qo'shish;
   - `npx prisma db push` va `python -m prisma generate` ni ishga tushirish.
-- [ ] **Task 1.2: Haqiqiy 11-A Informatika jurnali asosida Seeder skriptini yangilash**
+- [x] **Task 1.2: Haqiqiy 11-A Informatika jurnali asosida Seeder skriptini yangilash**
   - O'qituvchi: `Dilmurod Rahmataliyevich Yunusov` (`teacher_ax` profiliga biriktirish);
   - 11-A sinf 1-guruh o'quvchilari (15 nafar):
     1. Abduraximova Zuxra (ID: 1000001990090, STU-1101, 1-guruh)
@@ -115,22 +115,22 @@ model Assessment {
 ---
 
 ### 🌊 Wave 2: Backend API Qatlami va Guruh Filtrlash Dvigateli
-- [ ] **Task 2.1: `students.py` endpointlarini kengaytirish**
+- [x] **Task 2.1: `students.py` endpointlarini kengaytirish**
   - `GET /api/v1/students?tenantSlug=...&classGroupId=...&group=1-guruh`: guruh parametri bo'yicha filtrlash;
   - `StudentCreate` Pydantic modeliga `group: str | None = "1-guruh"` va `emaktabId: str | None = None` qo'shish.
-- [ ] **Task 2.2: `classes.py` endpointlarini kengaytirish**
+- [x] **Task 2.2: `classes.py` endpointlarini kengaytirish**
   - `GET /api/v1/classes`: har bir sinf uchun `hasGroups`, `groupCounts: { "1-guruh": 15, "2-guruh": 15 }` qaytarish;
   - `GET /api/v1/classes/{class_id}`: `group` query parametrini qabul qilish va guruh kesimidagi o'quvchilar hamda o'rtacha ballarni hisoblash.
-- [ ] **Task 2.3: `auth.py` va `assessments.py` ni moslashtirish**
+- [x] **Task 2.3: `auth.py` va `assessments.py` ni moslashtirish**
   - O'quvchi Roster lookup javobida o'quvchining `group` ini ko'rsatish;
   - Imtihonlar ro'yxatida `targetGroup` bo'yicha tekshirish: agar imtihon faqat `1-guruh` uchun bo'lsa, `2-guruh` o'quvchisiga ushbu imtihon ko'rsatilmasligi yoki taqiqlanishi.
-- [ ] **Task 2.4: Backend unit & integratsiya testlari (100% PASS)**
+- [x] **Task 2.4: Backend unit & integratsiya testlari (100% PASS)**
   - `backend/tests/test_api.py` va yangi testlarni yashil o'tkazish.
 
 ---
 
 ### 🌊 Wave 3: Excel & eMaktab Parserini Guruhlarni Avtomat Aniqlashga Moslashtirish
-- [ ] **Task 3.1: `rosterParserService.ts` ni takomillashtirish**
+- [x] **Task 3.1: `rosterParserService.ts` ni takomillashtirish**
   - Fayl sarlavhasidagi `1-gurux`, `1-guruh`, `2-gurux`, `2-guruh` so'zlarini regex bilan aniqlash:
     ```typescript
     const groupMatch = rawInput.match(/(?:1|2)[-\s]*(?:guruh|gurux)/i);
@@ -138,7 +138,7 @@ model Assessment {
     ```
   - eMaktab ID raqamini (ustun 2: `100000...`) o'quvchi ma'lumotiga kiritish;
   - Har bir o'quvchiga `group: detectedGroup` biriktirish.
-- [ ] **Task 3.2: `BulkStudentImportModal.vue` ni yangilash**
+- [x] **Task 3.2: `BulkStudentImportModal.vue` ni yangilash**
   - O'qituvchiga guruhni tanlash imkonini beruvchi selector qo'shish: `1-guruh`, `2-guruh`, `Butun sinf`;
   - Excel yuklanganda sarlavhadan avtomatik guruhni tanlash;
   - Import qilinayotgan jadvalda guruh ustunini ko'rsatish.
@@ -146,30 +146,30 @@ model Assessment {
 ---
 
 ### 🌊 Wave 4: Frontend UI Sahifalarida Guruhlarni Tanlash va Filtrlash
-- [ ] **Task 4.1: `TeacherClassDetailView.vue` (Sinf ko'rinishi)**
+- [x] **Task 4.1: `TeacherClassDetailView.vue` (Sinf ko'rinishi)**
   - Sinf ichida guruh tanlagich (Segmented Tabs):
     - `Barcha o'quvchilar (30)`
     - `1-guruh (15 o'quvchi)`
     - `2-guruh (15 o'quvchi)`
   - Tanlangan guruhga qarab ro'yxat, o'rtacha ball va tahlillarni filtrlab ko'rsatish.
-- [ ] **Task 4.2: `TeacherStudentsView.vue` (O'quvchilar ro'yxati)**
+- [x] **Task 4.2: `TeacherStudentsView.vue` (O'quvchilar ro'yxati)**
   - Sinf filtrining yoniga `Guruh` filtrini qo'shish (`Barchasi`, `1-guruh`, `2-guruh`);
   - Jadvalda har bir o'quvchining guruh nishoni (Badge)ni ko'rsatish.
-- [ ] **Task 4.3: `CreateAssessmentModal.vue` va `TeacherAssessmentsView.vue`**
+- [x] **Task 4.3: `CreateAssessmentModal.vue` va `TeacherAssessmentsView.vue`**
   - Imtihon yaratishda `Mo'ljallangan guruh`: `Butun sinf (Barchasi)`, `1-guruh`, `2-guruh` variantlarini kiritish;
   - Imtihon kartasida qaysi guruhga tegishli ekanligini ko'rsatish.
-- [ ] **Task 4.4: O'quvchi Imtihon Qabuli va Ish Maydoni (`student-admission`)**
+- [x] **Task 4.4: O'quvchi Imtihon Qabuli va Ish Maydoni (`student-admission`)**
   - Roster kodi (masalan, `STU-1101`) kiritilganda tasdiqlash kartasida `11-A sinf (1-guruh)` deb chiqarish;
   - Faqat o'quvchining guruhi uchun mo'ljallangan imtihonlarni taqdim etish.
-- [ ] **Task 4.5: `TeacherReportsView.vue` va `TeacherResultsView.vue`**
+- [x] **Task 4.5: `TeacherReportsView.vue` va `TeacherResultsView.vue`**
   - Hisobotlarni sinf bo'yicha hamda alohida `1-guruh` yoki `2-guruh` kesimida filtrlash va chop etish (Print A4).
 
 ---
 
 ### 🌊 Wave 5: To'liq TDD Sinovlari, Verifikatsiya va Faqat Lokal Git
-- [ ] **Task 5.1: Backend va Frontend avtomatlashtirilgan testlari (100% PASS)**
-  - Backend pytest barcha 24+ testlari yashil bo'lishi;
-  - Frontend Vitest 371+ testlari yashil bo'lishi;
-  - TypeScript strict typecheck (0 errors).
-- [ ] **Task 5.2: Faqat Lokal Git Conventional Commit**
-  - Barcha o'zgarishlarni `feat(groups): support 1-guruh and 2-guruh division for subjects and emaktab excel roster` sifatida faqat lokal gitga commit qilish (GitHub-ga push qilinmaydi).
+- [x] **Task 5.1: Backend va Frontend avtomatlashtirilgan testlari (100% PASS)**
+  - Backend pytest barcha 27 testlari yashil (100% GREEN);
+  - Frontend Vitest 379 testlari yashil (100% GREEN);
+  - TypeScript strict typecheck (0 xato).
+- [x] **Task 5.2: Faqat Lokal Git Conventional Commit**
+  - Barcha o'zgarishlarni `feat(groups): complete 2-group class division and emaktab excel integration across frontend and backend` sifatida faqat lokal gitga commit qilish (GitHub-ga push qilinmaydi).

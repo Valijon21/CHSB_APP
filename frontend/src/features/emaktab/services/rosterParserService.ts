@@ -2,12 +2,42 @@ import type { EmaktabStudent } from '../../../entities/emaktab/model';
 import { normalizeUzbekName } from './reconciliationService';
 
 /**
+ * Matn yoki sarlavhadan guruhni aniqlash ("1-gurux", "1-guruh", "2-gurux", "2-guruh")
+ */
+export function detectGroupFromText(text: string): '1-guruh' | '2-guruh' | undefined {
+  if (/(?:2)[-_\s.]*(?:gurux|guruh)/i.test(text)) {
+    return '2-guruh';
+  }
+  if (/(?:1)[-_\s.]*(?:gurux|guruh)/i.test(text)) {
+    return '1-guruh';
+  }
+  return undefined;
+}
+
+function isMetadataOrHeaderLine(line: string): boolean {
+  const lower = line.toLowerCase();
+  return (
+    lower.startsWith('sinf:') ||
+    lower.startsWith('fan:') ||
+    lower.startsWith('o‘qituvchi') ||
+    lower.startsWith("o'qituvchi") ||
+    lower.startsWith('maktab:') ||
+    lower.startsWith('chorak:') ||
+    lower.includes('f.i.sh') ||
+    lower.includes('fish') ||
+    lower.includes('familiya') ||
+    (lower.includes('t/r') && (lower.includes('id') || lower.includes('ism') || lower.includes('jinsi') || lower.includes('f.i.sh')))
+  );
+}
+
+/**
  * eMaktabdan eksport qilingan CSV, matnli ro'yxat yoki buferdan
  * nusxalangan o'quvchilar ro'yxatini tahlil qiladi va tozalaydi.
  */
 export function parseEmaktabRoster(
   rawInput: string,
-  className?: string
+  className?: string,
+  defaultGroup?: string
 ): EmaktabStudent[] {
   if (!rawInput || typeof rawInput !== 'string') {
     return [];
@@ -16,6 +46,9 @@ export function parseEmaktabRoster(
   // UTF-8 BOM belgisini tozalash
   const cleanedInput = rawInput.replace(/^\uFEFF/, '').trim();
   if (!cleanedInput) return [];
+
+  // Guruhni avtomat aniqlash
+  const detectedGroup = defaultGroup || detectGroupFromText(cleanedInput) || '1-guruh';
 
   // Qatorlarga ajratish
   const lines = cleanedInput
@@ -35,6 +68,8 @@ export function parseEmaktabRoster(
     firstLineLower.includes('ism') ||
     firstLineLower.includes('name') ||
     firstLineLower.includes('t/r') ||
+    firstLineLower.includes('sinf:') ||
+    firstLineLower.includes('^next_part^') ||
     firstLineLower.includes('emaktab');
 
   if (isHeader) {
@@ -46,9 +81,16 @@ export function parseEmaktabRoster(
 
   for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i];
-    if (!line || line.startsWith('#')) continue;
+    if (
+      !line ||
+      line.startsWith('#') ||
+      line.startsWith('^') ||
+      isMetadataOrHeaderLine(line)
+    ) {
+      continue;
+    }
 
-    const student = parseLineToStudent(line, currentOrder, className);
+    const student = parseLineToStudent(line, currentOrder, className, detectedGroup);
     if (student) {
       students.push(student);
       currentOrder++;
@@ -64,7 +106,8 @@ export function parseEmaktabRoster(
 function parseLineToStudent(
   line: string,
   orderIndex: number,
-  className?: string
+  className?: string,
+  group: string = '1-guruh'
 ): EmaktabStudent | null {
   // 1. Agar ajratuvchi bo'lsa (CSV: vergul, nuqtali vergul yoki tab)
   const delimiter = detectDelimiter(line);
@@ -81,12 +124,18 @@ function parseLineToStudent(
       let name = '';
       let gender: 'M' | 'F' | undefined = undefined;
 
-      // Agar birinchi ustun raqam bo'lsa (1, 2, 3...)
-      if (/^\d+$/.test(part0) && parts.length >= 3) {
-        id = part1 || `emk-${orderIndex}`;
-        name = part2;
-        if (part3 && (part3 === 'M' || part3 === 'F')) {
-          gender = part3;
+      // Agar birinchi ustun raqam bo'lsa (1, 2, 3... yoki 1.0, 2.0...)
+      if (/^\d+(\.0)?$/.test(part0) && parts.length >= 3) {
+        if (/^\d{7,}$/.test(part2)) {
+          // eMaktab jurnali: [1.0, Abduraximova Zuxra, 1000001990090]
+          id = part2;
+          name = part1;
+        } else {
+          id = part1 || `emk-${orderIndex}`;
+          name = part2;
+          if (part3 && (part3 === 'M' || part3 === 'F')) {
+            gender = part3;
+          }
         }
       } else if (part0.includes('emk') || /^\d+$/.test(part0)) {
         // "emk-101, O'ktamov Jasur"
@@ -111,6 +160,7 @@ function parseLineToStudent(
           gender,
           orderIndex,
           className,
+          group,
         };
       }
     }
@@ -125,6 +175,7 @@ function parseLineToStudent(
       normalizedName: normalizeUzbekName(cleanedName),
       orderIndex,
       className,
+      group,
     };
   }
 

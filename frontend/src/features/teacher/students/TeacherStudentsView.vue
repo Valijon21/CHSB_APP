@@ -60,6 +60,11 @@ function handleClassFilter(e: Event) {
   teacherStore.filterByClass(target.value || null);
 }
 
+function handleGroupFilter(e: Event) {
+  const target = e.target as HTMLSelectElement;
+  teacherStore.filterByGroup(target.value as 'ALL' | '1-guruh' | '2-guruh');
+}
+
 async function handleCreateStudent(input: StudentInput) {
   const created = await orgStore.createStudent(input);
   toast.success(`${created.firstName} ${created.lastName} muvaffaqiyatli qo'shildi!`, "O'quvchi qo'shildi");
@@ -146,6 +151,18 @@ async function handleBulkImport(inputs: StudentInput[]) {
           </option>
         </select>
 
+        <!-- Group Filter -->
+        <select
+          :value="teacherStore.selectedGroupFilter"
+          @change="handleGroupFilter"
+          aria-label="Guruh bo'yicha filtrlash"
+          class="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700 cursor-pointer min-h-[36px]"
+        >
+          <option value="ALL">Barcha guruhlar</option>
+          <option value="1-guruh">1-guruh</option>
+          <option value="2-guruh">2-guruh</option>
+        </select>
+
         <!-- Status Filter -->
         <select
           v-model="statusFilter"
@@ -179,6 +196,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
               <th class="p-3.5">F.I.SH.</th>
               <th class="p-3.5">Roster Kodi</th>
               <th class="p-3.5">Sinf</th>
+              <th class="p-3.5 text-center">Guruh</th>
               <th class="p-3.5">Holati</th>
               <th class="p-3.5">Topshirilgan Test</th>
               <th class="p-3.5 text-right">Profil</th>
@@ -191,12 +209,24 @@ async function handleBulkImport(inputs: StudentInput[]) {
               class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
             >
               <td class="p-3.5 text-slate-400 font-mono">{{ idx + 1 }}</td>
-              <td class="p-3.5 font-bold text-slate-800 dark:text-white">
-                {{ stu.firstName }} {{ stu.lastName }} {{ stu.middleName || '' }}
+              <td class="p-3.5">
+                <div class="font-bold text-slate-800 dark:text-white">
+                  {{ stu.firstName }} {{ stu.lastName }} {{ stu.middleName || '' }}
+                </div>
+                <div v-if="stu.emaktabId" class="text-[11px] font-mono text-slate-400 dark:text-slate-400">
+                  eMaktab ID: {{ stu.emaktabId }}
+                </div>
               </td>
               <td class="p-3.5 font-mono text-teal-800 dark:text-teal-400 font-semibold">{{ stu.rosterCode }}</td>
               <td class="p-3.5 font-medium text-slate-700 dark:text-slate-300">
                 {{ teacherStore.classes.find((c) => c.id === stu.classGroupId)?.name || '11-sinf' }}
+              </td>
+              <td class="p-3.5 text-center">
+                <span
+                  class="px-2 py-0.5 rounded text-[11px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800"
+                >
+                  {{ stu.group || '1-guruh' }}
+                </span>
               </td>
               <td class="p-3.5">
                 <span

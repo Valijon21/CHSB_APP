@@ -28,6 +28,7 @@ const firstName = ref('');
 const lastName = ref('');
 const middleName = ref('');
 const selectedClassId = ref(props.availableClasses[0]?.id || '');
+const group = ref<'1-guruh' | '2-guruh'>('1-guruh');
 const gender = ref<StudentGender>('M');
 const birthDate = ref('2009-01-01');
 const rosterCode = ref('');
@@ -66,6 +67,7 @@ function handleSubmit() {
     middleName: middleName.value.trim() || undefined,
     gender: gender.value,
     birthDate: birthDate.value.trim(),
+    group: group.value,
     rosterCode: rosterCode.value.trim() || undefined,
     emaktabId: emaktabId.value.trim() || undefined,
     status: 'eligible',
@@ -170,10 +172,10 @@ function resetForm() {
           />
         </div>
 
-        <!-- Sinf va Jinsi -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- Sinf, Guruh va Jinsi -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Biriktiriladigan Sinf *</label>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Sinf *</label>
             <select
               v-model="selectedClassId"
               class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-teal-700 dark:text-teal-400"
@@ -183,39 +185,60 @@ function resetForm() {
           </div>
 
           <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Guruh *</label>
+            <select
+              v-model="group"
+              class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-teal-700 dark:text-teal-400"
+            >
+              <option value="1-guruh">1-guruh</option>
+              <option value="2-guruh">2-guruh</option>
+            </select>
+          </div>
+
+          <div>
             <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Jinsi *</label>
-            <div class="flex items-center gap-3 pt-1.5">
+            <div class="flex items-center gap-3 pt-2">
               <label class="flex items-center gap-1.5 cursor-pointer">
                 <input type="radio" value="M" v-model="gender" />
-                <span class="font-medium">O'g'il bola</span>
+                <span class="font-medium">O'g'il</span>
               </label>
               <label class="flex items-center gap-1.5 cursor-pointer">
                 <input type="radio" value="F" v-model="gender" />
-                <span class="font-medium">Qiz bola</span>
+                <span class="font-medium">Qiz</span>
               </label>
             </div>
           </div>
         </div>
 
-        <!-- Tug'ilgan sana va Roster kodi -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- Tug'ilgan sana, Roster kodi va eMaktab ID -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tug'ilgan sana (YYYY-MM-DD) *</label>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tug'ilgan sana *</label>
             <input
               v-model="birthDate"
               type="text"
               placeholder="2009-05-18"
-              class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono"
+              class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-xs"
             />
           </div>
 
           <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Roster Kodi (Ixtiyoriy)</label>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Roster Kodi</label>
             <input
               v-model="rosterCode"
               type="text"
-              placeholder="Bo'sh qolsa avtomatik beriladi"
-              class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-[11px]"
+              placeholder="Avtomatik (masalan: STU-1101)"
+              class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-xs"
+            />
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">eMaktab ID</label>
+            <input
+              v-model="emaktabId"
+              type="text"
+              placeholder="1000001990090"
+              class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-xs"
             />
           </div>
         </div>

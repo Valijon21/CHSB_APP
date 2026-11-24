@@ -17,6 +17,51 @@ const teacherStore = useTeacherStore();
 const tenantStore = useTenantStore();
 
 const isThresholdsModalOpen = ref<boolean>(false);
+const selectedGroup = ref<'1-guruh' | '2-guruh'>('1-guruh');
+
+function loadGroupCandidates() {
+  const assessmentId = (route?.params?.assessmentId as string) || 'chsb-inf-11-q1';
+  const asm = teacherStore.assessments.find((a) => a.id === assessmentId || a.title.includes(assessmentId));
+
+  const matchingResults = teacherStore.results.filter((r) => r.assessmentId === assessmentId);
+  const effectiveResults = matchingResults.length > 0 ? matchingResults : teacherStore.results;
+
+  const groupFiltered = effectiveResults.filter((r) => {
+    const stu = teacherStore.roster.find((s) => s.id === r.rosterRecordId || s.rosterCode === r.rosterCode);
+    return (stu?.group || '1-guruh') === selectedGroup.value;
+  });
+
+  const candidatesToUse = groupFiltered.length > 0 ? groupFiltered : effectiveResults;
+
+  if (candidatesToUse.length > 0) {
+    const realCandidates: AssessmentCandidate[] = candidatesToUse.map((r) => ({
+      candidateId: r.attemptId,
+      fullName: r.studentName,
+      normalizedName: r.studentName.toLowerCase().replace(/['`ʻ’]/g, ''),
+      score: r.score,
+      maxScore: r.maxScore,
+      percentage: r.percentage,
+      status: 'submitted',
+    }));
+
+    const activeClassName = asm ? `${asm.grade}-sinf (${selectedGroup.value})` : `11-A sinf (${selectedGroup.value})`;
+    const activeSubject = asm ? asm.subject : 'Informatika va AT';
+    const activeQuarter = asm ? asm.quarter : 2;
+
+    store.setAssessmentContext({
+      assessmentId,
+      className: activeClassName,
+      subjectName: activeSubject,
+      quarter: activeQuarter,
+      initialCandidates: realCandidates,
+    });
+  }
+}
+
+function selectGroup(grp: '1-guruh' | '2-guruh') {
+  selectedGroup.value = grp;
+  loadGroupCandidates();
+}
 
 onMounted(async () => {
   const initialAsmId = (route?.params?.assessmentId as string) || 'asm-algebra-01';
@@ -24,8 +69,8 @@ onMounted(async () => {
   if (store.emaktabStudents.length === 0) {
     store.setAssessmentContext({
       assessmentId: initialAsmId,
-      className: '9-A',
-      subjectName: 'Matematika',
+      className: initialAsmId === 'asm-algebra-01' ? '9-A' : '11-A (1-guruh)',
+      subjectName: initialAsmId === 'asm-algebra-01' ? 'Matematika' : 'Informatika va AT',
       quarter: 2,
     });
     const defaultRoster = `T/r,eMaktab ID,O'quvchi F.I.SH,Jinsi
@@ -34,7 +79,7 @@ onMounted(async () => {
 3,EMK-1003,Boboyev Sardor,M
 4,EMK-1004,G'aniyeva Dilnoza,F
 5,EMK-1005,Yo'ldoshev Bekzod,M`;
-    store.importRosterFromText(defaultRoster, '9-A');
+    store.importRosterFromText(defaultRoster, initialAsmId === 'asm-algebra-01' ? '9-A' : '11-A');
   }
 
   const tenantSlug = (route?.params?.tenantSlug as string) || 'al-xorazmiy';
@@ -45,36 +90,8 @@ onMounted(async () => {
       (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
 
     await teacherStore.loadTeacherData(tenantId);
-
-    const assessmentId = (route?.params?.assessmentId as string) || 'chsb-inf-11-q1';
-    const asm = teacherStore.assessments.find((a) => a.id === assessmentId || a.title.includes(assessmentId));
-
-    // Real assessment results
-    const matchingResults = teacherStore.results.filter((r) => r.assessmentId === assessmentId);
-    const effectiveResults = matchingResults.length > 0 ? matchingResults : teacherStore.results;
-
-    if (effectiveResults.length > 0) {
-      const realCandidates: AssessmentCandidate[] = effectiveResults.map((r) => ({
-        candidateId: r.attemptId,
-        fullName: r.studentName,
-        normalizedName: r.studentName.toLowerCase().replace(/['`ʻ’]/g, ''),
-        score: r.score,
-        maxScore: r.maxScore,
-        percentage: r.percentage,
-        status: 'submitted',
-      }));
-
-      const activeClassName = asm ? `${asm.grade}-sinf` : '11-sinf';
-      const activeSubject = asm ? asm.subject : 'Informatika va AT';
-      const activeQuarter = asm ? asm.quarter : 1;
-
-      store.setAssessmentContext({
-        assessmentId,
-        className: activeClassName,
-        subjectName: activeSubject,
-        quarter: activeQuarter,
-        initialCandidates: realCandidates,
-      });
+    if (initialAsmId !== 'asm-algebra-01') {
+      loadGroupCandidates();
     }
   } catch {
     // Keep initialized fallback
@@ -137,6 +154,34 @@ function goBack() {
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300">
             {{ store.className }} &bull; {{ store.subjectName }}
           </span>
+
+          <!-- Guruh tanlash tugmalari -->
+          <div class="inline-flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              @click="selectGroup('1-guruh')"
+              :class="[
+                'px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer',
+                selectedGroup === '1-guruh'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              ]"
+            >
+              1-guruh
+            </button>
+            <button
+              type="button"
+              @click="selectGroup('2-guruh')"
+              :class="[
+                'px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer',
+                selectedGroup === '2-guruh'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              ]"
+            >
+              2-guruh
+            </button>
+          </div>
         </div>
 
         <p class="text-xs text-slate-500 dark:text-slate-400">

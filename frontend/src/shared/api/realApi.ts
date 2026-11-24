@@ -78,6 +78,8 @@ interface BackendVerifyResponse {
     middleName?: string;
     className?: string;
     classGroupId?: string;
+    group?: string;
+    emaktabId?: string;
     status?: string;
   };
   availableAssessmentIds?: string[];
@@ -96,6 +98,8 @@ interface BackendStudentItem {
   middleName?: string;
   gender?: string;
   birthDate?: string;
+  group?: string;
+  emaktabId?: string;
   status?: string;
   availableAssessmentIds?: string[];
 }
@@ -110,6 +114,8 @@ interface BackendClassItem {
   shift?: number;
   academicYear: string;
   studentCount: number;
+  hasGroups?: boolean;
+  groupCounts?: Record<string, number>;
 }
 
 interface BackendAssessmentItem {
@@ -121,6 +127,7 @@ interface BackendAssessmentItem {
   durationMinutes: number;
   totalQuestions: number;
   maxScore: number;
+  targetGroup?: string;
   questions?: Array<{
     id: string;
     order: number;
@@ -250,6 +257,8 @@ export class RealRosterRepository implements RosterRepository {
           displayName: `${s.firstName} ${s.lastName}`,
           schoolName: res.schoolName || 'Al-Xorazmiy nomidagi IT-maktab',
           className: s.className || '11-sinf',
+          group: s.group || '1-guruh',
+          emaktabId: s.emaktabId || null,
           eligibilityStatus: (s.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
           availableAssessmentIds: res.availableAssessmentIds || ['chsb-inf-11-q1'],
         },
@@ -277,6 +286,8 @@ export class RealRosterRepository implements RosterRepository {
         firstName: found.firstName,
         lastName: found.lastName,
         middleName: found.middleName,
+        group: found.group || '1-guruh',
+        emaktabId: found.emaktabId || null,
         status: (found.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
         availableAssessmentIds: found.availableAssessmentIds || ['chsb-inf-11-q1'],
       };
@@ -491,6 +502,8 @@ export class RealTeacherRepository implements TeacherRepository {
         grade: c.grade || c.gradeLevel || 11,
         academicYear: c.academicYear,
         studentCount: c.studentCount,
+        hasGroups: c.hasGroups ?? true,
+        groupCounts: c.groupCounts,
       }));
     } catch {
       return [];
@@ -511,6 +524,8 @@ export class RealTeacherRepository implements TeacherRepository {
         firstName: s.firstName,
         lastName: s.lastName,
         middleName: s.middleName,
+        group: s.group || '1-guruh',
+        emaktabId: s.emaktabId || null,
         status: (s.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
         availableAssessmentIds: s.availableAssessmentIds || ['chsb-inf-11-q1'],
       }));
@@ -534,6 +549,7 @@ export class RealTeacherRepository implements TeacherRepository {
         durationSeconds: (a.durationMinutes || 45) * 60,
         questionCount: a.totalQuestions || 15,
         maxScore: a.maxScore || 40,
+        targetGroup: a.targetGroup || 'all',
         status: 'available' as const,
       }));
     } catch {
@@ -555,6 +571,7 @@ export class RealTeacherRepository implements TeacherRepository {
       durationSeconds: (res.durationMinutes || input.durationMinutes) * 60,
       questionCount: res.totalQuestions || input.totalQuestions,
       maxScore: res.maxScore || input.maxScore,
+      targetGroup: res.targetGroup || input.targetGroup || 'all',
       status: 'available' as const,
     };
   }

@@ -27,12 +27,27 @@ class AssessmentCreate(BaseModel):
     durationMinutes: int = Field(default=40, ge=10, le=180)
     totalQuestions: int = Field(default=15, ge=1, le=100)
     maxScore: float = Field(default=40.0, ge=1.0)
+    targetGroup: str = Field(default="all")
     code: str | None = None
     questions: list[dict] | None = None
 
 @router.get("/assessments")
-async def get_assessments(tenantId: str | None = None, db: Prisma = Depends(get_prisma)):
+async def get_assessments(
+    tenantId: str | None = None,
+    group: str | None = None,
+    db: Prisma = Depends(get_prisma),
+):
+    where_clause = {}
+    if group and group != "all":
+        where_clause = {
+            "OR": [
+                {"targetGroup": "all"},
+                {"targetGroup": group},
+                {"targetGroup": None},
+            ]
+        }
     assessments = await db.assessment.find_many(
+        where=where_clause if where_clause else None,
         order={"code": "asc"}
     )
     return [
@@ -45,6 +60,7 @@ async def get_assessments(tenantId: str | None = None, db: Prisma = Depends(get_
             "durationMinutes": a.durationMinutes,
             "totalQuestions": a.totalQuestions,
             "maxScore": a.maxScore,
+            "targetGroup": getattr(a, "targetGroup", "all") or "all",
             "status": "published",
         }
         for a in assessments
@@ -70,6 +86,7 @@ async def create_assessment(payload: AssessmentCreate, db: Prisma = Depends(get_
             "durationMinutes": payload.durationMinutes,
             "totalQuestions": payload.totalQuestions,
             "maxScore": payload.maxScore,
+            "targetGroup": payload.targetGroup,
         }
     )
 
@@ -207,6 +224,7 @@ async def get_assessment_by_id(assessment_id: str, db: Prisma = Depends(get_pris
         "durationMinutes": assessment.durationMinutes,
         "totalQuestions": assessment.totalQuestions,
         "maxScore": assessment.maxScore,
+        "targetGroup": getattr(assessment, "targetGroup", "all") or "all",
         "questions": formatted_questions,
     }
 
@@ -235,6 +253,16 @@ async def create_attempt(payload: CreateAttemptPayload, db: Prisma = Depends(get
     )
     if not assessment:
         raise HTTPException(status_code=404, detail="Baholash testi topilmadi.")
+
+    # Check targetGroup restriction if set
+    target_grp = getattr(assessment, "targetGroup", "all") or "all"
+    if target_grp != "all":
+        student_grp = getattr(student, "group", None)
+        if student_grp and student_grp != target_grp:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Ushbu imtihon faqat {target_grp} uchun mo'ljallangan. Sizning guruhingiz: {student_grp}."
+            )
 
     # Check existing attempt
     existing = await db.assessmentattempt.find_first(

@@ -106,6 +106,7 @@ export const AssessmentSchema = z.object({
   durationSeconds: z.number().int().positive(),
   questionCount: z.number().int().positive(),
   maxScore: z.number().positive(),
+  targetGroup: z.string().optional().default('all'),
   status: z.enum(['scheduled', 'available', 'closed']),
   questions: z.array(QuestionSchema),
 });
@@ -123,6 +124,7 @@ export interface CreateAssessmentInput {
   durationMinutes: number;
   totalQuestions: number;
   maxScore: number;
+  targetGroup?: string;
   code?: string;
   questions?: Array<{
     prompt: string;

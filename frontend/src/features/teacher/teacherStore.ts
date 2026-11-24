@@ -19,6 +19,7 @@ export const useTeacherStore = defineStore('teacher', () => {
   const classes = ref<ClassGroup[]>([]);
   const roster = ref<StudentRosterRecord[]>([]);
   const selectedClassId = ref<string | null>(null);
+  const selectedGroupFilter = ref<'ALL' | '1-guruh' | '2-guruh'>('ALL');
   const studentSearchQuery = ref('');
   const assessments = ref<AssessmentSummary[]>([]);
   const results = ref<AssessmentResult[]>([]);
@@ -36,13 +37,17 @@ export const useTeacherStore = defineStore('teacher', () => {
     if (selectedClassId.value) {
       list = list.filter((r) => r.classGroupId === selectedClassId.value);
     }
+    if (selectedGroupFilter.value !== 'ALL') {
+      list = list.filter((r) => r.group === selectedGroupFilter.value);
+    }
     const q = studentSearchQuery.value.trim().toLowerCase();
     if (q) {
       list = list.filter(
         (r) =>
           r.firstName.toLowerCase().includes(q) ||
           r.lastName.toLowerCase().includes(q) ||
-          r.rosterCode.toLowerCase().includes(q)
+          r.rosterCode.toLowerCase().includes(q) ||
+          (r.emaktabId && r.emaktabId.includes(q))
       );
     }
     return list;
@@ -145,6 +150,10 @@ export const useTeacherStore = defineStore('teacher', () => {
 
   function filterByClass(classGroupId: string | null) {
     selectedClassId.value = classGroupId;
+  }
+
+  function filterByGroup(group: 'ALL' | '1-guruh' | '2-guruh') {
+    selectedGroupFilter.value = group;
   }
 
   function selectClass(classGroupId: string | null) {
@@ -272,6 +281,8 @@ export const useTeacherStore = defineStore('teacher', () => {
     loadStudentDetail,
     loadAssessmentDetail,
     filterByClass,
+    selectedGroupFilter,
+    filterByGroup,
     selectClass,
     setSearchQuery,
     exportResultsCSV,

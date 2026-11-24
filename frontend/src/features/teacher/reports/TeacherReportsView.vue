@@ -25,6 +25,7 @@ const activeTemplate = ref<'roster' | 'summary' | 'matrix'>('roster');
 
 // Filters & Controls
 const selectedClass = ref<string>('');
+const selectedGroup = ref<'ALL' | '1-guruh' | '2-guruh'>('ALL');
 const selectedAssessment = ref<string>('');
 const selectedGradeTier = ref<'ALL' | '5' | '4' | '3' | '2'>('ALL');
 const searchQuery = ref<string>('');
@@ -133,6 +134,15 @@ const processedRecords = computed(() => {
   // Filter by Class
   if (selectedClass.value) {
     list = list.filter((r) => r.className === selectedClass.value || r.className?.startsWith(selectedClass.value) || selectedClass.value.startsWith(r.className));
+  }
+
+  // Filter by Group
+  if (selectedGroup.value !== 'ALL') {
+    list = list.filter((r) => {
+      const stu = teacherStore.roster.find((s) => s.id === r.studentId || s.rosterCode === r.rosterCode);
+      const grp = stu?.group || (r.className?.includes('2-guruh') ? '2-guruh' : '1-guruh');
+      return grp === selectedGroup.value;
+    });
   }
 
   // Filter by Assessment
@@ -415,6 +425,20 @@ function printReport() {
             <option v-for="cls in teacherStore.classes" :key="cls.id" :value="cls.name">
               {{ cls.name }}
             </option>
+          </select>
+        </div>
+
+        <!-- Group Select -->
+        <div class="flex items-center gap-1.5 text-xs">
+          <span class="text-slate-500 dark:text-slate-400 text-[11px] font-semibold">Guruh:</span>
+          <select
+            v-model="selectedGroup"
+            aria-label="Guruhni tanlash"
+            class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700 min-h-[34px]"
+          >
+            <option value="ALL">Barcha guruhlar</option>
+            <option value="1-guruh">1-guruh</option>
+            <option value="2-guruh">2-guruh</option>
           </select>
         </div>
 

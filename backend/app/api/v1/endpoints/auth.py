@@ -109,6 +109,19 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
         else "Noma'lum sinf"
     )
 
+    grade = student.classGroup.gradeLevel if student.classGroup else 11
+    assessments = await db.assessment.find_many(
+        where={
+            "gradeLevel": grade,
+            "OR": [
+                {"targetGroup": "all"},
+                {"targetGroup": student_group},
+                {"targetGroup": None},
+            ]
+        }
+    )
+    assessment_ids = [a.code.lower() for a in assessments] if assessments else ["chsb-inf-11-q1"]
+
     return AdmissionVerifyResponse(
         success=True,
         sessionToken=exam_session_token,
@@ -124,7 +137,7 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
             "emaktabId": student.emaktabId,
             "status": "eligible",
         },
-        availableAssessmentIds=["chsb-inf-11-q1"],
+        availableAssessmentIds=assessment_ids,
         message="O'quvchi muvaffaqiyatli tasdiqlandi. Imtihon zali tayyor.",
     )
 

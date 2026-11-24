@@ -50,7 +50,16 @@ function cancel() {
         </div>
         <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
           <span class="text-slate-500 dark:text-slate-400">Sinf / Guruh:</span>
-          <span class="font-medium text-slate-800 dark:text-slate-200">{{ admissionStore.currentMatch.className }}</span>
+          <span class="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            <span>{{ admissionStore.currentMatch.className }}</span>
+            <span v-if="admissionStore.currentMatch.group" class="px-2 py-0.5 rounded text-[11px] font-bold bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200">
+              {{ admissionStore.currentMatch.group }}
+            </span>
+          </span>
+        </div>
+        <div v-if="admissionStore.currentMatch.emaktabId" class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
+          <span class="text-slate-500 dark:text-slate-400">eMaktab ID:</span>
+          <span class="font-mono text-slate-800 dark:text-slate-200 text-xs">{{ admissionStore.currentMatch.emaktabId }}</span>
         </div>
         <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60">
           <span class="text-slate-500 dark:text-slate-400">Ta'lim muassasasi:</span>
