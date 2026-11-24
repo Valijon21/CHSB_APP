@@ -103,7 +103,7 @@ export const StudentInputSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tug\'ilgan sana YYYY-MM-DD formatida bo\'lishi kerak (masalan: 2009-05-15)'),
   rosterCode: z.string().optional(),
   emaktabId: z.string().optional(),
-  group: z.string().optional().default('1-guruh'),
+  group: z.string().nullable().optional(),
   status: StudentStatusSchema.default('eligible'),
 });
 

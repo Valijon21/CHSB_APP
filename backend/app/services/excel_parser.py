@@ -21,13 +21,13 @@ class ParsedStudent(BaseModel):
     emaktabId: Optional[str] = None
     gender: str = "M"
     birthDate: str = "2009-01-01"
-    group: str = "1-guruh"
+    group: Optional[str] = None
     status: str = "eligible"
 
 class ParseFileResult(BaseModel):
     success: bool
     fileName: str
-    detectedGroup: str
+    detectedGroup: Optional[str] = None
     detectedClass: Optional[str] = None
     totalParsed: int
     students: List[ParsedStudent]
@@ -47,13 +47,13 @@ def detect_class_from_name_or_text(text: str) -> Optional[str]:
     return None
 
 
-def detect_group_from_name_or_text(text: str) -> str:
+def detect_group_from_name_or_text(text: str) -> Optional[str]:
     """Fayl nomi yoki sarlavhadan guruhni aniqlash"""
-    if re.search(r'(?:2)[-_\s.]*(?:gurux|guruh)', text, re.IGNORECASE):
+    if re.search(r'(?:2|II)[-_\s.]*(?:gurux|guruh)', text, re.IGNORECASE):
         return '2-guruh'
-    if re.search(r'(?:1)[-_\s.]*(?:gurux|guruh)', text, re.IGNORECASE):
+    if re.search(r'(?:1|I)[-_\s.]*(?:gurux|guruh)', text, re.IGNORECASE):
         return '1-guruh'
-    return '1-guruh'
+    return None
 
 
 def infer_gender_from_name(full_name: str, explicit_gender: Optional[str] = None) -> str:
@@ -356,13 +356,16 @@ def parse_excel_or_csv_file(file_name: str, file_bytes: bytes, group_override: O
                 error="Fayl bo'sh yoki o'qib bo'lmadi."
             )
 
-        if not detected_class:
-            for r in rows[:10]:
-                row_str = " ".join(r)
+        for r in rows[:10]:
+            row_str = " ".join(r)
+            if not detected_class:
                 cls_found = detect_class_from_name_or_text(row_str)
                 if cls_found:
                     detected_class = cls_found
-                    break
+            if not detected_group:
+                grp_found = detect_group_from_name_or_text(row_str)
+                if grp_found:
+                    detected_group = grp_found
 
         students = parse_rows_to_students(rows, default_group=detected_group)
 

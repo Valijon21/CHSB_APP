@@ -9,7 +9,7 @@ export interface ClientParsedStudent {
   emaktabId?: string;
   gender: 'M' | 'F';
   birthDate: string;
-  group: '1-guruh' | '2-guruh';
+  group?: '1-guruh' | '2-guruh' | null;
   status: 'eligible';
 }
 
@@ -17,7 +17,7 @@ export interface ClientExcelParseResult {
   success: boolean;
   fileName: string;
   detectedClass?: string;
-  detectedGroup: '1-guruh' | '2-guruh';
+  detectedGroup?: '1-guruh' | '2-guruh' | null;
   totalParsed: number;
   students: ClientParsedStudent[];
   rawTextPreview: string;
@@ -162,7 +162,7 @@ function readFileAsArrayBuffer(file: File | Blob): Promise<ArrayBuffer> {
 
 export async function parseExcelFileClientSide(
   file: File,
-  forcedGroup?: '1-guruh' | '2-guruh'
+  forcedGroup?: '1-guruh' | '2-guruh' | null
 ): Promise<ClientExcelParseResult> {
   const fileName = file.name || 'fayl.xls';
   const arrayBuffer = await readFileAsArrayBuffer(file);
@@ -173,7 +173,7 @@ export async function parseExcelFileClientSide(
     return {
       success: false,
       fileName,
-      detectedGroup: '1-guruh',
+      detectedGroup: null,
       totalParsed: 0,
       students: [],
       rawTextPreview: '',
@@ -186,7 +186,7 @@ export async function parseExcelFileClientSide(
     return {
       success: false,
       fileName,
-      detectedGroup: '1-guruh',
+      detectedGroup: null,
       totalParsed: 0,
       students: [],
       rawTextPreview: '',
@@ -199,7 +199,7 @@ export async function parseExcelFileClientSide(
     return {
       success: false,
       fileName,
-      detectedGroup: '1-guruh',
+      detectedGroup: null,
       totalParsed: 0,
       students: [],
       rawTextPreview: '',
@@ -208,12 +208,12 @@ export async function parseExcelFileClientSide(
   }
 
   let detectedClass: string | undefined = undefined;
-  let detectedGroup: '1-guruh' | '2-guruh' = forcedGroup || '1-guruh';
+  let detectedGroup: '1-guruh' | '2-guruh' | null = forcedGroup || null;
 
   // 1. Fayl nomidan guruh va sinfni aniqlash
   if (!forcedGroup) {
-    if (/2[-_\s]*(?:gurux|guruh)/i.test(fileName)) detectedGroup = '2-guruh';
-    else if (/1[-_\s]*(?:gurux|guruh)/i.test(fileName)) detectedGroup = '1-guruh';
+    if (/(?:2|II)[-_\s.]*(?:gurux|guruh)/i.test(fileName)) detectedGroup = '2-guruh';
+    else if (/(?:1|I)[-_\s.]*(?:gurux|guruh)/i.test(fileName)) detectedGroup = '1-guruh';
   }
 
   const fnClassMatch = fileName.match(
@@ -241,9 +241,9 @@ export async function parseExcelFileClientSide(
         detectedClass = `${m[1]}-${letter}`;
       }
     }
-    if (!forcedGroup) {
-      if (/2[-_\s]*(?:gurux|guruh)/i.test(rowStr)) detectedGroup = '2-guruh';
-      else if (/1[-_\s]*(?:gurux|guruh)/i.test(rowStr)) detectedGroup = '1-guruh';
+    if (!forcedGroup && !detectedGroup) {
+      if (/(?:2|II)[-_\s.]*(?:gurux|guruh)/i.test(rowStr)) detectedGroup = '2-guruh';
+      else if (/(?:1|I)[-_\s.]*(?:gurux|guruh)/i.test(rowStr)) detectedGroup = '1-guruh';
     }
   }
 

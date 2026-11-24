@@ -5,10 +5,10 @@ import { normalizeUzbekName } from './reconciliationService';
  * Matn yoki sarlavhadan guruhni aniqlash ("1-gurux", "1-guruh", "2-gurux", "2-guruh")
  */
 export function detectGroupFromText(text: string): '1-guruh' | '2-guruh' | undefined {
-  if (/(?:2)[-_\s.]*(?:gurux|guruh)/i.test(text)) {
+  if (/(?:2|II)[-_\s.]*(?:gurux|guruh)/i.test(text)) {
     return '2-guruh';
   }
-  if (/(?:1)[-_\s.]*(?:gurux|guruh)/i.test(text)) {
+  if (/(?:1|I)[-_\s.]*(?:gurux|guruh)/i.test(text)) {
     return '1-guruh';
   }
   return undefined;
@@ -48,7 +48,7 @@ export function parseEmaktabRoster(
   if (!cleanedInput) return [];
 
   // Guruhni avtomat aniqlash
-  const detectedGroup = defaultGroup || detectGroupFromText(cleanedInput) || '1-guruh';
+  const detectedGroup = defaultGroup || detectGroupFromText(cleanedInput) || undefined;
 
   // Qatorlarga ajratish
   const lines = cleanedInput
@@ -107,7 +107,7 @@ function parseLineToStudent(
   line: string,
   orderIndex: number,
   className?: string,
-  group: string = '1-guruh'
+  group?: string
 ): EmaktabStudent | null {
   // 1. Agar ajratuvchi bo'lsa (CSV: vergul, nuqtali vergul yoki tab)
   const delimiter = detectDelimiter(line);

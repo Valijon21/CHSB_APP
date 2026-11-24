@@ -27,7 +27,7 @@ useModalA11y(toRef(props, 'isOpen'), () => {
 });
 
 const selectedClassId = ref(props.availableClasses[0]?.id || '');
-const selectedGroup = ref<'1-guruh' | '2-guruh'>('1-guruh');
+const selectedGroup = ref<'1-guruh' | '2-guruh' | null>(null);
 const autoDetectedGroup = ref<string | null>(null);
 const autoDetectedClass = ref<string | null>(null);
 const rawText = ref('');
@@ -113,8 +113,11 @@ async function readFile(file: File) {
 
   const detected = detectGroupFromText(file.name);
   if (detected) {
-    selectedGroup.value = detected;
+    selectedGroup.value = detected as '1-guruh' | '2-guruh';
     autoDetectedGroup.value = detected;
+  } else {
+    selectedGroup.value = null;
+    autoDetectedGroup.value = null;
   }
 
   // 1. Client-side deterministic Excel parser (Instant, offline, zero-network dependency)
@@ -126,6 +129,9 @@ async function readFile(file: File) {
         if (clientRes.detectedGroup) {
           selectedGroup.value = clientRes.detectedGroup;
           autoDetectedGroup.value = clientRes.detectedGroup;
+        } else if (!detected) {
+          selectedGroup.value = null;
+          autoDetectedGroup.value = null;
         }
 
         if (clientRes.detectedClass) {
@@ -152,7 +158,7 @@ async function readFile(file: File) {
           middleName: s.middleName,
           gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
           birthDate: s.birthDate || '2009-01-01',
-          group: s.group || selectedGroup.value,
+          group: s.group || selectedGroup.value || undefined,
           emaktabId: s.emaktabId,
           status: 'eligible',
         }));
@@ -210,6 +216,9 @@ async function readFile(file: File) {
         if (data.detectedGroup) {
           selectedGroup.value = data.detectedGroup as '1-guruh' | '2-guruh';
           autoDetectedGroup.value = data.detectedGroup;
+        } else if (!detected) {
+          selectedGroup.value = null;
+          autoDetectedGroup.value = null;
         }
 
         if (data.detectedClass) {
@@ -236,7 +245,7 @@ async function readFile(file: File) {
           middleName: s.middleName || undefined,
           gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
           birthDate: s.birthDate || '2009-01-01',
-          group: s.group || selectedGroup.value,
+          group: s.group || selectedGroup.value || undefined,
           emaktabId: s.emaktabId,
           status: 'eligible',
         }));
@@ -261,8 +270,11 @@ async function readFile(file: File) {
         rawText.value = text;
         const textDetected = detectGroupFromText(text);
         if (textDetected) {
-          selectedGroup.value = textDetected;
+          selectedGroup.value = textDetected as '1-guruh' | '2-guruh';
           autoDetectedGroup.value = textDetected;
+        } else if (!detected) {
+          selectedGroup.value = null;
+          autoDetectedGroup.value = null;
         }
         parseInput();
       }
@@ -275,10 +287,10 @@ async function readFile(file: File) {
   }
 }
 
-function setGroup(group: '1-guruh' | '2-guruh') {
+function setGroup(group: '1-guruh' | '2-guruh' | null) {
   selectedGroup.value = group;
   parsedStudents.value.forEach((s) => {
-    s.group = group;
+    s.group = group || undefined;
   });
 }
 
@@ -312,7 +324,7 @@ async function handleAiExtract() {
         middleName: s.middleName,
         gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
         birthDate: s.birthDate || '2009-01-01',
-        group: s.group || selectedGroup.value,
+        group: s.group || selectedGroup.value || undefined,
         emaktabId: s.emaktabId,
         status: 'eligible',
       }));
@@ -416,7 +428,7 @@ function parseInput() {
         middleName,
         gender,
         birthDate,
-        group: selectedGroup.value,
+        group: selectedGroup.value || undefined,
         emaktabId,
         status: 'eligible',
       });
@@ -454,7 +466,9 @@ function reset() {
   isAiExtracting.value = false;
   errorMessage.value = null;
   uploadedFileName.value = null;
+  selectedGroup.value = null;
   autoDetectedGroup.value = null;
+  autoDetectedClass.value = null;
   if (fileInputRef.value) fileInputRef.value.value = '';
 }
 
@@ -520,7 +534,7 @@ function downloadSample() {
         </button>
       </div>
 
-      <!-- 1. Sinf tanlash, Guruh tanlash va Namuna yuklash -->
+      <!-- 1. Sinf tanlash va Avtomatik aniqlash ma'lumotlari -->
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
         <div class="flex flex-wrap items-center gap-3">
           <div class="flex items-center gap-2">
@@ -534,43 +548,19 @@ function downloadSample() {
             </select>
           </div>
 
-          <!-- Guruh tanlash (1-guruh / 2-guruh) -->
-          <div class="flex items-center gap-1.5 p-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-            <span class="text-[11px] font-semibold text-slate-500 px-1.5">Guruh:</span>
-            <button
-              type="button"
-              @click="setGroup('1-guruh')"
-              :class="[
-                'px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
-                selectedGroup === '1-guruh'
-                  ? 'bg-teal-700 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-              ]"
-            >
-              1-guruh
-            </button>
-            <button
-              type="button"
-              @click="setGroup('2-guruh')"
-              :class="[
-                'px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
-                selectedGroup === '2-guruh'
-                  ? 'bg-teal-700 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-              ]"
-            >
-              2-guruh
-            </button>
-          </div>
-
-          <span v-if="autoDetectedClass" class="px-2 py-1 rounded-md bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-semibold text-[11px] border border-teal-300 dark:border-teal-700 flex items-center gap-1">
+          <span v-if="autoDetectedClass" class="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-semibold text-xs border border-teal-200 dark:border-teal-800 flex items-center gap-1">
             <span>✓ Sinf:</span>
             <strong>{{ autoDetectedClass }}</strong>
           </span>
 
-          <span v-if="autoDetectedGroup" class="px-2 py-1 rounded-md bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-semibold text-[11px] border border-teal-300 dark:border-teal-700 flex items-center gap-1">
+          <span v-if="autoDetectedGroup" class="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-semibold text-xs border border-teal-200 dark:border-teal-800 flex items-center gap-1">
             <span>✓ Guruh:</span>
             <strong>{{ autoDetectedGroup }}</strong>
+          </span>
+
+          <span v-else-if="isParsed && !autoDetectedGroup" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+            <span>✓</span>
+            <strong>Umumiy sinf (Guruhsiz)</strong>
           </span>
         </div>
 
@@ -713,8 +703,23 @@ function downloadSample() {
                   </div>
                 </td>
                 <td class="p-2.5 text-center">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
-                    {{ stu.group || selectedGroup }}
+                  <span
+                    v-if="stu.group === '1-guruh'"
+                    class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800"
+                  >
+                    1-guruh
+                  </span>
+                  <span
+                    v-else-if="stu.group === '2-guruh'"
+                    class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                  >
+                    2-guruh
+                  </span>
+                  <span
+                    v-else
+                    class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                  >
+                    Umumiy sinf
                   </span>
                 </td>
                 <td class="p-2.5 text-center">
@@ -748,7 +753,7 @@ function downloadSample() {
 
         <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
           <span class="text-xs text-slate-500 dark:text-slate-400">
-            Biriktirilmoqda: <strong class="text-teal-800 dark:text-teal-300">{{ availableClasses.find(c => c.id === selectedClassId)?.name }} ({{ selectedGroup }})</strong>
+            Biriktirilmoqda: <strong class="text-teal-800 dark:text-teal-300">{{ availableClasses.find(c => c.id === selectedClassId)?.name }} {{ selectedGroup ? `(${selectedGroup})` : '(Umumiy sinf)' }}</strong>
           </span>
 
           <div class="flex items-center gap-2">

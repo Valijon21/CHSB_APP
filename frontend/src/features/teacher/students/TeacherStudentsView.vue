@@ -76,7 +76,7 @@ function handleClassFilter(e: Event) {
 function handleGroupFilter(e: Event) {
   currentPage.value = 1;
   const target = e.target as HTMLSelectElement;
-  teacherStore.filterByGroup(target.value as 'ALL' | '1-guruh' | '2-guruh');
+  teacherStore.filterByGroup(target.value as 'ALL' | '1-guruh' | '2-guruh' | 'NONE');
 }
 
 function handleStatusFilterChange() {
@@ -201,9 +201,10 @@ async function handleBulkImport(inputs: StudentInput[]) {
           aria-label="Guruh bo'yicha filtrlash"
           class="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700 cursor-pointer min-h-[36px]"
         >
-          <option value="ALL">Barcha guruhlar</option>
+          <option value="ALL">Barcha o'quvchilar</option>
           <option value="1-guruh">1-guruh</option>
           <option value="2-guruh">2-guruh</option>
+          <option value="NONE">Guruhsiz (Umumiy sinf)</option>
         </select>
 
         <!-- Status Filter -->
@@ -267,9 +268,21 @@ async function handleBulkImport(inputs: StudentInput[]) {
               </td>
               <td class="p-3.5 text-center">
                 <span
-                  class="px-2 py-0.5 rounded text-[11px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800"
+                  v-if="stu.group"
+                  :class="[
+                    'px-2 py-0.5 rounded text-[11px] font-bold border',
+                    stu.group === '2-guruh'
+                      ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                      : 'bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800'
+                  ]"
                 >
-                  {{ stu.group || '1-guruh' }}
+                  {{ stu.group }}
+                </span>
+                <span
+                  v-else
+                  class="px-2 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700"
+                >
+                  Umumiy sinf
                 </span>
               </td>
               <td class="p-3.5">

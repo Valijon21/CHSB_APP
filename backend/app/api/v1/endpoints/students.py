@@ -19,7 +19,7 @@ class StudentCreate(BaseModel):
     birthDate: str = "2008-05-15"
     rosterCode: str | None = None
     status: str = "eligible"
-    group: str | None = "1-guruh"
+    group: str | None = None
     emaktabId: str | None = None
 
 @router.get("")
@@ -39,7 +39,10 @@ async def get_students(
     if classGroupId:
         where_clause["classGroupId"] = classGroupId
     if group and group != "ALL":
-        where_clause["group"] = group
+        if group == "NONE":
+            where_clause["group"] = None
+        else:
+            where_clause["group"] = group
 
     students = await db.student.find_many(
         where=where_clause,
@@ -119,7 +122,7 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
             "gender": payload.gender,
             "birthDate": b_date,
             "status": "ELIGIBLE" if payload.status == "eligible" else "INACTIVE",
-            "group": payload.group or "1-guruh",
+            "group": payload.group if payload.group else None,
             "emaktabId": payload.emaktabId,
         },
         include={"classGroup": True},
@@ -148,7 +151,7 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
         "middleName": created.middleName,
         "fullName": f"{created.lastName} {created.firstName} {created.middleName or ''}".strip(),
         "status": created.status.lower(),
-        "group": created.group or "1-guruh",
+        "group": created.group,
         "emaktabId": created.emaktabId,
         "availableAssessmentIds": ["chsb-inf-11-q1"],
         "createdAt": created.createdAt.isoformat(),

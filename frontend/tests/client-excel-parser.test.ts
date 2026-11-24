@@ -48,7 +48,7 @@ describe('clientExcelParser', () => {
   });
 
   describe('parseExcelFileClientSide', () => {
-    it('parses in-memory workbook with eMaktab ID, full names, and groups', async () => {
+    it('parses in-memory workbook for ungrouped class (returns null for detectedGroup)', async () => {
       const wb = XLSX.utils.book_new();
       const wsData = [
         ['^NEXT_PART^'],
@@ -76,12 +76,13 @@ describe('clientExcelParser', () => {
       const res = await parseExcelFileClientSide(file);
       expect(res.success).toBe(true);
       expect(res.detectedClass).toBe('10-V');
-      expect(res.detectedGroup).toBe('1-guruh');
+      expect(res.detectedGroup).toBeNull();
       expect(res.totalParsed).toBe(4);
 
       expect(res.students[0]?.fullName).toBe('Abbosova Bahora');
       expect(res.students[0]?.emaktabId).toBe('1000005839035');
       expect(res.students[0]?.gender).toBe('F');
+      expect(res.students[0]?.group).toBeNull();
 
       expect(res.students[1]?.fullName).toBe('Abduraximov Azamatjon');
       expect(res.students[1]?.gender).toBe('M');
@@ -91,6 +92,57 @@ describe('clientExcelParser', () => {
 
       expect(res.students[3]?.fullName).toBe('Юлдашалиева Муштарийбону');
       expect(res.students[3]?.gender).toBe('F');
+    });
+
+    it('parses in-memory workbook with (1-gurux) in header and detects 1-guruh', async () => {
+      const wb = XLSX.utils.book_new();
+      const wsData = [
+        ['Sinf: 11-A (1-gurux) 2026/2027 o\'quv yili'],
+        ['Fan: Informatika va axborotlar texnologiyasi'],
+        [],
+        ['T/r', 'Familiya va ism', 'Tizimdagi ID'],
+        [1, 'Abduraximova Zuxra Farxod qizi', '1000001990090'],
+        [2, 'Abdusattorova Xayrixon', '1000001990091'],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const u8 = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const file = new File([u8], '11-A-Informatika.xlsx', {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      const res = await parseExcelFileClientSide(file);
+      expect(res.success).toBe(true);
+      expect(res.detectedClass).toBe('11-A');
+      expect(res.detectedGroup).toBe('1-guruh');
+      expect(res.students.length).toBe(2);
+      expect(res.students[0]?.group).toBe('1-guruh');
+    });
+
+    it('parses in-memory workbook with (2-gurux) in header and detects 2-guruh', async () => {
+      const wb = XLSX.utils.book_new();
+      const wsData = [
+        ['Sinf: 11-A (2-gurux) 2026/2027 o\'quv yili'],
+        ['Fan: Informatika va axborotlar texnologiyasi'],
+        [],
+        ['T/r', 'Familiya va ism', 'Tizimdagi ID'],
+        [1, 'Ergashev Jasur Akram o\'g\'li', '1000001990092'],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const u8 = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const file = new File([u8], '11-A-Informatika.xlsx', {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      const res = await parseExcelFileClientSide(file);
+      expect(res.success).toBe(true);
+      expect(res.detectedClass).toBe('11-A');
+      expect(res.detectedGroup).toBe('2-guruh');
+      expect(res.students.length).toBe(1);
+      expect(res.students[0]?.group).toBe('2-guruh');
     });
 
     it('parses real 11-A-Informatika-20_11_2026.xls file accurately if accessible', async () => {

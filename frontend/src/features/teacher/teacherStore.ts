@@ -19,7 +19,7 @@ export const useTeacherStore = defineStore('teacher', () => {
   const classes = ref<ClassGroup[]>([]);
   const roster = ref<StudentRosterRecord[]>([]);
   const selectedClassId = ref<string | null>(null);
-  const selectedGroupFilter = ref<'ALL' | '1-guruh' | '2-guruh'>('ALL');
+  const selectedGroupFilter = ref<'ALL' | '1-guruh' | '2-guruh' | 'NONE'>('ALL');
   const studentSearchQuery = ref('');
   const assessments = ref<AssessmentSummary[]>([]);
   const results = ref<AssessmentResult[]>([]);
@@ -38,7 +38,11 @@ export const useTeacherStore = defineStore('teacher', () => {
       list = list.filter((r) => r.classGroupId === selectedClassId.value);
     }
     if (selectedGroupFilter.value !== 'ALL') {
-      list = list.filter((r) => r.group === selectedGroupFilter.value);
+      if (selectedGroupFilter.value === 'NONE') {
+        list = list.filter((r) => !r.group || r.group === 'Guruhsiz');
+      } else {
+        list = list.filter((r) => r.group === selectedGroupFilter.value);
+      }
     }
     const q = studentSearchQuery.value.trim().toLowerCase();
     if (q) {
@@ -152,7 +156,7 @@ export const useTeacherStore = defineStore('teacher', () => {
     selectedClassId.value = classGroupId;
   }
 
-  function filterByGroup(group: 'ALL' | '1-guruh' | '2-guruh') {
+  function filterByGroup(group: 'ALL' | '1-guruh' | '2-guruh' | 'NONE') {
     selectedGroupFilter.value = group;
   }
 
