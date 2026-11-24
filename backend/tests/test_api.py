@@ -122,3 +122,19 @@ def test_regional_overview(client: TestClient):
     data = response.json()
     assert data["totalSchools"] >= 2
     assert data["regionalAverageScore"] > 0
+
+def test_parse_student_roster_file_api(client: TestClient):
+    csv_content = b"T/r,eMaktab ID,O'quvchi F.I.SH,Jinsi\n1,1000001990090,Abduraximova Zuxra Farxod qizi,F\n"
+    response = client.post(
+        "/api/v1/students/parse-file",
+        files={"file": ("11-A_1-gurux.csv", csv_content, "text/csv")},
+        data={"group": "1-guruh"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["totalParsed"] == 1
+    assert data["detectedGroup"] == "1-guruh"
+    assert data["students"][0]["fullName"] == "Abduraximova Zuxra Farxod qizi"
+    assert data["students"][0]["emaktabId"] == "1000001990090"
+    assert data["students"][0]["gender"] == "F"

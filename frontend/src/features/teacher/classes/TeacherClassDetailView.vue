@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
 import { useToast } from '../../../shared/composables/useToast';
 import ClassScoreHistogram from './components/ClassScoreHistogram.vue';
 import ClassHonorRoll, { type TopPerformer, type NeedsSupportStudent } from './components/ClassHonorRoll.vue';
+import TablePagination from '../../../shared/components/TablePagination.vue';
 import type { StudentRosterRecord } from '../../../entities/roster/model';
 import type { AssessmentResult } from '../../../entities/result/model';
 
@@ -21,6 +22,10 @@ const searchQuery = ref('');
 const selectedGroupTab = ref<'ALL' | '1-guruh' | '2-guruh'>('ALL');
 const selectedGradeFilter = ref<'ALL' | '5' | '4' | '3' | 'PENDING'>('ALL');
 const sortBy = ref<'score_desc' | 'score_asc' | 'name_asc'>('score_desc');
+
+// Pagination State
+const currentPage = ref(1);
+const pageSize = ref(10);
 
 const countGroup1 = computed(() => {
   return teacherStore.classDetail?.students.filter((s) => s.group === '1-guruh').length ?? 0;
@@ -225,6 +230,15 @@ const displayedStudents = computed<StudentTableItem[]>(() => {
   });
 
   return list;
+});
+
+const paginatedStudents = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return displayedStudents.value.slice(start, start + pageSize.value);
+});
+
+watch([searchQuery, selectedGroupTab, selectedGradeFilter, sortBy], () => {
+  currentPage.value = 1;
 });
 
 // CSV Export Handler
@@ -546,11 +560,11 @@ function handleExportCSV() {
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-700/80">
               <tr
-                v-for="(item, idx) in displayedStudents"
+                v-for="(item, idx) in paginatedStudents"
                 :key="item.student.id"
                 class="hover:bg-slate-50/60 dark:hover:bg-slate-700/40 transition"
               >
-                <td class="p-3.5 text-slate-400 font-mono">{{ idx + 1 }}</td>
+                <td class="p-3.5 text-slate-400 font-mono">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
                 <td class="p-3.5">
                   <div class="font-bold text-slate-900 dark:text-white">
                     {{ item.student.lastName }} {{ item.student.firstName }} {{ item.student.middleName || '' }}
@@ -612,6 +626,14 @@ function handleExportCSV() {
             </tbody>
           </table>
         </div>
+
+        <!-- Table Pagination (10, 20, 30, 50) -->
+        <TablePagination
+          v-if="displayedStudents.length > 0"
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total-items="displayedStudents.length"
+        />
 
         <div v-if="displayedStudents.length === 0" class="text-center py-8 text-xs text-slate-500">
           Qidiruv yoki filtr bo'yicha hech qanday o'quvchi topilmadi.

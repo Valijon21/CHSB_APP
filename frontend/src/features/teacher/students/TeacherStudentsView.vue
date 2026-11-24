@@ -7,6 +7,7 @@ import { useOrganizationStore } from '../../organization/store/organizationStore
 import { useToast } from '../../../shared/composables/useToast';
 import CreateStudentModal from '../../organization/components/CreateStudentModal.vue';
 import BulkStudentImportModal from '../../organization/components/BulkStudentImportModal.vue';
+import TablePagination from '../../../shared/components/TablePagination.vue';
 import type { StudentInput, ClassGroupRecord } from '../../../entities/organization/model';
 
 const route = useRoute();
@@ -22,11 +23,20 @@ const statusFilter = ref<'all' | 'eligible' | 'inactive'>('all');
 const isCreateModalOpen = ref(false);
 const isBulkModalOpen = ref(false);
 
+// Pagination State
+const currentPage = ref(1);
+const pageSize = ref(10);
+
 const displayedRoster = computed(() => {
   return teacherStore.filteredRoster.filter((stu) => {
     if (statusFilter.value === 'all') return true;
     return stu.status === statusFilter.value;
   });
+});
+
+const paginatedRoster = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return displayedRoster.value.slice(start, start + pageSize.value);
 });
 
 const availableClassRecords = computed<ClassGroupRecord[]>(() => {
@@ -52,17 +62,24 @@ onMounted(async () => {
 });
 
 function handleSearch() {
+  currentPage.value = 1;
   teacherStore.setSearchQuery(searchInput.value);
 }
 
 function handleClassFilter(e: Event) {
+  currentPage.value = 1;
   const target = e.target as HTMLSelectElement;
   teacherStore.filterByClass(target.value || null);
 }
 
 function handleGroupFilter(e: Event) {
+  currentPage.value = 1;
   const target = e.target as HTMLSelectElement;
   teacherStore.filterByGroup(target.value as 'ALL' | '1-guruh' | '2-guruh');
+}
+
+function handleStatusFilterChange() {
+  currentPage.value = 1;
 }
 
 async function handleCreateStudent(input: StudentInput) {
@@ -166,6 +183,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
         <!-- Status Filter -->
         <select
           v-model="statusFilter"
+          @change="handleStatusFilterChange"
           aria-label="Status bo'yicha filtrlash"
           class="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700 cursor-pointer min-h-[36px]"
         >
@@ -186,7 +204,7 @@ async function handleBulkImport(inputs: StudentInput[]) {
       <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">O'quvchilar ro'yxati yuklanmoqda...</p>
     </div>
 
-    <!-- Students Table -->
+    <!-- Students Table with Pagination -->
     <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs overflow-hidden transition-colors">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs sm:text-sm">
@@ -204,11 +222,11 @@ async function handleBulkImport(inputs: StudentInput[]) {
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700/80">
             <tr
-              v-for="(stu, idx) in displayedRoster"
+              v-for="(stu, idx) in paginatedRoster"
               :key="stu.id"
               class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
             >
-              <td class="p-3.5 text-slate-400 font-mono">{{ idx + 1 }}</td>
+              <td class="p-3.5 text-slate-400 font-mono">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
               <td class="p-3.5">
                 <div class="font-bold text-slate-800 dark:text-white">
                   {{ stu.firstName }} {{ stu.lastName }} {{ stu.middleName || '' }}
@@ -255,6 +273,14 @@ async function handleBulkImport(inputs: StudentInput[]) {
           </tbody>
         </table>
       </div>
+
+      <!-- Table Pagination (10, 20, 30, 50) -->
+      <TablePagination
+        v-if="displayedRoster.length > 0"
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total-items="displayedRoster.length"
+      />
 
       <!-- Empty state if search finds nothing -->
       <div v-if="displayedRoster.length === 0" class="text-center py-10 text-xs text-slate-500 dark:text-slate-400">

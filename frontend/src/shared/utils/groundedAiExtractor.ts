@@ -343,3 +343,122 @@ export async function extractGroundedQuestionsWithAi(
     };
   }
 }
+
+export interface GroundedStudentItem {
+  orderIndex: number;
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  emaktabId?: string;
+  gender: 'M' | 'F';
+  group: '1-guruh' | '2-guruh';
+  birthDate?: string;
+}
+
+export interface GroundedRosterExtractionResult {
+  success: boolean;
+  students: GroundedStudentItem[];
+  modelUsed: string;
+  detectedGroup: string;
+  error?: string;
+}
+
+/**
+ * AI RAG: O'zbekiston maktablari eMaktab jurnali va nostandart jadvallardan
+ * o'quvchilar ro'yxatini Gemini 3.5 Flash orqali ajratib oluvchi aqlli modul
+ */
+export async function extractStudentsRosterWithAi(
+  rawTableText: string,
+  options?: { apiKey?: string; defaultGroup?: string }
+): Promise<GroundedRosterExtractionResult> {
+  const model = DEFAULT_MODEL;
+  const apiKey = (options?.apiKey || getStoredGeminiApiKey()).trim();
+  const defaultGroup = (options?.defaultGroup || (rawTableText.includes('2-gur') ? '2-guruh' : '1-guruh')) as '1-guruh' | '2-guruh';
+
+  if (!rawTableText || !rawTableText.trim()) {
+    return {
+      success: false,
+      students: [],
+      modelUsed: model,
+      detectedGroup: defaultGroup,
+      error: "Tahlil qilish uchun matn yoki jadval ma'lumoti bo'sh.",
+    };
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const prompt = `Siz O'zbekiston maktablari eMaktab tizimi va o'quvchilar jurnallari bo'yicha aqlli yordamchisiz.
+Quyidagi matn yoki jadval ma'lumotlaridan haqiqiy o'quvchilar ro'yxatini aniqlab, faqat toza JSON massiv (Array) sifatida qaytaring.
+
+QOIDALAR:
+1. Har bir o'quvchi uchun quyidagi maydonlarni ajrating:
+   - "orderIndex": Tartib raqami (1, 2, 3...)
+   - "fullName": To'liq ism-sharif (masalan: "Abduraximova Zuxra Farxod qizi")
+   - "lastName": Familiya ("Abduraximova")
+   - "firstName": Ism ("Zuxra")
+   - "middleName": Sharif ("Farxod qizi" yoki null)
+   - "emaktabId": 7 dan 14 xonagacha bo'lgan eMaktab ID raqami (agar bo'lsa)
+   - "gender": "M" (o'g'il) yoki "F" (qiz)
+   - "group": "${defaultGroup}"
+2. Sarlavhalar, o'qituvchi ismi, fan nomi, sinf nomi yoki ustun sarlavhalarini ("T/r", "F.I.SH", "ID") o'quvchi deb hisoblamang!
+3. Bo'sh yoki axlat satrlarni qat'iyan chiqarib tashlang. Hech qachon "Ismsiz" deb nomlamang.
+4. Faqat JSON formatida javob bering, hech qanday markdown yoki qo'shimcha so'z qo'shmang.
+
+Jadval ma'lumotlari:
+${rawTableText.slice(0, 15000)}
+`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.1,
+        },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => null);
+      throw new Error(translateAiErrorMessage(errJson?.error?.message || `Status: ${response.status}`));
+    }
+
+    const data = await response.json();
+    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!candidateText) {
+      throw new Error("Sun'iy intellektdan javob kelmadi.");
+    }
+
+    const parsed = JSON.parse(candidateText);
+    const students: GroundedStudentItem[] = (Array.isArray(parsed) ? parsed : []).map((item, idx) => ({
+      orderIndex: item.orderIndex || idx + 1,
+      fullName: item.fullName || `${item.lastName || ''} ${item.firstName || ''}`.trim(),
+      firstName: item.firstName || 'O\'quvchi',
+      lastName: item.lastName || 'Familiya',
+      middleName: item.middleName || undefined,
+      emaktabId: item.emaktabId || undefined,
+      gender: item.gender === 'F' ? 'F' : 'M',
+      group: item.group || defaultGroup,
+      birthDate: item.birthDate || '2009-01-01',
+    }));
+
+    return {
+      success: true,
+      students,
+      modelUsed: model,
+      detectedGroup: defaultGroup,
+    };
+  } catch (err: unknown) {
+    const rawMsg = (err as Error)?.message || "AI tahlilida xatolik yuz berdi";
+    return {
+      success: false,
+      students: [],
+      modelUsed: model,
+      detectedGroup: defaultGroup,
+      error: translateAiErrorMessage(rawMsg),
+    };
+  }
+}

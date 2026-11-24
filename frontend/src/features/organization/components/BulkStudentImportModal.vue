@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, toRef } from 'vue';
+import { ref, toRef, computed } from 'vue';
 import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import type { StudentInput, StudentGender } from '../../../entities/organization/model';
 import type { ClassGroupRecord } from '../../../entities/organization/model';
 import { detectGroupFromText } from '../../emaktab/services/rosterParserService';
+import TablePagination from '../../../shared/components/TablePagination.vue';
+import { extractStudentsRosterWithAi } from '../../../shared/utils/groundedAiExtractor';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -29,8 +31,20 @@ const rawText = ref('');
 const parsedStudents = ref<StudentInput[]>([]);
 const isParsed = ref(false);
 const isDragging = ref(false);
+const isLoadingFile = ref(false);
+const isAiExtracting = ref(false);
+const errorMessage = ref<string | null>(null);
 const uploadedFileName = ref<string | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+
+// Pagination in preview
+const previewPage = ref(1);
+const previewPageSize = ref(10);
+
+const paginatedPreviewStudents = computed(() => {
+  const start = (previewPage.value - 1) * previewPageSize.value;
+  return parsedStudents.value.slice(start, start + previewPageSize.value);
+});
 
 function triggerFileInput() {
   fileInputRef.value?.click();
@@ -52,28 +66,88 @@ function handleFileDrop(e: DragEvent) {
   }
 }
 
-function readFile(file: File) {
+async function readFile(file: File) {
   uploadedFileName.value = file.name;
+  isLoadingFile.value = true;
+  errorMessage.value = null;
+
   const detected = detectGroupFromText(file.name);
   if (detected) {
     selectedGroup.value = detected;
     autoDetectedGroup.value = detected;
   }
 
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    const text = event.target?.result as string;
-    if (text) {
-      rawText.value = text;
-      const textDetected = detectGroupFromText(text);
-      if (textDetected) {
-        selectedGroup.value = textDetected;
-        autoDetectedGroup.value = textDetected;
-      }
-      parseInput();
+  // 1. Try backend binary parse endpoint (for .xlsx, .xls, .csv)
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (selectedGroup.value) {
+      formData.append('group', selectedGroup.value);
     }
-  };
-  reader.readAsText(file);
+
+    const res = await fetch('/api/v1/students/parse-file', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.students) && data.students.length > 0) {
+        const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+        const className = cls?.name || 'Sinf';
+
+        if (data.detectedGroup) {
+          selectedGroup.value = data.detectedGroup as '1-guruh' | '2-guruh';
+          autoDetectedGroup.value = data.detectedGroup;
+        }
+
+        parsedStudents.value = data.students.map((s: any) => ({
+          tenantSlug: props.tenantSlug,
+          schoolId: props.schoolId,
+          classGroupId: selectedClassId.value,
+          className,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          middleName: s.middleName || undefined,
+          gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
+          birthDate: s.birthDate || '2009-01-01',
+          group: s.group || selectedGroup.value,
+          emaktabId: s.emaktabId,
+          status: 'eligible',
+        }));
+        previewPage.value = 1;
+        isParsed.value = true;
+        isLoadingFile.value = false;
+        return;
+      } else if (data.error) {
+        errorMessage.value = data.error;
+      }
+    }
+  } catch {
+    // If backend is not reached, fall through to client fallback
+  }
+
+  // 2. Client-side fallback for CSV / text
+  if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        rawText.value = text;
+        const textDetected = detectGroupFromText(text);
+        if (textDetected) {
+          selectedGroup.value = textDetected;
+          autoDetectedGroup.value = textDetected;
+        }
+        parseInput();
+      }
+      isLoadingFile.value = false;
+    };
+    reader.readAsText(file);
+  } else {
+    isLoadingFile.value = false;
+    errorMessage.value = "Fayldan o'quvchilar ro'yxatini aniqlab bo'lmadi. Iltimos ustunlarni tekshiring yoki matn sifatida kiriting.";
+  }
 }
 
 function setGroup(group: '1-guruh' | '2-guruh') {
@@ -83,8 +157,57 @@ function setGroup(group: '1-guruh' | '2-guruh') {
   });
 }
 
+async function handleAiExtract() {
+  if (!rawText.value.trim() || !selectedClassId.value) return;
+
+  isAiExtracting.value = true;
+  errorMessage.value = null;
+
+  try {
+    const res = await extractStudentsRosterWithAi(rawText.value, {
+      defaultGroup: selectedGroup.value,
+    });
+
+    if (res.success && res.students.length > 0) {
+      const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+      const className = cls?.name || 'Sinf';
+
+      if (res.detectedGroup) {
+        selectedGroup.value = res.detectedGroup as '1-guruh' | '2-guruh';
+        autoDetectedGroup.value = res.detectedGroup;
+      }
+
+      parsedStudents.value = res.students.map((s) => ({
+        tenantSlug: props.tenantSlug,
+        schoolId: props.schoolId,
+        classGroupId: selectedClassId.value,
+        className,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        middleName: s.middleName,
+        gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
+        birthDate: s.birthDate || '2009-01-01',
+        group: s.group || selectedGroup.value,
+        emaktabId: s.emaktabId,
+        status: 'eligible',
+      }));
+
+      previewPage.value = 1;
+      isParsed.value = true;
+    } else {
+      errorMessage.value = res.error || "AI orqali ro'yxatni ajratib bo'lmadi. Oddiy tahlil tugmasidan foydalaning.";
+    }
+  } catch (err: unknown) {
+    errorMessage.value = (err as Error)?.message || "AI tahlilida kutilmagan xatolik yuz berdi.";
+  } finally {
+    isAiExtracting.value = false;
+  }
+}
+
 function parseInput() {
   if (!rawText.value.trim() || !selectedClassId.value) return;
+
+  errorMessage.value = null;
 
   if (!autoDetectedGroup.value) {
     const detected = detectGroupFromText(rawText.value);
@@ -100,12 +223,23 @@ function parseInput() {
   const lines = rawText.value
     .split(/\r?\n/)
     .map((l) => l.trim())
-    .filter((l) => l.length > 0 && !l.startsWith('#') && !l.toLowerCase().includes('familiya') && !l.toLowerCase().includes('f.i.sh'));
+    .filter((l) => {
+      if (!l || l.startsWith('#') || l.startsWith('^') || l.includes('\ufffd')) return false;
+      const lower = l.toLowerCase();
+      const isHeader =
+        lower.includes('familiya va ism') ||
+        lower.includes('familiya, ism') ||
+        (lower.includes('familiya') && lower.includes('ism')) ||
+        lower.includes('f.i.sh') ||
+        lower.includes('fish') ||
+        (lower.includes('t/r') && (lower.includes('id') || lower.includes('guruh') || lower.includes('jins')));
+      if (isHeader) return false;
+      return true;
+    });
 
   const result: StudentInput[] = [];
 
   for (const line of lines) {
-    // Delimiter: vergul, nuqtali vergul yoki tab (Excel copy-paste)
     const parts = line.split(/[,;\t]/).map((p) => p.trim());
     if (parts.length >= 1) {
       let rawName = cleanPrefix(parts[0] ?? '');
@@ -113,7 +247,6 @@ function parseInput() {
       let gender: StudentGender = 'M';
       let birthDate = '2009-01-01';
 
-      // Check if parts[0] is index (e.g. "1" or "1.0") and parts[1] is student name
       if (/^\d{1,3}(\.0)?$/.test(parts[0]) && parts[1]) {
         rawName = cleanPrefix(parts[1]);
         if (parts[2] && /^\d{7,}$/.test(parts[2])) {
@@ -135,9 +268,18 @@ function parseInput() {
       }
 
       const nameTokens = rawName.split(' ').filter(Boolean);
-      const lastName = nameTokens[0] || 'Familiyasiz';
-      const firstName = nameTokens[1] || 'Ismsiz';
-      const middleName = nameTokens.slice(2).join(' ') || undefined;
+      if (nameTokens.length === 0 || rawName.length < 3 || rawName.toLowerCase().includes('ismsiz')) {
+        continue;
+      }
+
+      let lastName = nameTokens[0];
+      let firstName = nameTokens[1] || 'O\'quvchi';
+      let middleName = nameTokens.slice(2).join(' ') || undefined;
+
+      const lowerRaw = rawName.toLowerCase();
+      if (lowerRaw.includes('qizi') || lowerRaw.endsWith('eva') || lowerRaw.endsWith('ova')) {
+        gender = 'F';
+      }
 
       result.push({
         tenantSlug: props.tenantSlug,
@@ -156,7 +298,13 @@ function parseInput() {
     }
   }
 
+  if (result.length === 0) {
+    errorMessage.value = "Kiritilgan matndan hech qanday o'quvchi aniqlanmadi. Iltimos formatni tekshiring.";
+    return;
+  }
+
   parsedStudents.value = result;
+  previewPage.value = 1;
   isParsed.value = true;
 }
 
@@ -179,6 +327,9 @@ function reset() {
   rawText.value = '';
   parsedStudents.value = [];
   isParsed.value = false;
+  isLoadingFile.value = false;
+  isAiExtracting.value = false;
+  errorMessage.value = null;
   uploadedFileName.value = null;
   autoDetectedGroup.value = null;
   if (fileInputRef.value) fileInputRef.value.value = '';
@@ -315,8 +466,22 @@ function downloadSample() {
         @change="handleFileInputChange"
       />
 
+      <!-- Error Alert -->
+      <div v-if="errorMessage" class="p-3 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-800 dark:text-rose-200 text-xs flex items-center justify-between">
+        <span>⚠️ {{ errorMessage }}</span>
+        <button type="button" @click="errorMessage = null" class="text-rose-600 hover:text-rose-800 font-bold ml-2">✕</button>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="isLoadingFile || isAiExtracting" class="py-12 text-center space-y-3">
+        <div class="w-8 h-8 border-3 border-teal-800 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="text-xs text-teal-800 dark:text-teal-300 font-bold">
+          {{ isAiExtracting ? "AI RAG ro'yxatni aqlli tahlil qilmoqda..." : "Excel fayli o'qilmoqda va ustunlar ajratilmoqda..." }}
+        </p>
+      </div>
+
       <!-- 2. Fayl Yuklash Dropzone va Matn maydoni -->
-      <div v-if="!isParsed" class="space-y-3 text-xs">
+      <div v-else-if="!isParsed" class="space-y-3 text-xs">
         <!-- Interactive Drag & Drop Area -->
         <div
           @dragover.prevent="isDragging = true"
@@ -359,7 +524,16 @@ function downloadSample() {
           class="w-full text-xs font-mono p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-teal-700"
         ></textarea>
 
-        <div class="flex justify-end gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            @click="handleAiExtract"
+            :disabled="!rawText.trim() || isAiExtracting"
+            class="px-3.5 py-2 bg-gradient-to-r from-teal-800 to-teal-900 hover:from-teal-900 hover:to-teal-950 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50 min-h-[36px]"
+          >
+            <span>✨ AI RAG bilan tahlil qilish</span>
+          </button>
+
           <button
             type="button"
             @click="parseInput"
@@ -371,7 +545,7 @@ function downloadSample() {
         </div>
       </div>
 
-      <!-- 3. Tahlil qilingan natija (Preview Table) -->
+      <!-- 3. Tahlil qilingan natija (Preview Table with Pagination) -->
       <div v-else class="space-y-3 text-xs">
         <div class="flex items-center justify-between">
           <span class="font-bold text-slate-800 dark:text-white">
@@ -386,7 +560,7 @@ function downloadSample() {
           </button>
         </div>
 
-        <div class="max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl">
+        <div class="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-500 font-bold border-b border-slate-200 dark:border-slate-700">
               <tr>
@@ -399,8 +573,8 @@ function downloadSample() {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
-              <tr v-for="(stu, idx) in parsedStudents" :key="idx" class="hover:bg-slate-50/50 dark:hover:bg-slate-700/40">
-                <td class="p-2.5 text-center font-mono text-slate-400">{{ idx + 1 }}</td>
+              <tr v-for="(stu, idx) in paginatedPreviewStudents" :key="idx" class="hover:bg-slate-50/50 dark:hover:bg-slate-700/40">
+                <td class="p-2.5 text-center font-mono text-slate-400">{{ (previewPage - 1) * previewPageSize + idx + 1 }}</td>
                 <td class="p-2.5">
                   <div class="font-bold text-slate-900 dark:text-white">
                     {{ stu.lastName }} {{ stu.firstName }} {{ stu.middleName || '' }}
@@ -423,7 +597,7 @@ function downloadSample() {
                 <td class="p-2.5 text-right">
                   <button
                     type="button"
-                    @click="removeStudent(idx)"
+                    @click="removeStudent((previewPage - 1) * previewPageSize + idx)"
                     class="text-rose-600 hover:text-rose-800 text-xs font-semibold cursor-pointer"
                     title="Qatordan o'chirish"
                   >
@@ -434,6 +608,14 @@ function downloadSample() {
             </tbody>
           </table>
         </div>
+
+        <!-- Table Pagination in Preview -->
+        <TablePagination
+          v-if="parsedStudents.length > 0"
+          v-model:current-page="previewPage"
+          v-model:page-size="previewPageSize"
+          :total-items="parsedStudents.length"
+        />
 
         <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
           <span class="text-xs text-slate-500 dark:text-slate-400">

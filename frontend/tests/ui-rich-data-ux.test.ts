@@ -87,7 +87,16 @@ describe('TASK-DAT.5-7: UI/UX Audit and Polish Under Rich Enterprise Dataset', (
       await new Promise((r) => setTimeout(r, 20));
 
       const rows = wrapper.findAll('tbody tr');
-      expect(rows.length).toBe(28);
+      // Default pagination is 10 items per page
+      expect(rows.length).toBe(10);
+      expect(wrapper.text()).toContain('28 ta');
+
+      // Switching to 30 items per page renders all 28 students
+      const size30Btn = wrapper.find('[data-testid="page-size-30"]');
+      if (size30Btn.exists()) {
+        await size30Btn.trigger('click');
+        expect(wrapper.findAll('tbody tr').length).toBe(28);
+      }
 
       // Verify no duplicate plus on action buttons
       const buttons = wrapper.findAll('button');

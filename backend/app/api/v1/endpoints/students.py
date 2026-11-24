@@ -1,5 +1,5 @@
 from __future__ import annotations
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from datetime import datetime
 from backend.app.db.prisma import get_prisma
@@ -132,4 +132,15 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
 async def delete_student(student_id: str, db: Prisma = Depends(get_prisma)):
     await db.student.delete(where={"id": student_id})
     return {"success": True, "message": "O'quvchi muvaffaqiyatli o'chirildi."}
+
+@router.post("/parse-file")
+async def parse_student_roster_file(
+    file: UploadFile = File(...),
+    group: str | None = Form(None)
+):
+    from backend.app.services.excel_parser import parse_excel_or_csv_file
+    file_bytes = await file.read()
+    file_name = file.filename or "roster.xlsx"
+    result = parse_excel_or_csv_file(file_name=file_name, file_bytes=file_bytes, group_override=group)
+    return result
 
