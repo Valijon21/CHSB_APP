@@ -7,6 +7,7 @@ import { detectGroupFromText } from '../../emaktab/services/rosterParserService'
 import TablePagination from '../../../shared/components/TablePagination.vue';
 import { extractStudentsRosterWithAi } from '../../../shared/utils/groundedAiExtractor';
 import { parseExcelFileClientSide } from '../../emaktab/services/clientExcelParser';
+import { useTeacherStore } from '../../teacher/teacherStore';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -77,13 +78,100 @@ watch(
   }
 );
 
+const teacherStore = useTeacherStore();
+
+function normalizeName(str?: string | null): string {
+  if (!str) return '';
+  return str.replace(/[’‘`']/g, "'").toLowerCase().trim();
+}
+
+export interface AnnotatedStudent extends StudentInput {
+  isDuplicate?: boolean;
+  duplicateReason?: string;
+}
+
+const evaluatedStudents = computed<AnnotatedStudent[]>(() => {
+  const existingInClass = teacherStore.roster.filter(
+    (r) => r.classGroupId === selectedClassId.value
+  );
+
+  const seenEmaktab = new Set<string>();
+  const seenNames = new Set<string>();
+
+  for (const ex of existingInClass) {
+    if (ex.emaktabId) seenEmaktab.add(ex.emaktabId.trim());
+    const fn = normalizeName(ex.firstName);
+    const ln = normalizeName(ex.lastName);
+    if (fn || ln) {
+      seenNames.add(`${ln} ${fn}`.trim());
+      seenNames.add(`${fn} ${ln}`.trim());
+    }
+    const anyEx = ex as any;
+    if (anyEx.name) {
+      seenNames.add(normalizeName(anyEx.name));
+    }
+    if (anyEx.fullName) {
+      seenNames.add(normalizeName(anyEx.fullName));
+    }
+  }
+
+  const inBatchEmaktab = new Set<string>();
+  const inBatchNames = new Set<string>();
+
+  return parsedStudents.value.map((s) => {
+    const normLast = normalizeName(s.lastName);
+    const normFirst = normalizeName(s.firstName);
+    const fullName1 = `${normLast} ${normFirst}`.trim();
+    const fullName2 = `${normFirst} ${normLast}`.trim();
+    const directName = normalizeName((s as any).name || (s as any).fullName);
+    const emaktab = s.emaktabId?.trim();
+
+    if (emaktab && seenEmaktab.has(emaktab)) {
+      return { ...s, isDuplicate: true, duplicateReason: "Ushbu sinfda eMaktab ID bilan mavjud" };
+    }
+    if (
+      (fullName1 && seenNames.has(fullName1)) ||
+      (fullName2 && seenNames.has(fullName2)) ||
+      (directName && seenNames.has(directName))
+    ) {
+      return { ...s, isDuplicate: true, duplicateReason: "Ushbu sinfda bu ismli o'quvchi allaqachon mavjud" };
+    }
+
+    if (emaktab && inBatchEmaktab.has(emaktab)) {
+      return { ...s, isDuplicate: true, duplicateReason: "Fayl ichida takrorlangan qator" };
+    }
+    if (
+      (fullName1 && inBatchNames.has(fullName1)) ||
+      (fullName2 && inBatchNames.has(fullName2)) ||
+      (directName && inBatchNames.has(directName))
+    ) {
+      return { ...s, isDuplicate: true, duplicateReason: "Fayl ichida takrorlangan qator" };
+    }
+
+    if (emaktab) inBatchEmaktab.add(emaktab);
+    if (fullName1) inBatchNames.add(fullName1);
+    if (fullName2) inBatchNames.add(fullName2);
+    if (directName) inBatchNames.add(directName);
+
+    return { ...s, isDuplicate: false };
+  });
+});
+
+const newStudentsToImport = computed(() => {
+  return evaluatedStudents.value.filter((s) => !s.isDuplicate);
+});
+
+const duplicateStudentsCount = computed(() => {
+  return evaluatedStudents.value.filter((s) => s.isDuplicate).length;
+});
+
 // Pagination in preview
 const previewPage = ref(1);
 const previewPageSize = ref(10);
 
 const paginatedPreviewStudents = computed(() => {
   const start = (previewPage.value - 1) * previewPageSize.value;
-  return parsedStudents.value.slice(start, start + previewPageSize.value);
+  return evaluatedStudents.value.slice(start, start + previewPageSize.value);
 });
 
 function triggerFileInput() {
@@ -453,8 +541,14 @@ function removeStudent(index: number) {
 }
 
 function handleConfirm() {
-  if (parsedStudents.value.length > 0 && !props.isSubmitting) {
-    emit('bulk-import', [...parsedStudents.value]);
+  if (newStudentsToImport.value.length > 0 && !props.isSubmitting) {
+    emit(
+      'bulk-import',
+      newStudentsToImport.value.map((s) => {
+        const { isDuplicate, duplicateReason, ...clean } = s;
+        return clean;
+      })
+    );
   }
 }
 
@@ -668,7 +762,13 @@ function downloadSample() {
       <div v-else class="space-y-3 text-xs">
         <div class="flex items-center justify-between">
           <span class="font-bold text-slate-800 dark:text-white">
-            Tahlil natijasi: {{ parsedStudents.length }} nafar o'quvchi aniqlandi
+            Tahlil natijasi: {{ evaluatedStudents.length }} nafar o'quvchi aniqlandi
+            <span v-if="duplicateStudentsCount > 0" class="text-amber-700 dark:text-amber-400 font-semibold ml-1">
+              ({{ newStudentsToImport.length }} ta yangi, {{ duplicateStudentsCount }} ta mavjud o'tkaziladi)
+            </span>
+            <span v-else class="text-emerald-700 dark:text-emerald-400 font-semibold ml-1">
+              (barchasi yangi)
+            </span>
           </span>
           <button
             type="button"
@@ -685,6 +785,7 @@ function downloadSample() {
               <tr>
                 <th class="p-2.5 w-10 text-center">№</th>
                 <th class="p-2.5">Familiya va Ism</th>
+                <th class="p-2.5 text-center">Holat</th>
                 <th class="p-2.5 text-center">Guruh</th>
                 <th class="p-2.5 text-center">Jinsi</th>
                 <th class="p-2.5 text-center">Tug'ilgan sana</th>
@@ -701,6 +802,21 @@ function downloadSample() {
                   <div v-if="stu.emaktabId" class="text-[10px] font-mono text-slate-400 dark:text-slate-400">
                     eMaktab ID: {{ stu.emaktabId }}
                   </div>
+                </td>
+                <td class="p-2.5 text-center">
+                  <span
+                    v-if="stu.isDuplicate"
+                    class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                    :title="stu.duplicateReason"
+                  >
+                    ⚠️ Mavjud (Yuklanmaydi)
+                  </span>
+                  <span
+                    v-else
+                    class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                  >
+                    ✓ Yangi
+                  </span>
                 </td>
                 <td class="p-2.5 text-center">
                   <span
@@ -745,10 +861,10 @@ function downloadSample() {
 
         <!-- Table Pagination in Preview -->
         <TablePagination
-          v-if="parsedStudents.length > 0"
+          v-if="evaluatedStudents.length > 0"
           v-model:current-page="previewPage"
           v-model:page-size="previewPageSize"
-          :total-items="parsedStudents.length"
+          :total-items="evaluatedStudents.length"
         />
 
         <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
@@ -766,7 +882,7 @@ function downloadSample() {
             </button>
             <button
               type="button"
-              :disabled="props.isSubmitting"
+              :disabled="props.isSubmitting || newStudentsToImport.length === 0"
               @click="handleConfirm"
               class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer min-h-[38px] flex items-center gap-1.5"
             >
@@ -774,7 +890,7 @@ function downloadSample() {
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <span>{{ props.isSubmitting ? "Bazaga saqlanmoqda..." : `Tasdiqlash va Bazaga Saqlash (${parsedStudents.length} ta)` }}</span>
+              <span>{{ props.isSubmitting ? "Bazaga saqlanmoqda..." : newStudentsToImport.length > 0 ? `Tasdiqlash va Bazaga Saqlash (${newStudentsToImport.length} ta yangi)` : "Barcha o'quvchilar allaqachon mavjud" }}</span>
             </button>
           </div>
         </div>

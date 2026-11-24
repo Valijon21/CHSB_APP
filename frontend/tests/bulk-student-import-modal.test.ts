@@ -1,10 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { setActivePinia, createPinia } from 'pinia';
 import * as XLSX from 'xlsx';
 import BulkStudentImportModal from '../src/features/organization/components/BulkStudentImportModal.vue';
+import { useTeacherStore } from '../src/features/teacher/teacherStore';
 import type { ClassGroupRecord } from '../src/entities/organization/model';
 
 describe('BulkStudentImportModal.vue', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
   const dummyClasses: ClassGroupRecord[] = [
     {
       id: 'cls-10-v',
@@ -73,7 +79,7 @@ describe('BulkStudentImportModal.vue', () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Fan jurnali');
     const u8 = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
 
-    const file = new File([u8], '10-V-Informatika-20_11_2026.xlsx', {
+    const file = new File([u8], '10-V-Informatika-(1-guruh)-20_11_2026.xlsx', {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
 
@@ -85,7 +91,6 @@ describe('BulkStudentImportModal.vue', () => {
     });
 
     await fileInput.trigger('change');
-    // Allow promises to resolve
     await new Promise((r) => setTimeout(r, 100));
 
     expect(wrapper.text()).toContain("2 nafar o'quvchi aniqlandi");
@@ -103,5 +108,80 @@ describe('BulkStudentImportModal.vue', () => {
     expect(emitted![0]![0]).toHaveLength(2);
     expect((emitted![0]![0] as any[])[0].classGroupId).toBe('cls-10-v');
     expect((emitted![0]![0] as any[])[0].group).toBe('1-guruh');
+  });
+
+  it('detects existing duplicates in class and only imports new students', async () => {
+    const teacherStore = useTeacherStore();
+    // Simulate an existing student in cls-10-v with matching eMaktab ID and Name
+    teacherStore.roster = [
+      {
+        id: 'stu-existing-1',
+        tenantId: 'al-xorazmiy',
+        schoolId: 'sch-01',
+        classGroupId: 'cls-10-v',
+        rosterCode: 'STU-1001',
+        firstName: 'Bahora',
+        lastName: 'Abbosova',
+        emaktabId: '1000005839035',
+        status: 'eligible',
+        availableAssessmentIds: [],
+        group: '1-guruh',
+      },
+    ];
+
+    const wrapper = mount(BulkStudentImportModal, {
+      props: {
+        isOpen: true,
+        schoolId: 'sch-01',
+        tenantSlug: 'al-xorazmiy',
+        availableClasses: dummyClasses,
+      },
+    });
+
+    const wb = XLSX.utils.book_new();
+    const wsData = [
+      ['Sinf: 10-V 2026/2027 o‘quv yili'],
+      ['Fan: Informatika'],
+      [],
+      ['X/X №', 'Oy', '', 'Noyabr', '', 'FB', 'Ballar', 'Tavsiya. Baho', '2 Chorak'],
+      ['', 'Son', '', 10, 16],
+      ['', 'O‘quvchining ism va familiyasi'],
+      ['', '', '', '2555715759661962397'],
+      [1, 'Abbosova Bahora', '1000005839035', 8],
+      [2, 'Yangi Oquvchi', '1000099999999', 8],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Fan jurnali');
+    const u8 = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+    const file = new File([u8], '10-V-Informatika.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    const fileInput = wrapper.find('input[type="file"]');
+    Object.defineProperty(fileInput.element, 'files', {
+      value: [file],
+      writable: true,
+    });
+
+    await fileInput.trigger('change');
+    await new Promise((r) => setTimeout(r, 100));
+
+    // Should indicate 1 duplicate and 1 new
+    expect(wrapper.text()).toContain("1 ta mavjud o'tkaziladi");
+    expect(wrapper.text()).toContain('Mavjud (Yuklanmaydi)');
+    expect(wrapper.text()).toContain('Yangi');
+
+    // Confirm button should show "1 ta yangi"
+    const confirmBtn = wrapper.find('button.bg-emerald-700');
+    expect(confirmBtn.text()).toContain('(1 ta yangi)');
+    await confirmBtn.trigger('click');
+
+    const emitted = wrapper.emitted('bulk-import');
+    expect(emitted).toBeTruthy();
+    const importedList = emitted![0]![0] as any[];
+    // Only the new student must be emitted!
+    expect(importedList).toHaveLength(1);
+    expect(importedList[0].firstName).toBe('Oquvchi');
   });
 });

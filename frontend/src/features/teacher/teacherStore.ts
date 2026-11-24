@@ -224,6 +224,15 @@ export const useTeacherStore = defineStore('teacher', () => {
     roster.value = roster.value.filter((r) => r.id !== id && r.rosterCode !== id);
   }
 
+  function removeRosterRecordsByClass(classGroupId: string): void {
+    roster.value = roster.value.filter((r) => r.classGroupId !== classGroupId);
+  }
+
+  function removeRosterRecordsByIds(ids: string[]): void {
+    const set = new Set(ids);
+    roster.value = roster.value.filter((r) => !set.has(r.id) && !set.has(r.rosterCode));
+  }
+
   async function createAssessment(input: CreateAssessmentInput): Promise<AssessmentSummary> {
     isLoading.value = true;
     errorMessage.value = null;
@@ -263,6 +272,8 @@ export const useTeacherStore = defineStore('teacher', () => {
     addRosterRecord,
     addRosterRecords,
     removeRosterRecord,
+    removeRosterRecordsByClass,
+    removeRosterRecordsByIds,
     selectedClassId,
     studentSearchQuery,
     assessments,

@@ -29,6 +29,8 @@ export interface OrganizationRepository {
   getStudentsBySchool(tenantSlug: string, classGroupId?: string): Promise<StudentRecord[]>;
   updateStudent(id: string, updates: Partial<StudentInput>): Promise<StudentRecord | null>;
   deleteStudent(id: string): Promise<boolean>;
+  deleteClassStudents(tenantSlug: string, classGroupId: string): Promise<number>;
+  bulkDeleteStudents(studentIds: string[]): Promise<number>;
 
   // Sinflar (Class Groups)
   createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord>;

@@ -987,6 +987,28 @@ export class RealOrganizationRepository implements OrganizationRepository {
     return res.success;
   }
 
+  async deleteClassStudents(tenantSlug: string, classGroupId: string): Promise<number> {
+    interface DeleteResponse {
+      success: boolean;
+      deletedCount: number;
+      message?: string;
+    }
+    const res = await httpClient.delete<DeleteResponse>(
+      `/students?tenantSlug=${encodeURIComponent(tenantSlug)}&classGroupId=${encodeURIComponent(classGroupId)}`
+    );
+    return res.deletedCount || 0;
+  }
+
+  async bulkDeleteStudents(studentIds: string[]): Promise<number> {
+    interface DeleteResponse {
+      success: boolean;
+      deletedCount: number;
+      message?: string;
+    }
+    const res = await httpClient.post<DeleteResponse>('/students/bulk-delete', { studentIds });
+    return res.deletedCount || 0;
+  }
+
   async createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord> {
     return {
       id: `class-${Date.now()}`,

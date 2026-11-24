@@ -164,7 +164,49 @@ describe('TASK-MS.3: Organization & Multi-School Pinia Store', () => {
     // Delete subject
     const deleted = await store.deleteSubject(newSub.id);
     expect(deleted).toBe(true);
-    expect(store.subjects.some((s) => s.id === newSub.id)).toBe(false);
+    expect(store.subjects.some((s) => s.code === 'AI_BASICS')).toBe(false);
+  });
+
+  it('supports bulk deleting students and class-wide student deletion', async () => {
+    const store = useOrganizationStore();
+    await store.loadSchoolContext('al-xorazmiy');
+
+    // Add 2 students to cls-ax-10a
+    const s1 = await store.createStudent({
+      tenantSlug: 'al-xorazmiy',
+      schoolId: 'sch-01',
+      classGroupId: 'cls-ax-10a',
+      className: '10-A',
+      firstName: 'Test1',
+      lastName: 'Oquvchi',
+      gender: 'M',
+      birthDate: '2008-01-01',
+      status: 'eligible',
+    });
+    const s2 = await store.createStudent({
+      tenantSlug: 'al-xorazmiy',
+      schoolId: 'sch-01',
+      classGroupId: 'cls-ax-10a',
+      className: '10-A',
+      firstName: 'Test2',
+      lastName: 'Oquvchi',
+      gender: 'F',
+      birthDate: '2008-02-02',
+      status: 'eligible',
+    });
+
+    expect(store.students.some((s) => s.id === s1.id)).toBe(true);
+    expect(store.students.some((s) => s.id === s2.id)).toBe(true);
+
+    // Bulk delete s1
+    const bulkCount = await store.bulkDeleteStudents([s1.id]);
+    expect(bulkCount).toBe(1);
+    expect(store.students.some((s) => s.id === s1.id)).toBe(false);
+
+    // Delete all remaining in class
+    const classCount = await store.deleteClassStudents('al-xorazmiy', 'cls-ax-10a');
+    expect(classCount).toBeGreaterThanOrEqual(1);
+    expect(store.students.some((s) => s.classGroupId === 'cls-ax-10a')).toBe(false);
   });
 });
 

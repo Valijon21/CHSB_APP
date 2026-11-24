@@ -117,6 +117,96 @@ async function handleBulkImport(inputs: StudentInput[]) {
     isBulkImporting.value = false;
   }
 }
+
+// Selection State
+const selectedStudentIds = ref<string[]>([]);
+
+const isAllOnPageSelected = computed(() => {
+  if (paginatedRoster.value.length === 0) return false;
+  return paginatedRoster.value.every((stu) => selectedStudentIds.value.includes(stu.id));
+});
+
+function toggleSelectAllOnPage() {
+  if (isAllOnPageSelected.value) {
+    const pageIds = new Set(paginatedRoster.value.map((s) => s.id));
+    selectedStudentIds.value = selectedStudentIds.value.filter((id) => !pageIds.has(id));
+  } else {
+    const current = new Set(selectedStudentIds.value);
+    for (const stu of paginatedRoster.value) {
+      current.add(stu.id);
+    }
+    selectedStudentIds.value = Array.from(current);
+  }
+}
+
+function clearSelection() {
+  selectedStudentIds.value = [];
+}
+
+// Delete Confirmation Modal State
+const isDeleteModalOpen = ref(false);
+const deleteModalType = ref<'selected' | 'class' | 'single'>('selected');
+const studentToDelete = ref<{ id: string; name: string } | null>(null);
+const isDeleting = ref(false);
+
+const selectedClassName = computed(() => {
+  if (!teacherStore.selectedClassId) return '';
+  const c = teacherStore.classes.find((cls) => cls.id === teacherStore.selectedClassId);
+  return c?.name || 'Sinf';
+});
+
+const classStudentsCount = computed(() => {
+  if (!teacherStore.selectedClassId) return 0;
+  return teacherStore.roster.filter((r) => r.classGroupId === teacherStore.selectedClassId).length;
+});
+
+function openDeleteSelectedModal() {
+  if (selectedStudentIds.value.length === 0) return;
+  deleteModalType.value = 'selected';
+  isDeleteModalOpen.value = true;
+}
+
+function openDeleteClassModal() {
+  if (!teacherStore.selectedClassId) return;
+  deleteModalType.value = 'class';
+  isDeleteModalOpen.value = true;
+}
+
+function openDeleteSingleModal(stu: { id: string; firstName: string; lastName: string }) {
+  studentToDelete.value = { id: stu.id, name: `${stu.lastName} ${stu.firstName}` };
+  deleteModalType.value = 'single';
+  isDeleteModalOpen.value = true;
+}
+
+async function handleConfirmDelete() {
+  isDeleting.value = true;
+  try {
+    if (deleteModalType.value === 'class' && teacherStore.selectedClassId) {
+      const clsName = selectedClassName.value;
+      const count = await orgStore.deleteClassStudents(teacherStore.selectedClassId);
+      toast.success(`${clsName}dagi barcha (${count} nafar) o'quvchi o'chirildi!`, "Sinf tozalandi");
+      selectedStudentIds.value = [];
+    } else if (deleteModalType.value === 'selected' && selectedStudentIds.value.length > 0) {
+      const count = await orgStore.bulkDeleteStudents(selectedStudentIds.value);
+      toast.success(`${count} nafar o'quvchi muvaffaqiyatli o'chirildi!`, "O'quvchilar o'chirildi");
+      selectedStudentIds.value = [];
+    } else if (deleteModalType.value === 'single' && studentToDelete.value) {
+      await orgStore.deleteStudent(studentToDelete.value.id);
+      toast.success(`${studentToDelete.value.name} muvaffaqiyatli o'chirildi!`, "O'quvchi o'chirildi");
+      selectedStudentIds.value = selectedStudentIds.value.filter((id) => id !== studentToDelete.value?.id);
+    }
+
+    const tenantId =
+      tenantStore.currentTenant?.tenantId ||
+      (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
+    await teacherStore.loadTeacherData(tenantId, true);
+    isDeleteModalOpen.value = false;
+  } catch (err: any) {
+    toast.error(err?.message || "O'chirishda xatolik yuz berdi", "Xatolik");
+  } finally {
+    isDeleting.value = false;
+  }
+}
 </script>
 
 <template>
@@ -155,6 +245,21 @@ async function handleBulkImport(inputs: StudentInput[]) {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
           <span>Ommaviy Import</span>
+        </button>
+
+        <!-- Sinfni Tozalash Tugmasi (faqat sinf tanlanganida chiqadi) -->
+        <button
+          v-if="teacherStore.selectedClassId"
+          type="button"
+          @click="openDeleteClassModal"
+          :disabled="classStudentsCount === 0 || isDeleting"
+          aria-label="Sinf o'quvchilarini tozalash"
+          class="px-3.5 py-2 bg-rose-700 hover:bg-rose-800 active:bg-rose-900 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer min-h-[38px]"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span>Sinfni tozalash ({{ classStudentsCount }} ta)</span>
         </button>
 
         <router-link
@@ -225,6 +330,42 @@ async function handleBulkImport(inputs: StudentInput[]) {
       </div>
     </div>
 
+    <!-- Selected Students Action Bar -->
+    <div
+      v-if="selectedStudentIds.length > 0"
+      class="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-xs transition"
+    >
+      <div class="flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200 font-bold text-xs flex items-center justify-center">
+          {{ selectedStudentIds.length }}
+        </span>
+        <span class="text-xs font-bold text-rose-900 dark:text-rose-200">
+          ta o'quvchi belgilandi
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          @click="clearSelection"
+          class="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+        >
+          Bekor qilish
+        </button>
+        <button
+          type="button"
+          @click="openDeleteSelectedModal"
+          :disabled="isDeleting"
+          class="px-3.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span>Tanlanganlarni o'chirish ({{ selectedStudentIds.length }} ta)</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div v-if="teacherStore.isLoading" class="text-center py-12">
       <div class="w-8 h-8 border-3 border-teal-800 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
@@ -237,6 +378,15 @@ async function handleBulkImport(inputs: StudentInput[]) {
         <table class="w-full text-left text-xs sm:text-sm">
           <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
             <tr>
+              <th class="p-3.5 w-10 text-center">
+                <input
+                  type="checkbox"
+                  :checked="isAllOnPageSelected"
+                  @change="toggleSelectAllOnPage"
+                  class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                  title="Sahifadagi barchasini belgilash"
+                />
+              </th>
               <th class="p-3.5">№</th>
               <th class="p-3.5">F.I.SH.</th>
               <th class="p-3.5">Roster Kodi</th>
@@ -244,15 +394,26 @@ async function handleBulkImport(inputs: StudentInput[]) {
               <th class="p-3.5 text-center">Guruh</th>
               <th class="p-3.5">Holati</th>
               <th class="p-3.5">Topshirilgan Test</th>
-              <th class="p-3.5 text-right">Profil</th>
+              <th class="p-3.5 text-right">Amallar</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700/80">
             <tr
               v-for="(stu, idx) in paginatedRoster"
               :key="stu.id"
-              class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition"
+              :class="[
+                'hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition',
+                selectedStudentIds.includes(stu.id) ? 'bg-teal-50/40 dark:bg-teal-950/20' : ''
+              ]"
             >
+              <td class="p-3.5 text-center">
+                <input
+                  type="checkbox"
+                  :value="stu.id"
+                  v-model="selectedStudentIds"
+                  class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                />
+              </td>
               <td class="p-3.5 text-slate-400 font-mono">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
               <td class="p-3.5">
                 <div class="font-bold text-slate-800 dark:text-white">
@@ -301,12 +462,24 @@ async function handleBulkImport(inputs: StudentInput[]) {
                 {{ teacherStore.results.some((r) => r.rosterRecordId === stu.id) ? 'Topshirgan' : 'Kutilmoqda' }}
               </td>
               <td class="p-3.5 text-right">
-                <router-link
-                  :to="`/t/${tenantSlug}/teacher/students/${stu.id}`"
-                  class="text-xs font-semibold text-teal-700 dark:text-teal-400 hover:underline min-h-[36px] inline-flex items-center"
-                >
-                  Batafsil →
-                </router-link>
+                <div class="flex items-center justify-end gap-2">
+                  <router-link
+                    :to="`/t/${tenantSlug}/teacher/students/${stu.id}`"
+                    class="text-xs font-semibold text-teal-700 dark:text-teal-400 hover:underline min-h-[36px] inline-flex items-center"
+                  >
+                    Batafsil →
+                  </router-link>
+                  <button
+                    type="button"
+                    @click="openDeleteSingleModal(stu)"
+                    class="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
+                    title="O'quvchini o'chirish"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -352,6 +525,64 @@ async function handleBulkImport(inputs: StudentInput[]) {
       @close="isBulkModalOpen = false"
       @bulk-import="handleBulkImport"
     />
+
+    <!-- 3. O'chirishni Tasdiqlash Modali -->
+    <div
+      v-if="isDeleteModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+      @click.self="isDeleteModalOpen = false"
+    >
+      <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center text-rose-600 dark:text-rose-400 text-lg">
+            ⚠️
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 dark:text-white text-base">
+              O'quvchilarni o'chirishni tasdiqlang
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Bu amalni ortga qaytarib bo'lmaydi.
+            </p>
+          </div>
+        </div>
+
+        <div class="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 leading-relaxed text-xs">
+          <p v-if="deleteModalType === 'class'">
+            Haqiqatan ham <strong>{{ selectedClassName }}</strong> sinfidagi barcha <strong>{{ classStudentsCount }} nafar</strong> o'quvchini o'chirmoqchimisiz? Ularning barcha test topshirish natijalari ham to'liq tozalanadi.
+          </p>
+          <p v-else-if="deleteModalType === 'selected'">
+            Haqiqatan ham tanlangan <strong>{{ selectedStudentIds.length }} nafar</strong> o'quvchini o'chirmoqchimisiz?
+          </p>
+          <p v-else-if="deleteModalType === 'single'">
+            Haqiqatan ham <strong>{{ studentToDelete?.name }}</strong> o'quvchisini o'chirmoqchimisiz?
+          </p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button
+            type="button"
+            @click="isDeleteModalOpen = false"
+            :disabled="isDeleting"
+            class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer min-h-[38px]"
+          >
+            Bekor qilish
+          </button>
+          <button
+            type="button"
+            @click="handleConfirmDelete"
+            :disabled="isDeleting"
+            class="px-5 py-2 bg-rose-700 hover:bg-rose-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer min-h-[38px] flex items-center gap-1.5"
+          >
+            <svg v-if="isDeleting" class="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>{{ isDeleting ? "O'chirilmoqda..." : "Ha, o'chirilsin" }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

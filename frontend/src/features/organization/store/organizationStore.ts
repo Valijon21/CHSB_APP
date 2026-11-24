@@ -282,6 +282,64 @@ export const useOrganizationStore = defineStore('organization', () => {
     }
   }
 
+  async function deleteClassStudents(arg1: string, arg2?: string): Promise<number> {
+    const classGroupId = arg2 || arg1;
+    const slug = arg2 ? arg1 : activeSchoolSlug.value;
+    isLoading.value = true;
+    errorMessage.value = null;
+    try {
+      const count = await api.organization.deleteClassStudents(slug, classGroupId);
+      students.value = students.value.filter((s) => s.classGroupId !== classGroupId);
+      const sch = activeSchool.value;
+      if (sch) sch.studentCount = Math.max(0, sch.studentCount - count);
+      const cls = classGroups.value.find((c) => c.id === classGroupId);
+      if (cls) cls.studentCount = 0;
+
+      try {
+        const teacherStore = useTeacherStore();
+        teacherStore.removeRosterRecordsByClass(classGroupId);
+      } catch {
+        // TeacherStore sync non-blocking fallback
+      }
+
+      return count;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Sinf o'quvchilarini o'chirishda xatolik yuz berdi.";
+      errorMessage.value = msg;
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function bulkDeleteStudents(studentIds: string[]): Promise<number> {
+    if (!studentIds.length) return 0;
+    isLoading.value = true;
+    errorMessage.value = null;
+    try {
+      const count = await api.organization.bulkDeleteStudents(studentIds);
+      const idSet = new Set(studentIds);
+      students.value = students.value.filter((s) => !idSet.has(s.id));
+      const sch = activeSchool.value;
+      if (sch) sch.studentCount = Math.max(0, sch.studentCount - count);
+
+      try {
+        const teacherStore = useTeacherStore();
+        teacherStore.removeRosterRecordsByIds(studentIds);
+      } catch {
+        // TeacherStore sync non-blocking fallback
+      }
+
+      return count;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "O'quvchilarni ommaviy o'chirishda xatolik yuz berdi.";
+      errorMessage.value = msg;
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   async function createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord> {
     isLoading.value = true;
     try {
@@ -397,6 +455,8 @@ export const useOrganizationStore = defineStore('organization', () => {
     createStudent,
     bulkImportStudents,
     deleteStudent,
+    deleteClassStudents,
+    bulkDeleteStudents,
     createClassGroup,
     loadSubjects,
     createSubject,

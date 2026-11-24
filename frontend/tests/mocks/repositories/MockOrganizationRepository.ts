@@ -496,6 +496,26 @@ export class MockOrganizationRepository implements OrganizationRepository {
     return this.students.length < initialLen;
   }
 
+  async deleteClassStudents(tenantSlug: string, classGroupId: string): Promise<number> {
+    const initialLen = this.students.length;
+    this.students = this.students.filter(
+      (s) => !(s.tenantSlug === tenantSlug && s.classGroupId === classGroupId)
+    );
+    const deletedCount = initialLen - this.students.length;
+    const cls = this.classGroups.find((c) => c.id === classGroupId);
+    if (cls) {
+      cls.studentCount = 0;
+    }
+    return deletedCount;
+  }
+
+  async bulkDeleteStudents(studentIds: string[]): Promise<number> {
+    const idSet = new Set(studentIds);
+    const initialLen = this.students.length;
+    this.students = this.students.filter((s) => !idSet.has(s.id));
+    return initialLen - this.students.length;
+  }
+
   // --- SINFLAR (CLASS GROUPS) ---
   async createClassGroup(input: ClassGroupInput): Promise<ClassGroupRecord> {
     const classId = `cls-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
