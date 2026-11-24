@@ -24,10 +24,8 @@ class HttpClient {
     // In Vite, import.meta.env is statically replaced at build time
     if (import.meta.env.VITE_API_BASE_URL) {
       this.baseUrl = import.meta.env.VITE_API_BASE_URL;
-    } else if (import.meta.env.DEV) {
-      this.baseUrl = 'http://localhost:8000/api/v1';
     } else {
-      // In production (All-in-One Docker / Same Origin), use relative /api/v1
+      // In both dev (via Vite proxy) and prod (All-in-One Docker / Same Origin), use relative /api/v1
       this.baseUrl = '/api/v1';
     }
   }
