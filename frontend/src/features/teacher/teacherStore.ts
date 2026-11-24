@@ -61,8 +61,8 @@ export const useTeacherStore = defineStore('teacher', () => {
     return Number((sum / results.value.length).toFixed(1));
   });
 
-  async function loadTeacherData(tenantId: string): Promise<boolean> {
-    if (currentTenantId.value === tenantId && classes.value.length > 0) {
+  async function loadTeacherData(tenantId: string, force = false): Promise<boolean> {
+    if (!force && currentTenantId.value === tenantId && classes.value.length > 0) {
       return true;
     }
 

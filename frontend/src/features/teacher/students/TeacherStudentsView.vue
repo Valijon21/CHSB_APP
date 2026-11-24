@@ -58,7 +58,7 @@ onMounted(async () => {
   const tenantId =
     tenantStore.currentTenant?.tenantId ||
     (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
-  await teacherStore.loadTeacherData(tenantId);
+  await teacherStore.loadTeacherData(tenantId, true);
 });
 
 function handleSearch() {
@@ -85,11 +85,19 @@ function handleStatusFilterChange() {
 async function handleCreateStudent(input: StudentInput) {
   const created = await orgStore.createStudent(input);
   toast.success(`${created.firstName} ${created.lastName} muvaffaqiyatli qo'shildi!`, "O'quvchi qo'shildi");
+  const tenantId =
+    tenantStore.currentTenant?.tenantId ||
+    (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
+  await teacherStore.loadTeacherData(tenantId, true);
 }
 
 async function handleBulkImport(inputs: StudentInput[]) {
   const createdList = await orgStore.bulkImportStudents(inputs);
   toast.success(`${createdList.length} nafar o'quvchi muvaffaqiyatli import qilindi!`, 'Ommaviy import');
+  const tenantId =
+    tenantStore.currentTenant?.tenantId ||
+    (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
+  await teacherStore.loadTeacherData(tenantId, true);
 }
 </script>
 
@@ -282,9 +290,13 @@ async function handleBulkImport(inputs: StudentInput[]) {
         :total-items="displayedRoster.length"
       />
 
-      <!-- Empty state if search finds nothing -->
-      <div v-if="displayedRoster.length === 0" class="text-center py-10 text-xs text-slate-500 dark:text-slate-400">
-        Qidiruv bo'yicha hech qanday o'quvchi topilmadi.
+      <!-- Empty state -->
+      <div v-if="displayedRoster.length === 0" class="text-center py-12 text-xs text-slate-500 dark:text-slate-400 space-y-2">
+        <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xl text-slate-400">
+          👥
+        </div>
+        <p class="font-bold text-slate-700 dark:text-slate-300 text-sm">Hozircha o'quvchilar ro'yxati bo'sh</p>
+        <p>Excel faylini yuklash uchun yuqoridagi <strong>"Ommaviy Import"</strong> tugmasidan foydalanishingiz mumkin.</p>
       </div>
     </div>
 
