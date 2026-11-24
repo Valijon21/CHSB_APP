@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { extractStudentsRosterWithAi } from '../src/shared/utils/groundedAiExtractor';
 import BulkStudentImportModal from '../src/features/organization/components/BulkStudentImportModal.vue';
 
@@ -195,7 +195,9 @@ describe('Excel Parser & AI RAG Integration', () => {
         writable: true,
       });
       await fileInput.trigger('change');
-      await wrapper.vm.$nextTick();
+      await flushPromises();
+      await new Promise((r) => setTimeout(r, 100));
+      await flushPromises();
 
       expect(wrapper.text()).toContain('Abbosova Bahora');
       expect(wrapper.text()).toContain('1000005839035');

@@ -6,6 +6,7 @@ import type { ClassGroupRecord } from '../../../entities/organization/model';
 import { detectGroupFromText } from '../../emaktab/services/rosterParserService';
 import TablePagination from '../../../shared/components/TablePagination.vue';
 import { extractStudentsRosterWithAi } from '../../../shared/utils/groundedAiExtractor';
+import { parseExcelFileClientSide } from '../../emaktab/services/clientExcelParser';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -58,6 +59,19 @@ watch(
   }
 );
 
+watch(
+  () => selectedClassId.value,
+  (newId) => {
+    const cls = props.availableClasses.find((c) => c.id === newId);
+    if (cls && parsedStudents.value.length > 0) {
+      parsedStudents.value.forEach((s) => {
+        s.classGroupId = newId;
+        s.className = cls.name;
+      });
+    }
+  }
+);
+
 // Pagination in preview
 const previewPage = ref(1);
 const previewPageSize = ref(10);
@@ -98,7 +112,57 @@ async function readFile(file: File) {
     autoDetectedGroup.value = detected;
   }
 
-  // 1. Try backend binary parse endpoint (for .xlsx, .xls, .csv)
+  // 1. Client-side deterministic Excel parser (Instant, offline, zero-network dependency)
+  if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv')) {
+    try {
+      const clientRes = await parseExcelFileClientSide(file, selectedGroup.value);
+      if (clientRes.success && clientRes.students.length > 0) {
+        if (clientRes.detectedGroup) {
+          selectedGroup.value = clientRes.detectedGroup;
+          autoDetectedGroup.value = clientRes.detectedGroup;
+        }
+
+        if (clientRes.detectedClass) {
+          autoDetectedClass.value = clientRes.detectedClass;
+          const normDetected = clientRes.detectedClass.toLowerCase().replace(/[\s-_]/g, '');
+          const matched = props.availableClasses.find((c) =>
+            c.name.toLowerCase().replace(/[\s-_sinf]/g, '').includes(normDetected)
+          );
+          if (matched) {
+            selectedClassId.value = matched.id;
+          }
+        }
+
+        const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+        const className = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
+
+        parsedStudents.value = clientRes.students.map((s) => ({
+          tenantSlug: props.tenantSlug,
+          schoolId: props.schoolId,
+          classGroupId: selectedClassId.value,
+          className,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          middleName: s.middleName,
+          gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
+          birthDate: s.birthDate || '2009-01-01',
+          group: s.group || selectedGroup.value,
+          emaktabId: s.emaktabId,
+          status: 'eligible',
+        }));
+
+        rawText.value = clientRes.rawTextPreview;
+        previewPage.value = 1;
+        isParsed.value = true;
+        isLoadingFile.value = false;
+        return;
+      }
+    } catch (clientErr) {
+      console.warn("Client-side Excel parsing error, falling back to server:", clientErr);
+    }
+  }
+
+  // 2. Try backend binary parse endpoint (for .xlsx, .xls, .csv)
   try {
     const formData = new FormData();
     formData.append('file', file);
