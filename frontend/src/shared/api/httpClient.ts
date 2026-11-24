@@ -22,10 +22,19 @@ class HttpClient {
 
   constructor() {
     // In Vite, import.meta.env is statically replaced at build time
-    if (import.meta.env.VITE_API_BASE_URL) {
+    const isLocal =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.port === '5173');
+
+    if (isLocal) {
+      // In local browser, always use relative /api/v1 (Vite proxy to local FastAPI backend)
+      this.baseUrl = '/api/v1';
+    } else if (import.meta.env.VITE_API_BASE_URL) {
       this.baseUrl = import.meta.env.VITE_API_BASE_URL;
     } else {
-      // In both dev (via Vite proxy) and prod (All-in-One Docker / Same Origin), use relative /api/v1
+      // In both dev and prod same-origin, use relative /api/v1
       this.baseUrl = '/api/v1';
     }
   }

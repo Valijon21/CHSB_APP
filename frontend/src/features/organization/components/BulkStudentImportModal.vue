@@ -176,7 +176,12 @@ async function readFile(file: File) {
       formData.append('group', selectedGroup.value);
     }
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+    const isLocal =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.port === '5173');
+    const apiBase = isLocal ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1');
     const endpoint = apiBase.endsWith('/')
       ? `${apiBase}students/parse-file`
       : `${apiBase}/students/parse-file`;
