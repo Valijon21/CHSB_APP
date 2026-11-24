@@ -72,6 +72,7 @@ model ClassGroup {
   shift        Int      @default(1)
   academicYear String   @default("2026-2027") @map("academic_year")
   studentCount Int      @default(0) @map("student_count")
+  hasGroups    Boolean  @default(true) @map("has_groups")
   createdAt    DateTime @default(now()) @map("created_at")
 
   school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -93,6 +94,8 @@ model Student {
   gender       String   @default("M")
   birthDate    DateTime @map("birth_date")
   status       String   @default("ELIGIBLE")
+  group        String?  @default("1-guruh") @map("group")
+  emaktabId    String?  @map("emaktab_id")
   createdAt    DateTime @default(now()) @map("created_at")
 
   school     School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -110,6 +113,7 @@ model Assessment {
   title           String
   subject         String
   gradeLevel      Int      @map("grade_level")
+  targetGroup     String?  @default("all") @map("target_group")
   durationMinutes Int      @default(45) @map("duration_minutes")
   totalQuestions  Int      @default(15) @map("total_questions")
   maxScore        Float    @default(40.0) @map("max_score")

@@ -1,6 +1,14 @@
 import json
 from datetime import datetime, timezone
 import bcrypt
+import sys
+from pathlib import Path
+
+# Remove local directory from sys.path to prevent backend/app/db/prisma.py from shadowing installed prisma
+_db_dir = str(Path(__file__).resolve().parent)
+if _db_dir in sys.path:
+    sys.path.remove(_db_dir)
+
 from prisma import Prisma
 
 STANDARD_SUBJECTS = [
@@ -106,7 +114,7 @@ async def auto_seed_db(db: Prisma, force: bool = False):
             "tenantId": tenant_ax.id,
             "username": "teacher_ax",
             "email": "teacher@al-xorazmiy.uz",
-            "fullName": "Anvar Rahimov",
+            "fullName": "Dilmurod Rahmataliyevich Yunusov",
             "hashedPassword": hashed_password,
             "role": "TEACHER",
             "isActive": True,
@@ -135,8 +143,8 @@ async def auto_seed_db(db: Prisma, force: bool = False):
             "id": "usr-student-01",
             "tenantId": tenant_ax.id,
             "username": "student_ax",
-            "email": "alisher@student.uz",
-            "fullName": "Alisher Zokirov",
+            "email": "zuxra@student.uz",
+            "fullName": "Zuxra Abduraximova",
             "hashedPassword": hashed_password,
             "role": "STUDENT",
             "isActive": True,
@@ -148,16 +156,16 @@ async def auto_seed_db(db: Prisma, force: bool = False):
 
     # 6. Create Class Groups
     classes_data = [
-        {"id": "class-ax-11a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-A sinf", "gradeLevel": 11, "shift": 1, "studentCount": 28},
-        {"id": "class-ax-11b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-B sinf", "gradeLevel": 11, "shift": 1, "studentCount": 26},
-        {"id": "class-ax-11v", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-V sinf", "gradeLevel": 11, "shift": 2, "studentCount": 25},
-        {"id": "class-ax-10a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-A sinf", "gradeLevel": 10, "shift": 1, "studentCount": 27},
-        {"id": "class-ax-10b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-B sinf", "gradeLevel": 10, "shift": 1, "studentCount": 24},
-        {"id": "class-ax-9a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "9-A sinf", "gradeLevel": 9, "shift": 1, "studentCount": 26},
-        {"id": "class-ax-9b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "9-B sinf", "gradeLevel": 9, "shift": 2, "studentCount": 25},
-        {"id": "class-tm-11g1", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "11-Guruh-1 (Harbiy-AT)", "gradeLevel": 11, "shift": 1, "studentCount": 24},
-        {"id": "class-tm-11g2", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "11-Guruh-2 (Harbiy-AT)", "gradeLevel": 11, "shift": 1, "studentCount": 22},
-        {"id": "class-tm-10g1", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "10-Guruh-1 (Harbiy-AT)", "gradeLevel": 10, "shift": 1, "studentCount": 24},
+        {"id": "class-ax-11a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-A sinf", "gradeLevel": 11, "shift": 1, "studentCount": 30, "hasGroups": True},
+        {"id": "class-ax-11b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-B sinf", "gradeLevel": 11, "shift": 1, "studentCount": 26, "hasGroups": True},
+        {"id": "class-ax-11v", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-V sinf", "gradeLevel": 11, "shift": 2, "studentCount": 25, "hasGroups": True},
+        {"id": "class-ax-10a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-A sinf", "gradeLevel": 10, "shift": 1, "studentCount": 27, "hasGroups": True},
+        {"id": "class-ax-10b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-B sinf", "gradeLevel": 10, "shift": 1, "studentCount": 24, "hasGroups": True},
+        {"id": "class-ax-9a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "9-A sinf", "gradeLevel": 9, "shift": 1, "studentCount": 26, "hasGroups": False},
+        {"id": "class-ax-9b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "9-B sinf", "gradeLevel": 9, "shift": 2, "studentCount": 25, "hasGroups": False},
+        {"id": "class-tm-11g1", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "11-Guruh-1 (Harbiy-AT)", "gradeLevel": 11, "shift": 1, "studentCount": 24, "hasGroups": False},
+        {"id": "class-tm-11g2", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "11-Guruh-2 (Harbiy-AT)", "gradeLevel": 11, "shift": 1, "studentCount": 22, "hasGroups": False},
+        {"id": "class-tm-10g1", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "10-Guruh-1 (Harbiy-AT)", "gradeLevel": 10, "shift": 1, "studentCount": 24, "hasGroups": False},
     ]
 
     for cg in classes_data:
@@ -170,6 +178,7 @@ async def auto_seed_db(db: Prisma, force: bool = False):
                 "gradeLevel": cg["gradeLevel"],
                 "shift": cg["shift"],
                 "studentCount": cg["studentCount"],
+                "hasGroups": cg["hasGroups"],
                 "academicYear": "2026-2027",
             }
         )
@@ -177,24 +186,46 @@ async def auto_seed_db(db: Prisma, force: bool = False):
     # 7. Create Students
     now = datetime.now(timezone.utc)
     students_raw = [
-        # 11-A sinf
-        {"id": "rec-ax-101", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1101", "firstName": "Alisher", "lastName": "Zokirov", "middleName": "Bahrom o‘g‘li", "status": "ELIGIBLE"},
-        {"id": "rec-ax-102", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1102", "firstName": "Madina", "lastName": "Rustamova", "middleName": "Ilhom qizi", "status": "ELIGIBLE"},
-        {"id": "rec-ax-103", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1103", "firstName": "Jasur", "lastName": "Bekmurodov", "middleName": "Olim o‘g‘li", "status": "INACTIVE"},
-        {"id": "rec-ax-104", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1104", "firstName": "Dilnoza", "lastName": "Karimova", "middleName": "Sobir qizi", "status": "ELIGIBLE"},
-        {"id": "rec-ax-105", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1105", "firstName": "Shaxzod", "lastName": "Rahimov", "middleName": "Murod o‘g‘li", "status": "ELIGIBLE"},
-        {"id": "rec-ax-106", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1106", "firstName": "Nilufar", "lastName": "Qodirova", "middleName": "Farhod qizi", "status": "ELIGIBLE"},
-        {"id": "rec-ax-107", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1107", "firstName": "Bobur", "lastName": "Mirzayev", "middleName": "Akmal o‘g‘li", "status": "ELIGIBLE"},
-        {"id": "rec-ax-108", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1108", "firstName": "Sevara", "lastName": "Mahmudova", "middleName": "Rustam qizi", "status": "ELIGIBLE"},
-        {"id": "rec-ax-109", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1109", "firstName": "Azizbek", "lastName": "Umarov", "middleName": "Shuhrat o‘g‘li", "status": "ELIGIBLE"},
-        {"id": "rec-ax-110", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1110", "firstName": "Kamola", "lastName": "Yusupova", "middleName": "Doniyor qizi", "status": "ELIGIBLE"},
+        # 11-A sinf (1-guruh: 11-A-Informatika-20_11_2026.xls dan olingan 15 ta real o'quvchi)
+        {"id": "rec-ax-101", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1101", "firstName": "Zuxra", "lastName": "Abduraximova", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000001990090"},
+        {"id": "rec-ax-102", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1102", "firstName": "Xayrixon", "lastName": "Abdusattorova", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000003598248"},
+        {"id": "rec-ax-103", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1103", "firstName": "Madinabonu", "lastName": "Abdug‘afforova", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000001990091"},
+        {"id": "rec-ax-104", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1104", "firstName": "Zaxro", "lastName": "Axmadjonova", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000003569688"},
+        {"id": "rec-ax-105", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1105", "firstName": "O‘ktamjon", "lastName": "Davlataliyev", "middleName": "", "gender": "M", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000001990096"},
+        {"id": "rec-ax-106", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1106", "firstName": "Zilola", "lastName": "Ergashaliyeva", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000004307678"},
+        {"id": "rec-ax-107", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1107", "firstName": "Nurhayit", "lastName": "Ergashev", "middleName": "", "gender": "M", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000001990098"},
+        {"id": "rec-ax-108", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1108", "firstName": "Nazira", "lastName": "Ergasheva", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000003569692"},
+        {"id": "rec-ax-109", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1109", "firstName": "Madina", "lastName": "Jurabayeva", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000001990100"},
+        {"id": "rec-ax-110", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1110", "firstName": "O‘tkirbek", "lastName": "Odilov", "middleName": "", "gender": "M", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000003673332"},
+        {"id": "rec-ax-111", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1111", "firstName": "Gullola", "lastName": "Ozatboyeva", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000001990109"},
+        {"id": "rec-ax-112", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1112", "firstName": "Durdona", "lastName": "Sobirjonova", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000003594807"},
+        {"id": "rec-ax-113", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1113", "firstName": "Feruza", "lastName": "Umaraliyeva", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000001990115"},
+        {"id": "rec-ax-114", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1114", "firstName": "Sevdora", "lastName": "Valijonova", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000020620646"},
+        {"id": "rec-ax-115", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1115", "firstName": "Shabnam", "lastName": "Miradjonova", "middleName": "", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000003569665"},
+
+        # 11-A sinf (2-guruh: 15 ta o'quvchi)
+        {"id": "rec-ax-116", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1116", "firstName": "Alisher", "lastName": "Zokirov", "middleName": "Bahrom o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990201"},
+        {"id": "rec-ax-117", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1117", "firstName": "Madina", "lastName": "Rustamova", "middleName": "Ilhom qizi", "gender": "F", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990202"},
+        {"id": "rec-ax-118", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1118", "firstName": "Jasur", "lastName": "Bekmurodov", "middleName": "Olim o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990203"},
+        {"id": "rec-ax-119", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1119", "firstName": "Dilnoza", "lastName": "Karimova", "middleName": "Sobir qizi", "gender": "F", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990204"},
+        {"id": "rec-ax-120", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1120", "firstName": "Shaxzod", "lastName": "Rahimov", "middleName": "Murod o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990205"},
+        {"id": "rec-ax-121", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1121", "firstName": "Nilufar", "lastName": "Qodirova", "middleName": "Farhod qizi", "gender": "F", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990206"},
+        {"id": "rec-ax-122", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1122", "firstName": "Bobur", "lastName": "Mirzayev", "middleName": "Akmal o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990207"},
+        {"id": "rec-ax-123", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1123", "firstName": "Sevara", "lastName": "Mahmudova", "middleName": "Rustam qizi", "gender": "F", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990208"},
+        {"id": "rec-ax-124", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1124", "firstName": "Azizbek", "lastName": "Umarov", "middleName": "Shuhrat o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990209"},
+        {"id": "rec-ax-125", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1125", "firstName": "Kamola", "lastName": "Yusupova", "middleName": "Doniyor qizi", "gender": "F", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990210"},
+        {"id": "rec-ax-126", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1126", "firstName": "Jamshid", "lastName": "Toirov", "middleName": "Xoliq o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990211"},
+        {"id": "rec-ax-127", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1127", "firstName": "Malika", "lastName": "Xoliqova", "middleName": "Rustam qizi", "gender": "F", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990212"},
+        {"id": "rec-ax-128", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1128", "firstName": "Doniyor", "lastName": "Nurmatov", "middleName": "Anvar o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990213"},
+        {"id": "rec-ax-129", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1129", "firstName": "Rayhona", "lastName": "Islomova", "middleName": "Farrux qizi", "gender": "F", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990214"},
+        {"id": "rec-ax-130", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11a", "rosterCode": "STU-1130", "firstName": "Sardor", "lastName": "Yunusov", "middleName": "Dilmurod o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990215"},
 
         # 11-B sinf
-        {"id": "rec-ax-111", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1111", "firstName": "Sardorbek", "lastName": "Aliyev", "middleName": "Mansur o‘g‘li", "status": "ELIGIBLE"},
-        {"id": "rec-ax-112", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1112", "firstName": "Gulnoza", "lastName": "Xoliqova", "middleName": "Ulug‘bek qizi", "status": "ELIGIBLE"},
-        {"id": "rec-ax-113", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1113", "firstName": "Sanjarbek", "lastName": "Normatov", "middleName": "Qodir o‘g‘li", "status": "ELIGIBLE"},
-        {"id": "rec-ax-114", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1114", "firstName": "Dildora", "lastName": "Tursunova", "middleName": "Bekzod qizi", "status": "ELIGIBLE"},
-        {"id": "rec-ax-115", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1115", "firstName": "Farrux", "lastName": "Ergashev", "middleName": "Ravshan o‘g‘li", "status": "ELIGIBLE"},
+        {"id": "rec-ax-131", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1131", "firstName": "Sardorbek", "lastName": "Aliyev", "middleName": "Mansur o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000001990301"},
+        {"id": "rec-ax-132", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1132", "firstName": "Gulnoza", "lastName": "Xoliqova", "middleName": "Ulug‘bek qizi", "gender": "F", "status": "ELIGIBLE", "group": "1-guruh", "emaktabId": "1000001990302"},
+        {"id": "rec-ax-133", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1133", "firstName": "Sanjarbek", "lastName": "Normatov", "middleName": "Qodir o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990303"},
+        {"id": "rec-ax-134", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1134", "firstName": "Dildora", "lastName": "Tursunova", "middleName": "Bekzod qizi", "gender": "F", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990304"},
+        {"id": "rec-ax-135", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-11b", "rosterCode": "STU-1135", "firstName": "Farrux", "lastName": "Ergashev", "middleName": "Ravshan o‘g‘li", "gender": "M", "status": "ELIGIBLE", "group": "2-guruh", "emaktabId": "1000001990305"},
 
         # 10-A sinf
         {"id": "rec-ax-1001", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "classGroupId": "class-ax-10a", "rosterCode": "STU-1001", "firstName": "Temur", "lastName": "Ismoilov", "middleName": "Akbar o‘g‘li", "status": "ELIGIBLE"},
@@ -237,9 +268,11 @@ async def auto_seed_db(db: Prisma, force: bool = False):
                 "firstName": s["firstName"],
                 "lastName": s["lastName"],
                 "middleName": s["middleName"],
-                "gender": "M",
+                "gender": s.get("gender", "M"),
                 "birthDate": now,
                 "status": s["status"],
+                "group": s.get("group", "1-guruh"),
+                "emaktabId": s.get("emaktabId"),
             }
         )
 
@@ -251,6 +284,7 @@ async def auto_seed_db(db: Prisma, force: bool = False):
             "title": "Informatika va axborot texnologiyalari, 11-sinf. 1-ChSB",
             "subject": "Informatika va AT",
             "gradeLevel": 11,
+            "targetGroup": "all",
             "durationMinutes": 40,
             "totalQuestions": 15,
             "maxScore": 40.0,
@@ -264,6 +298,7 @@ async def auto_seed_db(db: Prisma, force: bool = False):
             "title": "Informatika va axborot texnologiyalari, 9-sinf. 1-ChSB",
             "subject": "Informatika va AT",
             "gradeLevel": 9,
+            "targetGroup": "all",
             "durationMinutes": 40,
             "totalQuestions": 15,
             "maxScore": 40.0,

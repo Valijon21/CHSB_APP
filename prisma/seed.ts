@@ -76,7 +76,7 @@ async function main() {
         tenantId: tenantAx.id,
         username: 'teacher_ax',
         email: 'teacher@al-xorazmiy.uz',
-        fullName: 'Anvar Rahimov',
+        fullName: 'Dilmurod Rahmataliyevich Yunusov',
         hashedPassword,
         role: 'TEACHER',
         isActive: true,
@@ -105,8 +105,8 @@ async function main() {
         id: 'usr-student-01',
         tenantId: tenantAx.id,
         username: 'student_ax',
-        email: 'alisher@student.uz',
-        fullName: 'Alisher Zokirov',
+        email: 'zuxra@student.uz',
+        fullName: 'Zuxra Abduraximova',
         hashedPassword,
         role: 'STUDENT',
         isActive: true,
@@ -116,16 +116,16 @@ async function main() {
 
   // 6. Create Class Groups
   const classGroupsData = [
-    { id: 'class-ax-11a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-A sinf', gradeLevel: 11, shift: 1, studentCount: 28 },
-    { id: 'class-ax-11b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-B sinf', gradeLevel: 11, shift: 1, studentCount: 26 },
-    { id: 'class-ax-11v', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-V sinf', gradeLevel: 11, shift: 2, studentCount: 25 },
-    { id: 'class-ax-10a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-A sinf', gradeLevel: 10, shift: 1, studentCount: 27 },
-    { id: 'class-ax-10b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-B sinf', gradeLevel: 10, shift: 1, studentCount: 24 },
-    { id: 'class-ax-9a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-A sinf', gradeLevel: 9, shift: 1, studentCount: 26 },
-    { id: 'class-ax-9b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-B sinf', gradeLevel: 9, shift: 2, studentCount: 25 },
-    { id: 'class-tm-11g1', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '11-Guruh-1 (Harbiy-AT)', gradeLevel: 11, shift: 1, studentCount: 24 },
-    { id: 'class-tm-11g2', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '11-Guruh-2 (Harbiy-AT)', gradeLevel: 11, shift: 1, studentCount: 22 },
-    { id: 'class-tm-10g1', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '10-Guruh-1 (Harbiy-AT)', gradeLevel: 10, shift: 1, studentCount: 24 },
+    { id: 'class-ax-11a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-A sinf', gradeLevel: 11, shift: 1, studentCount: 30, hasGroups: true },
+    { id: 'class-ax-11b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-B sinf', gradeLevel: 11, shift: 1, studentCount: 26, hasGroups: true },
+    { id: 'class-ax-11v', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '11-V sinf', gradeLevel: 11, shift: 2, studentCount: 25, hasGroups: true },
+    { id: 'class-ax-10a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-A sinf', gradeLevel: 10, shift: 1, studentCount: 27, hasGroups: true },
+    { id: 'class-ax-10b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '10-B sinf', gradeLevel: 10, shift: 1, studentCount: 24, hasGroups: true },
+    { id: 'class-ax-9a', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-A sinf', gradeLevel: 9, shift: 1, studentCount: 26, hasGroups: false },
+    { id: 'class-ax-9b', tenantId: tenantAx.id, schoolId: schoolAx.id, name: '9-B sinf', gradeLevel: 9, shift: 2, studentCount: 25, hasGroups: false },
+    { id: 'class-tm-11g1', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '11-Guruh-1 (Harbiy-AT)', gradeLevel: 11, shift: 1, studentCount: 24, hasGroups: false },
+    { id: 'class-tm-11g2', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '11-Guruh-2 (Harbiy-AT)', gradeLevel: 11, shift: 1, studentCount: 22, hasGroups: false },
+    { id: 'class-tm-10g1', tenantId: tenantTm.id, schoolId: schoolTm.id, name: '10-Guruh-1 (Harbiy-AT)', gradeLevel: 10, shift: 1, studentCount: 24, hasGroups: false },
   ];
 
   for (const cg of classGroupsData) {
@@ -138,6 +138,7 @@ async function main() {
         gradeLevel: cg.gradeLevel,
         shift: cg.shift,
         studentCount: cg.studentCount,
+        hasGroups: cg.hasGroups,
         academicYear: '2026-2027',
       },
     });
@@ -145,31 +146,53 @@ async function main() {
 
   // 7. Create Students
   const studentsRaw = [
-    // 11-A sinf
-    { id: 'rec-ax-101', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1101', firstName: 'Alisher', lastName: 'Zokirov', middleName: 'Bahrom o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-ax-102', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1102', firstName: 'Madina', lastName: 'Rustamova', middleName: 'Ilhom qizi', status: 'ELIGIBLE' },
-    { id: 'rec-ax-103', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1103', firstName: 'Jasur', lastName: 'Bekmurodov', middleName: 'Olim o‘g‘li', status: 'INACTIVE' },
-    { id: 'rec-ax-104', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1104', firstName: 'Dilnoza', lastName: 'Karimova', middleName: 'Sobir qizi', status: 'ELIGIBLE' },
-    { id: 'rec-ax-105', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1105', firstName: 'Shaxzod', lastName: 'Rahimov', middleName: 'Murod o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-ax-106', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1106', firstName: 'Nilufar', lastName: 'Qodirova', middleName: 'Farhod qizi', status: 'ELIGIBLE' },
-    { id: 'rec-ax-107', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1107', firstName: 'Bobur', lastName: 'Mirzayev', middleName: 'Akmal o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-ax-108', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1108', firstName: 'Sevara', lastName: 'Mahmudova', middleName: 'Rustam qizi', status: 'ELIGIBLE' },
-    { id: 'rec-ax-109', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1109', firstName: 'Azizbek', lastName: 'Umarov', middleName: 'Shuhrat o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-ax-110', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1110', firstName: 'Kamola', lastName: 'Yusupova', middleName: 'Doniyor qizi', status: 'ELIGIBLE' },
+    // 11-A sinf (1-guruh: 11-A-Informatika-20_11_2026.xls dan olingan 15 ta real o'quvchi)
+    { id: 'rec-ax-101', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1101', firstName: 'Zuxra', lastName: 'Abduraximova', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990090' },
+    { id: 'rec-ax-102', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1102', firstName: 'Xayrixon', lastName: 'Abdusattorova', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000003598248' },
+    { id: 'rec-ax-103', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1103', firstName: 'Madinabonu', lastName: 'Abdug‘afforova', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990091' },
+    { id: 'rec-ax-104', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1104', firstName: 'Zaxro', lastName: 'Axmadjonova', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000003569688' },
+    { id: 'rec-ax-105', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1105', firstName: 'O‘ktamjon', lastName: 'Davlataliyev', middleName: '', gender: 'M', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990096' },
+    { id: 'rec-ax-106', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1106', firstName: 'Zilola', lastName: 'Ergashaliyeva', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000004307678' },
+    { id: 'rec-ax-107', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1107', firstName: 'Nurhayit', lastName: 'Ergashev', middleName: '', gender: 'M', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990098' },
+    { id: 'rec-ax-108', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1108', firstName: 'Nazira', lastName: 'Ergasheva', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000003569692' },
+    { id: 'rec-ax-109', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1109', firstName: 'Madina', lastName: 'Jurabayeva', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990100' },
+    { id: 'rec-ax-110', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1110', firstName: 'O‘tkirbek', lastName: 'Odilov', middleName: '', gender: 'M', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000003673332' },
+    { id: 'rec-ax-111', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1111', firstName: 'Gullola', lastName: 'Ozatboyeva', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990109' },
+    { id: 'rec-ax-112', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1112', firstName: 'Durdona', lastName: 'Sobirjonova', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000003594807' },
+    { id: 'rec-ax-113', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1113', firstName: 'Feruza', lastName: 'Umaraliyeva', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990115' },
+    { id: 'rec-ax-114', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1114', firstName: 'Sevdora', lastName: 'Valijonova', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000020620646' },
+    { id: 'rec-ax-115', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1115', firstName: 'Shabnam', lastName: 'Miradjonova', middleName: '', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000003569665' },
+
+    // 11-A sinf (2-guruh: 15 ta o'quvchi)
+    { id: 'rec-ax-116', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1116', firstName: 'Alisher', lastName: 'Zokirov', middleName: 'Bahrom o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990201' },
+    { id: 'rec-ax-117', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1117', firstName: 'Madina', lastName: 'Rustamova', middleName: 'Ilhom qizi', gender: 'F', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990202' },
+    { id: 'rec-ax-118', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1118', firstName: 'Jasur', lastName: 'Bekmurodov', middleName: 'Olim o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990203' },
+    { id: 'rec-ax-119', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1119', firstName: 'Dilnoza', lastName: 'Karimova', middleName: 'Sobir qizi', gender: 'F', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990204' },
+    { id: 'rec-ax-120', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1120', firstName: 'Shaxzod', lastName: 'Rahimov', middleName: 'Murod o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990205' },
+    { id: 'rec-ax-121', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1121', firstName: 'Nilufar', lastName: 'Qodirova', middleName: 'Farhod qizi', gender: 'F', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990206' },
+    { id: 'rec-ax-122', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1122', firstName: 'Bobur', lastName: 'Mirzayev', middleName: 'Akmal o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990207' },
+    { id: 'rec-ax-123', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1123', firstName: 'Sevara', lastName: 'Mahmudova', middleName: 'Rustam qizi', gender: 'F', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990208' },
+    { id: 'rec-ax-124', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1124', firstName: 'Azizbek', lastName: 'Umarov', middleName: 'Shuhrat o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990209' },
+    { id: 'rec-ax-125', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1125', firstName: 'Kamola', lastName: 'Yusupova', middleName: 'Doniyor qizi', gender: 'F', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990210' },
+    { id: 'rec-ax-126', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1126', firstName: 'Jamshid', lastName: 'Toirov', middleName: 'Xoliq o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990211' },
+    { id: 'rec-ax-127', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1127', firstName: 'Malika', lastName: 'Xoliqova', middleName: 'Rustam qizi', gender: 'F', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990212' },
+    { id: 'rec-ax-128', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1128', firstName: 'Doniyor', lastName: 'Nurmatov', middleName: 'Anvar o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990213' },
+    { id: 'rec-ax-129', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1129', firstName: 'Rayhona', lastName: 'Islomova', middleName: 'Farrux qizi', gender: 'F', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990214' },
+    { id: 'rec-ax-130', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11a', rosterCode: 'STU-1130', firstName: 'Sardor', lastName: 'Yunusov', middleName: 'Dilmurod o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990215' },
 
     // 11-B sinf
-    { id: 'rec-ax-111', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1111', firstName: 'Sardorbek', lastName: 'Aliyev', middleName: 'Mansur o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-ax-112', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1112', firstName: 'Gulnoza', lastName: 'Xoliqova', middleName: 'Ulug‘bek qizi', status: 'ELIGIBLE' },
-    { id: 'rec-ax-113', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1113', firstName: 'Sanjarbek', lastName: 'Normatov', middleName: 'Qodir o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-ax-114', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1114', firstName: 'Dildora', lastName: 'Tursunova', middleName: 'Bekzod qizi', status: 'ELIGIBLE' },
-    { id: 'rec-ax-115', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1115', firstName: 'Farrux', lastName: 'Ergashev', middleName: 'Ravshan o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-ax-201', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1131', firstName: 'Sardorbek', lastName: 'Aliyev', middleName: 'Mansur o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990301' },
+    { id: 'rec-ax-202', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1132', firstName: 'Gulnoza', lastName: 'Xoliqova', middleName: 'Ulug‘bek qizi', gender: 'F', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990302' },
+    { id: 'rec-ax-203', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1133', firstName: 'Sanjarbek', lastName: 'Normatov', middleName: 'Qodir o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990303' },
+    { id: 'rec-ax-204', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1134', firstName: 'Dildora', lastName: 'Tursunova', middleName: 'Bekzod qizi', gender: 'F', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990304' },
+    { id: 'rec-ax-205', tenantId: tenantAx.id, schoolId: schoolAx.id, classGroupId: 'class-ax-11b', rosterCode: 'STU-1135', firstName: 'Farrux', lastName: 'Ergashev', middleName: 'Ravshan o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990305' },
 
     // Temurbeklar Maktabi
-    { id: 'rec-tm-201', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-201', firstName: 'Sardor', lastName: 'Rahimov', middleName: 'G‘ayrat o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-tm-202', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-202', firstName: 'Otabek', lastName: 'Boboyev', middleName: 'Mansur o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-tm-203', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-203', firstName: 'Dilshod', lastName: 'Karimov', middleName: 'Shavkat o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-tm-204', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-204', firstName: 'Sherzodbek', lastName: 'Mansurov', middleName: 'Nodir o‘g‘li', status: 'ELIGIBLE' },
-    { id: 'rec-tm-205', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g2', rosterCode: 'TM-205', firstName: 'Xurshid', lastName: 'Normurodov', middleName: 'Qobil o‘g‘li', status: 'ELIGIBLE' },
+    { id: 'rec-tm-201', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-201', firstName: 'Sardor', lastName: 'Rahimov', middleName: 'G‘ayrat o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990401' },
+    { id: 'rec-tm-202', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-202', firstName: 'Otabek', lastName: 'Boboyev', middleName: 'Mansur o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990402' },
+    { id: 'rec-tm-203', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-203', firstName: 'Dilshod', lastName: 'Karimov', middleName: 'Shavkat o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '1-guruh', emaktabId: '1000001990403' },
+    { id: 'rec-tm-204', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g1', rosterCode: 'TM-204', firstName: 'Sherzodbek', lastName: 'Mansurov', middleName: 'Nodir o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990404' },
+    { id: 'rec-tm-205', tenantId: tenantTm.id, schoolId: schoolTm.id, classGroupId: 'class-tm-11g2', rosterCode: 'TM-205', firstName: 'Xurshid', lastName: 'Normurodov', middleName: 'Qobil o‘g‘li', gender: 'M', status: 'ELIGIBLE', group: '2-guruh', emaktabId: '1000001990405' },
   ];
 
   for (const s of studentsRaw) {
@@ -183,8 +206,11 @@ async function main() {
         firstName: s.firstName,
         lastName: s.lastName,
         middleName: s.middleName,
+        gender: s.gender || 'M',
         birthDate: new Date('2008-05-15'),
         status: s.status,
+        group: s.group || '1-guruh',
+        emaktabId: s.emaktabId || null,
       },
     });
   }
@@ -197,6 +223,7 @@ async function main() {
       title: 'Informatika va axborot texnologiyalari, 11-sinf. 1-ChSB',
       subject: 'Informatika va AT',
       gradeLevel: 11,
+      targetGroup: 'all',
       durationMinutes: 40,
       totalQuestions: 15,
       maxScore: 40.0,

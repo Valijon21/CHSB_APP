@@ -54,7 +54,9 @@ def test_student_admission_verify(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
-    assert data["student"]["firstName"] == "Alisher"
+    assert data["student"]["firstName"] == "Zuxra"
+    assert data["student"]["group"] == "1-guruh"
+    assert data["student"]["emaktabId"] == "1000001990090"
     assert data["sessionToken"] is not None
 
 def test_analytics_endpoint(client: TestClient):

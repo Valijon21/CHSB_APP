@@ -18,11 +18,14 @@ class StudentCreate(BaseModel):
     birthDate: str = "2008-05-15"
     rosterCode: str | None = None
     status: str = "eligible"
+    group: str | None = "1-guruh"
+    emaktabId: str | None = None
 
 @router.get("")
 async def get_students(
     tenantSlug: str = Query("al-xorazmiy"),
     classGroupId: str | None = None,
+    group: str | None = None,
     db: Prisma = Depends(get_prisma),
 ):
     tenant = await db.tenant.find_first(
@@ -31,9 +34,11 @@ async def get_students(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
-    where_clause = {"tenantId": tenant.id}
+    where_clause: dict = {"tenantId": tenant.id}
     if classGroupId:
         where_clause["classGroupId"] = classGroupId
+    if group and group != "ALL":
+        where_clause["group"] = group
 
     students = await db.student.find_many(
         where=where_clause,
@@ -57,6 +62,8 @@ async def get_students(
             "gender": s.gender,
             "birthDate": s.birthDate.strftime("%Y-%m-%d"),
             "status": s.status.lower(),
+            "group": s.group or "1-guruh",
+            "emaktabId": s.emaktabId,
             "availableAssessmentIds": ["chsb-inf-11-q1"],
             "createdAt": s.createdAt.isoformat(),
         }
@@ -88,6 +95,8 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
             "gender": payload.gender,
             "birthDate": datetime.strptime(payload.birthDate, "%Y-%m-%d"),
             "status": "ELIGIBLE" if payload.status == "eligible" else "INACTIVE",
+            "group": payload.group or "1-guruh",
+            "emaktabId": payload.emaktabId,
         },
         include={"classGroup": True},
     )
@@ -105,6 +114,8 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
         "middleName": created.middleName,
         "fullName": f"{created.lastName} {created.firstName} {created.middleName or ''}".strip(),
         "status": created.status.lower(),
+        "group": created.group or "1-guruh",
+        "emaktabId": created.emaktabId,
         "availableAssessmentIds": ["chsb-inf-11-q1"],
         "createdAt": created.createdAt.isoformat(),
     }

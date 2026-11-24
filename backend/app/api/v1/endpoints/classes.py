@@ -27,8 +27,14 @@ async def get_classes(tenantSlug: str = Query("al-xorazmiy"), db: Prisma = Depen
         order={"name": "asc"},
     )
 
-    return [
-        {
+    res_classes = []
+    for c in classes:
+        g_counts: dict[str, int] = {}
+        for s in c.students:
+            grp = s.group or "1-guruh"
+            g_counts[grp] = g_counts.get(grp, 0) + 1
+
+        res_classes.append({
             "id": c.id,
             "schoolId": c.schoolId,
             "tenantId": tenant.id,
@@ -39,10 +45,12 @@ async def get_classes(tenantSlug: str = Query("al-xorazmiy"), db: Prisma = Depen
             "shift": c.shift,
             "academicYear": c.academicYear,
             "studentCount": len(c.students),
+            "hasGroups": c.hasGroups,
+            "groupCounts": g_counts,
             "createdAt": c.createdAt.isoformat(),
-        }
-        for c in classes
-    ]
+        })
+
+    return res_classes
 
 @router.post("")
 async def create_class(payload: ClassGroupCreate, db: Prisma = Depends(get_prisma)):
@@ -61,6 +69,7 @@ async def create_class(payload: ClassGroupCreate, db: Prisma = Depends(get_prism
             "shift": payload.shift,
             "academicYear": payload.academicYear,
             "studentCount": 0,
+            "hasGroups": True,
         }
     )
 
@@ -74,11 +83,13 @@ async def create_class(payload: ClassGroupCreate, db: Prisma = Depends(get_prism
         "shift": new_class.shift,
         "academicYear": new_class.academicYear,
         "studentCount": 0,
+        "hasGroups": new_class.hasGroups,
+        "groupCounts": {},
         "createdAt": new_class.createdAt.isoformat(),
     }
 
 @router.get("/{class_id}")
-async def get_class_detail(class_id: str, db: Prisma = Depends(get_prisma)):
+async def get_class_detail(class_id: str, group: str | None = None, db: Prisma = Depends(get_prisma)):
     class_group = await db.classgroup.find_unique(
         where={"id": class_id},
         include={
@@ -95,10 +106,19 @@ async def get_class_detail(class_id: str, db: Prisma = Depends(get_prisma)):
     if not class_group:
         raise HTTPException(status_code=404, detail="Sinf guruhi topilmadi.")
 
+    total_group_counts: dict[str, int] = {}
+    for s in class_group.students:
+        grp = s.group or "1-guruh"
+        total_group_counts[grp] = total_group_counts.get(grp, 0) + 1
+
     students_list = []
     results_list = []
 
     for s in class_group.students:
+        s_group = s.group or "1-guruh"
+        if group and group != "ALL" and s_group != group:
+            continue
+
         students_list.append({
             "id": s.id,
             "tenantId": s.tenantId,
@@ -108,6 +128,9 @@ async def get_class_detail(class_id: str, db: Prisma = Depends(get_prisma)):
             "firstName": s.firstName,
             "lastName": s.lastName,
             "middleName": s.middleName,
+            "gender": s.gender,
+            "group": s_group,
+            "emaktabId": s.emaktabId,
             "status": s.status.lower(),
             "availableAssessmentIds": ["chsb-inf-11-q1"],
         })
@@ -119,6 +142,7 @@ async def get_class_detail(class_id: str, db: Prisma = Depends(get_prisma)):
                 "rosterRecordId": s.id,
                 "studentName": f"{s.firstName} {s.lastName}",
                 "className": class_group.name,
+                "group": s_group,
                 "totalQuestions": 15,
                 "answeredQuestions": 15,
                 "score": r.score,
@@ -149,6 +173,8 @@ async def get_class_detail(class_id: str, db: Prisma = Depends(get_prisma)):
             "grade": class_group.gradeLevel,
             "academicYear": class_group.academicYear,
             "studentCount": len(students_list),
+            "hasGroups": class_group.hasGroups,
+            "groupCounts": total_group_counts,
         },
         "students": students_list,
         "results": results_list,

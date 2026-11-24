@@ -102,6 +102,13 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
         tenant_id=tenant.id,
     )
 
+    student_group = student.group or "1-guruh"
+    class_display = (
+        f"{student.classGroup.name} ({student_group})"
+        if student.classGroup
+        else "Noma'lum sinf"
+    )
+
     return AdmissionVerifyResponse(
         success=True,
         sessionToken=exam_session_token,
@@ -111,8 +118,10 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
             "firstName": student.firstName,
             "lastName": student.lastName,
             "middleName": student.middleName,
-            "className": student.classGroup.name if student.classGroup else "Noma'lum sinf",
+            "className": class_display,
             "classGroupId": student.classGroupId,
+            "group": student_group,
+            "emaktabId": student.emaktabId,
             "status": "eligible",
         },
         availableAssessmentIds=["chsb-inf-11-q1"],
