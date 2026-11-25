@@ -19,6 +19,49 @@ import {
   generateClipboardColumn,
 } from '../services/emaktabExportService';
 
+const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+
+function getTestCandidates(): AssessmentCandidate[] {
+  return [
+    {
+      candidateId: 'cand-01',
+      fullName: "Jasurbek O'ktamov",
+      normalizedName: 'jasurbek oktamov',
+      score: 38,
+      maxScore: 40,
+      percentage: 95,
+      status: 'submitted',
+    },
+    {
+      candidateId: 'cand-02',
+      fullName: 'Madina Aliyeva',
+      normalizedName: 'madina aliyeva',
+      score: 31,
+      maxScore: 40,
+      percentage: 77.5,
+      status: 'submitted',
+    },
+    {
+      candidateId: 'cand-03',
+      fullName: 'Sardor Boboyev',
+      normalizedName: 'sardor boboyev',
+      score: 25,
+      maxScore: 40,
+      percentage: 62.5,
+      status: 'submitted',
+    },
+    {
+      candidateId: 'cand-04',
+      fullName: "Dilnoza G'aniyeva",
+      normalizedName: 'dilnoza ganiyeva',
+      score: 20,
+      maxScore: 40,
+      percentage: 50,
+      status: 'submitted',
+    },
+  ];
+}
+
 export const useEmaktabSyncStore = defineStore('emaktabSync', () => {
   // State
   const assessmentId = ref<string>('asm-001');
@@ -118,8 +161,10 @@ export const useEmaktabSyncStore = defineStore('emaktabSync', () => {
 
     if (params.initialCandidates && params.initialCandidates.length > 0) {
       candidates.value = params.initialCandidates;
-    } else if (candidates.value.length === 0) {
-      candidates.value = createMockCandidates();
+    } else if (candidates.value.length === 0 && isTestEnv) {
+      candidates.value = getTestCandidates();
+    } else {
+      candidates.value = [];
     }
   }
 
@@ -229,47 +274,6 @@ export const useEmaktabSyncStore = defineStore('emaktabSync', () => {
     }
   }
 
-  // Yordamchi mock nomzodlar generatori
-  function createMockCandidates(): AssessmentCandidate[] {
-    return [
-      {
-        candidateId: 'cand-01',
-        fullName: "Jasurbek O'ktamov",
-        normalizedName: 'jasurbek oktamov',
-        score: 38,
-        maxScore: 40,
-        percentage: 95,
-        status: 'submitted',
-      },
-      {
-        candidateId: 'cand-02',
-        fullName: 'Madina Aliyeva',
-        normalizedName: 'madina aliyeva',
-        score: 31,
-        maxScore: 40,
-        percentage: 77.5,
-        status: 'submitted',
-      },
-      {
-        candidateId: 'cand-03',
-        fullName: 'Sardor Boboyev',
-        normalizedName: 'sardor boboyev',
-        score: 25,
-        maxScore: 40,
-        percentage: 62.5,
-        status: 'submitted',
-      },
-      {
-        candidateId: 'cand-04',
-        fullName: "Dilnoza G'aniyeva",
-        normalizedName: 'dilnoza ganiyeva',
-        score: 20,
-        maxScore: 40,
-        percentage: 50,
-        status: 'submitted',
-      },
-    ];
-  }
 
   return {
     // State

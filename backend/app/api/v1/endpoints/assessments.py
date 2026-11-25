@@ -74,6 +74,21 @@ async def create_assessment(payload: AssessmentCreate, db: Prisma = Depends(get_
         subject_prefix = payload.subject[:3].upper().replace(" ", "")
         code = f"CHSB-{subject_prefix}-{payload.gradeLevel}-Q{payload.quarter}-{int(datetime.now().timestamp()) % 10000}"
 
+    existing = await db.assessment.find_unique(where={"code": code})
+    if existing:
+        return {
+            "id": existing.id,
+            "code": existing.code,
+            "title": existing.title,
+            "subject": existing.subject,
+            "gradeLevel": existing.gradeLevel,
+            "durationMinutes": existing.durationMinutes,
+            "totalQuestions": existing.totalQuestions,
+            "maxScore": existing.maxScore,
+            "targetGroup": getattr(existing, "targetGroup", "all") or "all",
+            "status": "published",
+        }
+
     assessment_id = f"asm-{code.lower()}"
 
     created = await db.assessment.create(

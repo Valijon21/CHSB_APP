@@ -22,22 +22,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️ Runtime schema sync warning: {e}")
 
-    # Self-bootstrapping / auto-seed check: if DB is fresh, automatically populate test data!
+    # Self-bootstrapping check: if DB is fresh, populate clean production foundation
     try:
         tenant_count = await prisma.tenant.count()
         if tenant_count == 0:
-            print("🌱 Database is empty! Automatically bootstrapping initial data...")
+            print("🌱 Database is empty! Bootstrapping clean production foundation...")
             from backend.app.db.seed import auto_seed_db
             await auto_seed_db(prisma)
-            print("✅ Database successfully bootstrapped!")
-        else:
-            # Sync user profile names if legacy seed was present
-            await prisma.user.update_many(
-                where={"fullName": {"contains": "Dilmurod"}},
-                data={"fullName": "Anvar Rahimov"}
-            )
+            print("✅ Clean production foundation bootstrapped!")
     except Exception as e:
-        print(f"⚠️ Auto-seed bootstrap warning: {e}")
+        print(f"⚠️ Production bootstrap warning: {e}")
 
     yield
     print("🛑 Disconnecting Prisma Client...")

@@ -107,14 +107,14 @@ async def auto_seed_db(db: Prisma, force: bool = False):
         }
     )
 
-    # 5. Create Users
+    # 5. Create Users (System Accounts)
     users_data = [
         {
             "id": "usr-teacher-01",
             "tenantId": tenant_ax.id,
             "username": "teacher_ax",
             "email": "teacher@al-xorazmiy.uz",
-            "fullName": "Dilmurod Rahmataliyevich Yunusov",
+            "fullName": "Anvar Rahimov",
             "hashedPassword": hashed_password,
             "role": "TEACHER",
             "isActive": True,
@@ -139,36 +139,13 @@ async def auto_seed_db(db: Prisma, force: bool = False):
             "role": "REGIONAL_INSPECTOR",
             "isActive": True,
         },
-        {
-            "id": "usr-student-01",
-            "tenantId": tenant_ax.id,
-            "username": "student_ax",
-            "email": "zuxra@student.uz",
-            "fullName": "Zuxra Abduraximova",
-            "hashedPassword": hashed_password,
-            "role": "STUDENT",
-            "isActive": True,
-        },
     ]
 
     for u in users_data:
         await db.user.create(data=u)
 
-    # 6. Create Class Groups (Zero initial student counts)
-    classes_data = [
-        {"id": "class-ax-11a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-A sinf", "gradeLevel": 11, "shift": 1, "studentCount": 0, "hasGroups": True},
-        {"id": "class-ax-11b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-B sinf", "gradeLevel": 11, "shift": 1, "studentCount": 0, "hasGroups": True},
-        {"id": "class-ax-11v", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "11-V sinf", "gradeLevel": 11, "shift": 2, "studentCount": 0, "hasGroups": True},
-        {"id": "class-ax-10a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-A sinf", "gradeLevel": 10, "shift": 1, "studentCount": 0, "hasGroups": True},
-        {"id": "class-ax-10b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-B sinf", "gradeLevel": 10, "shift": 1, "studentCount": 0, "hasGroups": True},
-        {"id": "class-ax-10v", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "10-V sinf", "gradeLevel": 10, "shift": 1, "studentCount": 0, "hasGroups": True},
-        {"id": "class-ax-9a", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "9-A sinf", "gradeLevel": 9, "shift": 1, "studentCount": 0, "hasGroups": False},
-        {"id": "class-ax-9b", "tenantId": tenant_ax.id, "schoolId": school_ax.id, "name": "9-B sinf", "gradeLevel": 9, "shift": 2, "studentCount": 0, "hasGroups": False},
-        {"id": "class-tm-11g1", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "11-Guruh-1 (Harbiy-AT)", "gradeLevel": 11, "shift": 1, "studentCount": 0, "hasGroups": False},
-        {"id": "class-tm-11g2", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "11-Guruh-2 (Harbiy-AT)", "gradeLevel": 11, "shift": 1, "studentCount": 0, "hasGroups": False},
-        {"id": "class-tm-10g1", "tenantId": tenant_tm.id, "schoolId": school_tm.id, "name": "10-Guruh-1 (Harbiy-AT)", "gradeLevel": 10, "shift": 1, "studentCount": 0, "hasGroups": False},
-    ]
-
+    # 6. Class Groups (Clean zero baseline - classes are created via import or admin UI)
+    classes_data: list[dict] = []
     for cg in classes_data:
         await db.classgroup.create(
             data={
@@ -184,90 +161,20 @@ async def auto_seed_db(db: Prisma, force: bool = False):
             }
         )
 
-    # 7. Create Students (Clean zero baseline - students must be imported or created dynamically)
+    # 7. Students (Clean zero baseline - students must be imported dynamically)
     students_raw: list[dict] = []
     for s in students_raw:
         await db.student.create(data=s)
 
-    # 8. Create Assessments (11-sinf va 9-sinf)
-    assessment_11 = await db.assessment.create(
-        data={
-            "id": "chsb-inf-11-q1",
-            "code": "CHSB-INF-11-Q1",
-            "title": "Informatika va axborot texnologiyalari, 11-sinf. 1-ChSB",
-            "subject": "Informatika va AT",
-            "gradeLevel": 11,
-            "targetGroup": "all",
-            "durationMinutes": 40,
-            "totalQuestions": 15,
-            "maxScore": 40.0,
-        }
-    )
+    # 8. Assessments & Questions (Clean zero baseline - no mock assessments/questions)
+    # Teachers create real assessments or import curriculum
 
-    assessment_9 = await db.assessment.create(
-        data={
-            "id": "chsb-inf-9-q1",
-            "code": "CHSB-INF-9-Q1",
-            "title": "Informatika va axborot texnologiyalari, 9-sinf. 1-ChSB",
-            "subject": "Informatika va AT",
-            "gradeLevel": 9,
-            "targetGroup": "all",
-            "durationMinutes": 40,
-            "totalQuestions": 15,
-            "maxScore": 40.0,
-        }
-    )
-
-    assessment_mat_9 = await db.assessment.create(
-        data={
-            "id": "chsb-mat-9-q1",
-            "code": "CHSB-MAT-9-Q1",
-            "title": "Matematika (Algebra va Geometriya), 9-sinf. 1-ChSB",
-            "subject": "Matematika",
-            "gradeLevel": 9,
-            "durationMinutes": 45,
-            "totalQuestions": 15,
-            "maxScore": 40.0,
-        }
-    )
-
-    # 9. Create 15 Questions for each assessment
-    bloom_levels = [
-        "KNOWLEDGE", "KNOWLEDGE", "COMPREHENSION", "KNOWLEDGE", "APPLICATION",
-        "KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ANALYSIS", "COMPREHENSION",
-        "KNOWLEDGE", "APPLICATION", "ANALYSIS", "COMPREHENSION", "APPLICATION"
-    ]
-
-    for asm in [assessment_11, assessment_9, assessment_mat_9]:
-        for i in range(1, 16):
-            options = [
-                {"id": "opt-a", "label": "A", "text": "To'g'ri javob varianti"},
-                {"id": "opt-b", "label": "B", "text": "Noto'g'ri chalg'ituvchi variant 1"},
-                {"id": "opt-c", "label": "C", "text": "Noto'g'ri chalg'ituvchi variant 2"},
-                {"id": "opt-d", "label": "D", "text": "Noto'g'ri chalg'ituvchi variant 3"},
-            ]
-            await db.question.create(
-                data={
-                    "id": f"q-{asm.id}-{i}",
-                    "assessmentId": asm.id,
-                    "questionNumber": i,
-                    "prompt": f"{i}-savol: {asm.subject} bo'yicha {asm.gradeLevel}-sinf test topshirig'i.",
-                    "optionsJson": json.dumps(options),
-                    "correctOptionId": "opt-a",
-                    "bloomLevel": bloom_levels[i - 1],
-                    "difficulty": "hard" if i > 10 else "medium" if i > 5 else "easy",
-                    "points": 2.5,
-                }
-            )
-
-    # 10. Clean baseline for Attempts & Results (zero mock results)
+    # 9. Attempts & Results (Clean zero baseline - zero mock results)
     results_data: list[dict] = []
-    for idx, res in enumerate(results_data):
-        pass
 
     await seed_subjects_if_empty(db)
 
-    print(f"✅ Auto-seed completed: 2 tenants, 2 schools, {len(classes_data)} classes, 0 students, questions seeded, 0 results.")
+    print("✅ Clean production bootstrap completed: 2 tenants, 2 schools, auth users, 9 standard subjects, 0 mock classes, 0 mock students.")
 
 if __name__ == "__main__":
     import asyncio

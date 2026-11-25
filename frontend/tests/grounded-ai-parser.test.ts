@@ -45,7 +45,7 @@ describe('Grounded AI Extractor & Human-in-the-Loop Validation', () => {
     });
 
     it('returns error when API key is completely missing', async () => {
-      vi.spyOn(globalThis, 'fetch').mockImplementationOnce(() =>
+      vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
         Promise.reject(new Error('API key missing'))
       );
       const result = await extractGroundedQuestionsWithAi('Sample text', { apiKey: '' });

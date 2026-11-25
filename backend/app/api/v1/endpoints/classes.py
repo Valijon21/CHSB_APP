@@ -215,3 +215,61 @@ async def get_class_detail(class_id: str, group: str | None = None, db: Prisma =
         "participationRate": participation_rate,
     }
 
+@router.delete("/{class_id}")
+async def delete_class(class_id: str, db: Prisma = Depends(get_prisma)):
+    cls = await db.classgroup.find_unique(where={"id": class_id})
+    if not cls:
+        raise HTTPException(status_code=404, detail="Sinf topilmadi.")
+
+    # Delete students in this class first to preserve FK constraints
+    students = await db.student.find_many(where={"classGroupId": class_id})
+    student_ids = [s.id for s in students]
+    if student_ids:
+        await db.assessmentresult.delete_many(where={"studentId": {"in": student_ids}})
+        await db.assessmentattempt.delete_many(where={"studentId": {"in": student_ids}})
+        await db.student.delete_many(where={"id": {"in": student_ids}})
+
+    await db.classgroup.delete(where={"id": class_id})
+    return {"success": True, "message": f"'{cls.name}' sinfi muvaffaqiyatli o'chirildi."}
+
+@router.delete("")
+async def delete_classes(
+    tenantSlug: str | None = Query(None),
+    onlyEmpty: bool = Query(False),
+    db: Prisma = Depends(get_prisma),
+):
+    where_clause: dict = {}
+    if tenantSlug:
+        tenant = await db.tenant.find_first(
+            where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
+        )
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+        where_clause["tenantId"] = tenant.id
+
+    if onlyEmpty:
+        # Find classes with 0 students
+        classes = await db.classgroup.find_many(where=where_clause, include={"students": True})
+        empty_ids = [c.id for c in classes if len(c.students) == 0]
+        deleted_count = 0
+        if empty_ids:
+            deleted_count = await db.classgroup.delete_many(where={"id": {"in": empty_ids}})
+        return {"success": True, "deletedCount": deleted_count, "message": f"{deleted_count} ta bo'sh sinf o'chirildi."}
+
+    # Delete all classes (and their students if any)
+    classes = await db.classgroup.find_many(where=where_clause)
+    class_ids = [c.id for c in classes]
+    if class_ids:
+        students = await db.student.find_many(where={"classGroupId": {"in": class_ids}})
+        student_ids = [s.id for s in students]
+        if student_ids:
+            await db.assessmentresult.delete_many(where={"studentId": {"in": student_ids}})
+            await db.assessmentattempt.delete_many(where={"studentId": {"in": student_ids}})
+            await db.student.delete_many(where={"id": {"in": student_ids}})
+        deleted_count = await db.classgroup.delete_many(where={"id": {"in": class_ids}})
+    else:
+        deleted_count = 0
+
+    return {"success": True, "deletedCount": deleted_count, "message": f"{deleted_count} ta sinf o'chirildi."}
+
+

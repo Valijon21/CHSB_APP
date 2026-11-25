@@ -6,181 +6,189 @@ import type {
   ProctorActionPayload,
 } from '../../../entities/proctor/model';
 
-const initialMockSessions: LiveStudentSession[] = [
-  {
-    rosterRecordId: 'rec-ax-101',
-    studentName: 'Alisher Zokirov',
-    className: '11-A sinf',
-    currentQuestion: 9,
-    totalQuestions: 15,
-    answeredCount: 8,
-    remainingSeconds: 1540,
-    status: 'active',
-    violationsCount: 0,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-102',
-    studentName: 'Barno Karimova',
-    className: '11-A sinf',
-    currentQuestion: 12,
-    totalQuestions: 15,
-    answeredCount: 12,
-    remainingSeconds: 1200,
-    status: 'active',
-    violationsCount: 0,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-103',
-    studentName: 'Jasur Bekmurodov',
-    className: '11-A sinf',
-    currentQuestion: 6,
-    totalQuestions: 15,
-    answeredCount: 5,
-    remainingSeconds: 1400,
-    status: 'warning',
-    violationsCount: 2,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-104',
-    studentName: 'Dilnoza Rustamova',
-    className: '11-A sinf',
-    currentQuestion: 15,
-    totalQuestions: 15,
-    answeredCount: 15,
-    remainingSeconds: 0,
-    status: 'submitted',
-    violationsCount: 0,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-105',
-    studentName: 'Otabek G\'aniyev',
-    className: '11-A sinf',
-    currentQuestion: 4,
-    totalQuestions: 15,
-    answeredCount: 3,
-    remainingSeconds: 1600,
-    status: 'offline',
-    violationsCount: 0,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-106',
-    studentName: 'Madina Shokirova',
-    className: '11-A sinf',
-    currentQuestion: 7,
-    totalQuestions: 15,
-    answeredCount: 6,
-    remainingSeconds: 1350,
-    status: 'idle',
-    violationsCount: 1,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-107',
-    studentName: 'Sarvar Qodirov',
-    className: '11-A sinf',
-    currentQuestion: 11,
-    totalQuestions: 15,
-    answeredCount: 10,
-    remainingSeconds: 1100,
-    status: 'active',
-    violationsCount: 0,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-108',
-    studentName: 'Feruza Ergasheva',
-    className: '11-A sinf',
-    currentQuestion: 8,
-    totalQuestions: 15,
-    answeredCount: 7,
-    remainingSeconds: 1390,
-    status: 'warning',
-    violationsCount: 1,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-109',
-    studentName: 'Shaxzod Rahimov',
-    className: '11-B sinf',
-    currentQuestion: 14,
-    totalQuestions: 15,
-    answeredCount: 13,
-    remainingSeconds: 980,
-    status: 'active',
-    violationsCount: 0,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-110',
-    studentName: 'Sevara Mahmudova',
-    className: '11-B sinf',
-    currentQuestion: 15,
-    totalQuestions: 15,
-    answeredCount: 15,
-    remainingSeconds: 0,
-    status: 'submitted',
-    violationsCount: 0,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-111',
-    studentName: 'Bobur Mirzayev',
-    className: '11-B sinf',
-    currentQuestion: 5,
-    totalQuestions: 15,
-    answeredCount: 4,
-    remainingSeconds: 1450,
-    status: 'idle',
-    violationsCount: 0,
-    lastActiveAt: new Date().toISOString(),
-  },
-  {
-    rosterRecordId: 'rec-ax-112',
-    studentName: 'Zarina Sobirova',
-    className: '11-V sinf',
-    currentQuestion: 10,
-    totalQuestions: 15,
-    answeredCount: 9,
-    remainingSeconds: 1150,
-    status: 'active',
-    violationsCount: 0,
-    lastActiveAt: new Date().toISOString(),
-  },
-];
+const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+
+const initialMockSessions: LiveStudentSession[] = isTestEnv
+  ? [
+      {
+        rosterRecordId: 'rec-ax-101',
+        studentName: 'Alisher Zokirov',
+        className: '11-A sinf',
+        currentQuestion: 9,
+        totalQuestions: 15,
+        answeredCount: 8,
+        remainingSeconds: 1540,
+        status: 'active',
+        violationsCount: 0,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-102',
+        studentName: 'Barno Karimova',
+        className: '11-A sinf',
+        currentQuestion: 12,
+        totalQuestions: 15,
+        answeredCount: 12,
+        remainingSeconds: 1200,
+        status: 'active',
+        violationsCount: 0,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-103',
+        studentName: 'Jasur Bekmurodov',
+        className: '11-A sinf',
+        currentQuestion: 6,
+        totalQuestions: 15,
+        answeredCount: 5,
+        remainingSeconds: 1400,
+        status: 'warning',
+        violationsCount: 2,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-104',
+        studentName: 'Dilnoza Rustamova',
+        className: '11-A sinf',
+        currentQuestion: 15,
+        totalQuestions: 15,
+        answeredCount: 15,
+        remainingSeconds: 0,
+        status: 'submitted',
+        violationsCount: 0,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-105',
+        studentName: 'Otabek G\'aniyev',
+        className: '11-A sinf',
+        currentQuestion: 4,
+        totalQuestions: 15,
+        answeredCount: 3,
+        remainingSeconds: 1600,
+        status: 'offline',
+        violationsCount: 0,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-106',
+        studentName: 'Madina Shokirova',
+        className: '11-A sinf',
+        currentQuestion: 7,
+        totalQuestions: 15,
+        answeredCount: 6,
+        remainingSeconds: 1350,
+        status: 'idle',
+        violationsCount: 1,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-107',
+        studentName: 'Sarvar Qodirov',
+        className: '11-A sinf',
+        currentQuestion: 11,
+        totalQuestions: 15,
+        answeredCount: 10,
+        remainingSeconds: 1100,
+        status: 'active',
+        violationsCount: 0,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-108',
+        studentName: 'Feruza Ergasheva',
+        className: '11-A sinf',
+        currentQuestion: 8,
+        totalQuestions: 15,
+        answeredCount: 7,
+        remainingSeconds: 1250,
+        status: 'active',
+        violationsCount: 0,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-109',
+        studentName: 'Azizbek Umarov',
+        className: '11-A sinf',
+        currentQuestion: 14,
+        totalQuestions: 15,
+        answeredCount: 13,
+        remainingSeconds: 400,
+        status: 'warning',
+        violationsCount: 3,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-110',
+        studentName: 'Kamola Yusupova',
+        className: '11-A sinf',
+        currentQuestion: 5,
+        totalQuestions: 15,
+        answeredCount: 4,
+        remainingSeconds: 1500,
+        status: 'idle',
+        violationsCount: 0,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-111',
+        studentName: 'Sardorbek Aliyev',
+        className: '11-B sinf',
+        currentQuestion: 13,
+        totalQuestions: 15,
+        answeredCount: 12,
+        remainingSeconds: 650,
+        status: 'active',
+        violationsCount: 0,
+        lastActiveAt: new Date().toISOString(),
+      },
+      {
+        rosterRecordId: 'rec-ax-112',
+        studentName: 'Zarina Sobirova',
+        className: '11-V sinf',
+        currentQuestion: 10,
+        totalQuestions: 15,
+        answeredCount: 9,
+        remainingSeconds: 1150,
+        status: 'active',
+        violationsCount: 0,
+        lastActiveAt: new Date().toISOString(),
+      },
+    ]
+  : [];
+
+const initialEvents: LiveEventStreamItem[] = isTestEnv
+  ? [
+      {
+        id: 'evt-1',
+        timestamp: new Date().toISOString(),
+        studentName: 'Dilnoza Rustamova',
+        type: 'submission',
+        message: 'Imtihonni muvaffaqiyatli topshirdi (15/15)',
+        severity: 'info',
+      },
+      {
+        id: 'evt-2',
+        timestamp: new Date().toISOString(),
+        studentName: 'Jasur Bekmurodov',
+        type: 'warning',
+        message: 'Vkladkadan chiqish qayd etildi (2/3)',
+        severity: 'warning',
+      },
+      {
+        id: 'evt-3',
+        timestamp: new Date().toISOString(),
+        studentName: 'Otabek G\'aniyev',
+        type: 'offline',
+        message: 'Qurilma oflayn rejimga o\'tdi',
+        severity: 'warning',
+      },
+    ]
+  : [];
 
 export const useLiveProctorStore = defineStore('liveProctor', () => {
   const sessions = ref<LiveStudentSession[]>(JSON.parse(JSON.stringify(initialMockSessions)));
-  const eventStream = ref<LiveEventStreamItem[]>([
-    {
-      id: 'evt-1',
-      timestamp: new Date().toISOString(),
-      studentName: 'Dilnoza Rustamova',
-      type: 'submission',
-      message: 'Imtihonni muvaffaqiyatli topshirdi (15/15)',
-      severity: 'info',
-    },
-    {
-      id: 'evt-2',
-      timestamp: new Date().toISOString(),
-      studentName: 'Jasur Bekmurodov',
-      type: 'warning',
-      message: 'Vkladkadan chiqish qayd etildi (2/3)',
-      severity: 'warning',
-    },
-    {
-      id: 'evt-3',
-      timestamp: new Date().toISOString(),
-      studentName: 'Otabek G\'aniyev',
-      type: 'offline',
-      message: 'Qurilma oflayn rejimga o\'tdi',
-      severity: 'warning',
-    },
-  ]);
+  const eventStream = ref<LiveEventStreamItem[]>(JSON.parse(JSON.stringify(initialEvents)));
 
   const activeStatusFilter = ref<string>('all');
   const searchQuery = ref<string>('');
@@ -225,6 +233,10 @@ export const useLiveProctorStore = defineStore('liveProctor', () => {
 
   function setSearchQuery(query: string) {
     searchQuery.value = query;
+  }
+
+  function setSessions(newSessions: LiveStudentSession[]) {
+    sessions.value = newSessions;
   }
 
   function pushEvent(item: Omit<LiveEventStreamItem, 'id' | 'timestamp'>) {
@@ -319,8 +331,9 @@ export const useLiveProctorStore = defineStore('liveProctor', () => {
   }
 
   function resetSessions() {
-    sessions.value = JSON.parse(JSON.stringify(initialMockSessions));
+    sessions.value = [];
     actionHistory.value = [];
+    eventStream.value = [];
   }
 
   return {
@@ -337,6 +350,7 @@ export const useLiveProctorStore = defineStore('liveProctor', () => {
     filteredSessions,
     setStatusFilter,
     setSearchQuery,
+    setSessions,
     pushEvent,
     grantExtraTime,
     sendWarning,
