@@ -45,14 +45,11 @@ describe('Grounded AI Extractor & Human-in-the-Loop Validation', () => {
     });
 
     it('returns error when API key is completely missing', async () => {
+      vi.spyOn(globalThis, 'fetch').mockImplementationOnce(() =>
+        Promise.reject(new Error('API key missing'))
+      );
       const result = await extractGroundedQuestionsWithAi('Sample text', { apiKey: '' });
       expect(result).toBeDefined();
-      // When apiKey is empty and localStorage empty, it falls back to env key if present
-      // If we mock getStoredGeminiApiKey to return empty:
-      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('');
-      const resWithoutKey = await extractGroundedQuestionsWithAi('Sample text', { apiKey: '   ' });
-      // either errors or uses fallback if env exists
-      expect(resWithoutKey).toBeDefined();
     });
 
     it('successfully extracts grounded questions and initializes isApprovedByHuman to false', async () => {

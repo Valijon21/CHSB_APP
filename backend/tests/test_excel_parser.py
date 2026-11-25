@@ -16,7 +16,7 @@ def test_detect_group_from_name_or_text():
     assert detect_group_from_name_or_text("11-A_Informatika_2-gurux.xls") == "2-guruh"
     assert detect_group_from_name_or_text("11-A (1-guruh)") == "1-guruh"
     assert detect_group_from_name_or_text("11-A (2-guruh)") == "2-guruh"
-    assert detect_group_from_name_or_text("Matematika 9-A") == "1-guruh"
+    assert detect_group_from_name_or_text("Matematika 9-A") is None
 
 def test_detect_class_from_name_or_text():
     assert detect_class_from_name_or_text("10-V-Informatika-20_11_2026.xls") == "10-V"

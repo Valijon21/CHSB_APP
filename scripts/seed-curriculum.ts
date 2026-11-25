@@ -1,13 +1,46 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 
-const dbPath = path.resolve(process.cwd(), 'prisma/dev.db');
+const targetPath = process.env.SQLITE_DB_PATH || 'prisma/dev.db';
+const dbPath = path.resolve(process.cwd(), targetPath);
 const db = new DatabaseSync(dbPath);
 
 console.log(`🚀 Seeding Curriculum Resources into: ${dbPath}`);
 
 const tenantId = 'tenant-al-xorazmiy';
 const subjectCode = 'inf';
+
+// Ensure tables exist before deletion
+db.exec(`
+  CREATE TABLE IF NOT EXISTS curriculum_resources (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    subject_code TEXT NOT NULL,
+    grade_level INTEGER NOT NULL,
+    quarter INTEGER NOT NULL DEFAULT 1,
+    lesson_number INTEGER NOT NULL DEFAULT 1,
+    title TEXT NOT NULL,
+    topic TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    description TEXT,
+    content_json TEXT NOT NULL DEFAULT '{}',
+    file_url TEXT,
+    download_count INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS assessment_solutions (
+    id TEXT PRIMARY KEY,
+    assessment_id TEXT NOT NULL,
+    question_id TEXT NOT NULL,
+    variant_number INTEGER NOT NULL DEFAULT 1,
+    step_by_step_solution TEXT NOT NULL,
+    solution_formulas TEXT,
+    rubric_criteria_json TEXT NOT NULL DEFAULT '[]',
+    author_note TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`);
 
 // Clear existing curriculum resources
 db.exec('DELETE FROM curriculum_resources;');
