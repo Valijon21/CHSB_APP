@@ -2,6 +2,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from datetime import datetime
+import re
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
 
@@ -29,6 +30,45 @@ def normalize_name_token(token: str | None) -> str:
     if not token:
         return ""
     return token.replace("’", "'").replace("‘", "'").replace("`", "'").strip().lower()
+
+
+def pick_unique_roster_code(
+    existing_codes: set[str],
+    preferred: str | None = None,
+    next_counter: int = 1101,
+) -> tuple[str, int]:
+    """Return a globally unique roster code and the updated counter."""
+    if preferred:
+        if preferred not in existing_codes:
+            existing_codes.add(preferred)
+            return preferred, next_counter
+        suffix = 1
+        while f"{preferred}-{suffix}" in existing_codes:
+            suffix += 1
+        candidate = f"{preferred}-{suffix}"
+        existing_codes.add(candidate)
+        return candidate, next_counter
+
+    counter = next_counter
+    while f"STU-{counter}" in existing_codes:
+        counter += 1
+    candidate = f"STU-{counter}"
+    existing_codes.add(candidate)
+    return candidate, counter + 1
+
+
+async def get_existing_roster_codes(db: Prisma) -> tuple[set[str], int]:
+    """Fetch all existing roster codes and compute the safe next STU-xxxx counter."""
+    rows = await db.query_raw('SELECT "roster_code" FROM "students"')
+    codes: set[str] = {str(r["roster_code"]) for r in rows if r.get("roster_code")}
+    max_num = 1100
+    for code in codes:
+        m = re.fullmatch(r"STU-(\d+)", code)
+        if m:
+            val = int(m.group(1))
+            if val > max_num:
+                max_num = val
+    return codes, max_num + 1
 
 @router.get("")
 async def get_students(
@@ -124,14 +164,8 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
                 detail=f"Ushbu sinfda {payload.lastName} {payload.firstName} ismli o'quvchi allaqachon mavjud.",
             )
 
-    roster_code = payload.rosterCode
-    if not roster_code:
-        count = await db.student.count(where={"tenantId": tenant.id})
-        roster_code = f"STU-{1100 + count + 1}"
-    else:
-        existing = await db.student.find_first(where={"rosterCode": roster_code})
-        if existing:
-            roster_code = f"{roster_code}-{int(datetime.now().timestamp())}"
+    existing_codes, next_counter = await get_existing_roster_codes(db)
+    roster_code, _ = pick_unique_roster_code(existing_codes, payload.rosterCode, next_counter)
 
     try:
         b_date = datetime.strptime(payload.birthDate, "%Y-%m-%d")
@@ -185,6 +219,51 @@ async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma
         "createdAt": created.createdAt.isoformat(),
     }
 
+async def _resolve_or_create_class_group(
+    db: Prisma,
+    tenant_id: str,
+    item: StudentCreate,
+    class_map: dict,
+    class_name_map: dict,
+):
+    """Resolve class group by ID, exact/short name, or auto-create it within the tenant."""
+    class_group = class_map.get(item.classGroupId) if item.classGroupId else None
+    if class_group or not item.className:
+        return class_group
+
+    norm_target = item.className.strip().lower()
+    class_group = class_name_map.get((tenant_id, norm_target))
+    if class_group:
+        return class_group
+
+    norm_short = norm_target.replace("sinf", "").strip()
+    for (t_id, c_name), c_obj in class_name_map.items():
+        if t_id == tenant_id and c_name.replace("sinf", "").strip() == norm_short:
+            return c_obj
+
+    school = await db.school.find_first(where={"tenantId": tenant_id})
+    if not school:
+        return None
+
+    grade_match = re.match(r"^\s*(\d+)", item.className)
+    grade_lvl = min(11, max(1, int(grade_match.group(1)))) if grade_match else 10
+    created_cls = await db.classgroup.create(
+        data={
+            "schoolId": school.id,
+            "tenantId": tenant_id,
+            "name": item.className.strip(),
+            "gradeLevel": grade_lvl,
+            "shift": 1,
+            "academicYear": "2026-2027",
+            "studentCount": 0,
+            "hasGroups": True,
+        }
+    )
+    class_map[created_cls.id] = created_cls
+    class_name_map[(tenant_id, created_cls.name.strip().lower())] = created_cls
+    return created_cls
+
+
 @router.post("/bulk")
 async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends(get_prisma)):
     if not inputs:
@@ -197,7 +276,7 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
     tenant_map = {t.slug: t for t in tenants}
     tenant_map.update({t.id: t for t in tenants})
 
-    tenant_ids = [t.id for t in tenant_map.values()]
+    tenant_ids = list({t.id for t in tenant_map.values()})
     all_classes = await db.classgroup.find_many(
         where={"tenantId": {"in": tenant_ids}}
     ) if tenant_ids else []
@@ -217,10 +296,7 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
         for s in existing_students if s.classGroupId
     }
 
-    tenant_counts: dict[str, int] = {}
-    for t_slug, t in tenant_map.items():
-        if t.id not in tenant_counts:
-            tenant_counts[t.id] = await db.student.count(where={"tenantId": t.id})
+    existing_codes, next_counter = await get_existing_roster_codes(db)
 
     results = []
     class_increment_counts: dict[str, int] = {}
@@ -231,9 +307,9 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
         if not tenant:
             continue
 
-        class_group = class_map.get(item.classGroupId)
-        if not class_group and item.className:
-            class_group = class_name_map.get((tenant.id, item.className.strip().lower()))
+        class_group = await _resolve_or_create_class_group(
+            db, tenant.id, item, class_map, class_name_map
+        )
         if not class_group:
             continue
 
@@ -253,10 +329,9 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
             seen_emaktab_ids.add((class_group_id, item.emaktabId))
         seen_names.add((class_group_id, norm_last, norm_first))
 
-        tenant_counts[tenant.id] = tenant_counts.get(tenant.id, 0) + 1
-        roster_code = item.rosterCode
-        if not roster_code:
-            roster_code = f"STU-{1100 + tenant_counts[tenant.id]}"
+        roster_code, next_counter = pick_unique_roster_code(
+            existing_codes, item.rosterCode, next_counter
+        )
 
         try:
             b_date = datetime.strptime(item.birthDate, "%Y-%m-%d")

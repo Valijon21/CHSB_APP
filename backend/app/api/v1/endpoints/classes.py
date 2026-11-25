@@ -175,7 +175,7 @@ async def get_class_detail(class_id: str, group: str | None = None, db: Prisma =
                 "rosterRecordId": s.id,
                 "studentName": f"{s.firstName} {s.lastName}",
                 "className": class_group.name,
-                "group": s_group,
+                "group": s.group,
                 "totalQuestions": 15,
                 "answeredQuestions": 15,
                 "score": r.score,

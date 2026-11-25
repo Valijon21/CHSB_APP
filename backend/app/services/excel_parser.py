@@ -9,7 +9,6 @@ import re
 import csv
 import zipfile
 import xml.etree.ElementTree as ET
-import xlrd
 from pydantic import BaseModel
 
 class ParsedStudent(BaseModel):
@@ -137,6 +136,7 @@ def is_valid_student_name(val: str) -> bool:
 
 def read_xls_rows(file_bytes: bytes) -> List[List[str]]:
     """XLRD orqali .xls faylini o'qish"""
+    import xlrd
     book = xlrd.open_workbook(file_contents=file_bytes)
     sheet = book.sheet_by_index(0)
     rows: List[List[str]] = []

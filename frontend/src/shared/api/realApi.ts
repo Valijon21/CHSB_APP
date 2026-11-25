@@ -906,6 +906,7 @@ export class RealOrganizationRepository implements OrganizationRepository {
         tenantSlug: input.tenantSlug,
         schoolId: input.schoolId,
         classGroupId: input.classGroupId,
+        className: input.className || undefined,
         firstName: input.firstName,
         lastName: input.lastName,
         middleName: input.middleName || undefined,
@@ -930,6 +931,7 @@ export class RealOrganizationRepository implements OrganizationRepository {
         tenantSlug: input.tenantSlug,
         schoolId: input.schoolId,
         classGroupId: input.classGroupId,
+        className: input.className || undefined,
         firstName: input.firstName,
         lastName: input.lastName,
         middleName: input.middleName || undefined,
@@ -1015,18 +1017,9 @@ export class RealOrganizationRepository implements OrganizationRepository {
     try {
       const res = await httpClient.post<ClassGroupRecord>('/classes', input);
       return res;
-    } catch {
-      return {
-        id: `class-${Date.now()}`,
-        schoolId: input.schoolId,
-        tenantSlug: input.tenantSlug,
-        name: input.name,
-        gradeLevel: input.gradeLevel,
-        shift: input.shift,
-        academicYear: input.academicYear,
-        studentCount: 0,
-        createdAt: new Date().toISOString(),
-      };
+    } catch (err) {
+      logger.error('Failed to create class group', { err, input });
+      throw err;
     }
   }
 

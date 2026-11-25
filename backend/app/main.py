@@ -15,6 +15,13 @@ async def lifespan(app: FastAPI):
     if not prisma.is_connected():
         await prisma.connect()
 
+    # Ensure runtime DB schema includes newly added columns/tables
+    try:
+        from backend.app.db.schema_sync import ensure_schema_synced
+        await ensure_schema_synced(prisma)
+    except Exception as e:
+        print(f"⚠️ Runtime schema sync warning: {e}")
+
     # Self-bootstrapping / auto-seed check: if DB is fresh, automatically populate test data!
     try:
         tenant_count = await prisma.tenant.count()
