@@ -81,7 +81,51 @@ async def health_check():
         "database": f"{db_type}-prisma",
         "orm": "prisma-client-py",
         "version": settings.VERSION,
+        "deploy_id": "v2.0.1-debug",
     }
+
+@app.get("/api/v1/system/debug-db", tags=["System"])
+async def debug_db():
+    import traceback
+    results = {}
+    try:
+        t = await prisma.tenant.find_first()
+        results["tenant"] = t.slug if t else None
+    except Exception as e:
+        results["tenant_error"] = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
+
+    try:
+        if settings.DATABASE_URL.startswith(("postgres://", "postgresql://")):
+            cols = await prisma.query_raw(
+                "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'class_groups'"
+            )
+            results["class_groups_columns"] = [c.get("column_name") for c in cols]
+            st_cols = await prisma.query_raw(
+                "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'students'"
+            )
+            results["students_columns"] = [c.get("column_name") for c in st_cols]
+    except Exception as e:
+        results["columns_error"] = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
+
+    try:
+        classes = await prisma.classgroup.find_many()
+        results["class_count"] = len(classes)
+    except Exception as e:
+        results["classes_find_error"] = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
+
+    return results
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": str(exc),
+            "type": type(exc).__name__,
+            "traceback": traceback.format_exc(),
+        }
+    )
 
 # 3. Static assets mount (if frontend/dist/assets exists)
 assets_dir = settings.FRONTEND_DIST / "assets"

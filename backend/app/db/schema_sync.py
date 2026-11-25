@@ -31,69 +31,76 @@ async def ensure_schema_synced(db: Prisma) -> None:
     is_postgres = settings.DATABASE_URL.startswith(("postgres://", "postgresql://"))
 
     for table, column, pg_def, sqlite_def in _REQUIRED_COLUMNS:
-        if is_postgres:
-            await db.execute_raw(
-                f'ALTER TABLE "{table}" ADD COLUMN IF NOT EXISTS "{column}" {pg_def}'
-            )
-        else:
-            await _ensure_sqlite_column(db, table, column, sqlite_def)
+        try:
+            if is_postgres:
+                await db.execute_raw(
+                    f'ALTER TABLE "{table}" ADD COLUMN IF NOT EXISTS "{column}" {pg_def}'
+                )
+            else:
+                await _ensure_sqlite_column(db, table, column, sqlite_def)
+        except Exception as e:
+            print(f"⚠️ Could not add column {column} to {table}: {e}")
 
     ts_type = "TIMESTAMP(3)" if is_postgres else "DATETIME"
     id_col = '"id" TEXT NOT NULL' if is_postgres else '"id" TEXT NOT NULL PRIMARY KEY'
     cr_pk = ',\n                CONSTRAINT "curriculum_resources_pkey" PRIMARY KEY ("id")' if is_postgres else ""
     as_pk = ',\n                CONSTRAINT "assessment_solutions_pkey" PRIMARY KEY ("id")' if is_postgres else ""
 
-    await db.execute_raw(
-        f"""
-        CREATE TABLE IF NOT EXISTS "curriculum_resources" (
-            {id_col},
-            "tenant_id" TEXT NOT NULL,
-            "subject_code" TEXT NOT NULL,
-            "grade_level" INTEGER NOT NULL,
-            "quarter" INTEGER NOT NULL DEFAULT 1,
-            "lesson_number" INTEGER NOT NULL DEFAULT 1,
-            "title" TEXT NOT NULL,
-            "topic" TEXT NOT NULL,
-            "resource_type" TEXT NOT NULL,
-            "description" TEXT,
-            "content_json" TEXT NOT NULL DEFAULT '{{}}',
-            "file_url" TEXT,
-            "download_count" INTEGER NOT NULL DEFAULT 0,
-            "created_at" {ts_type} NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updated_at" {ts_type} NOT NULL DEFAULT CURRENT_TIMESTAMP{cr_pk},
-            CONSTRAINT "curriculum_resources_tenant_id_fkey"
-                FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id")
-                ON DELETE CASCADE ON UPDATE CASCADE
+    try:
+        await db.execute_raw(
+            f"""
+            CREATE TABLE IF NOT EXISTS "curriculum_resources" (
+                {id_col},
+                "tenant_id" TEXT NOT NULL,
+                "subject_code" TEXT NOT NULL,
+                "grade_level" INTEGER NOT NULL,
+                "quarter" INTEGER NOT NULL DEFAULT 1,
+                "lesson_number" INTEGER NOT NULL DEFAULT 1,
+                "title" TEXT NOT NULL,
+                "topic" TEXT NOT NULL,
+                "resource_type" TEXT NOT NULL,
+                "description" TEXT,
+                "content_json" TEXT NOT NULL DEFAULT '{{}}',
+                "file_url" TEXT,
+                "download_count" INTEGER NOT NULL DEFAULT 0,
+                "created_at" {ts_type} NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updated_at" {ts_type} NOT NULL DEFAULT CURRENT_TIMESTAMP{cr_pk},
+                CONSTRAINT "curriculum_resources_tenant_id_fkey"
+                    FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id")
+                    ON DELETE CASCADE ON UPDATE CASCADE
+            )
+            """
         )
-        """
-    )
-
-    await db.execute_raw(
-        """
-        CREATE INDEX IF NOT EXISTS "curriculum_resources_tenant_id_subject_code_grade_level_quarter_idx"
-            ON "curriculum_resources"("tenant_id", "subject_code", "grade_level", "quarter")
-        """
-    )
-
-    await db.execute_raw(
-        f"""
-        CREATE TABLE IF NOT EXISTS "assessment_solutions" (
-            {id_col},
-            "assessment_id" TEXT NOT NULL,
-            "question_id" TEXT NOT NULL,
-            "variant_number" INTEGER NOT NULL DEFAULT 1,
-            "step_by_step_solution" TEXT NOT NULL,
-            "solution_formulas" TEXT,
-            "rubric_criteria_json" TEXT NOT NULL DEFAULT '[]',
-            "author_note" TEXT,
-            "created_at" {ts_type} NOT NULL DEFAULT CURRENT_TIMESTAMP{as_pk}
+        await db.execute_raw(
+            """
+            CREATE INDEX IF NOT EXISTS "curriculum_resources_tenant_id_subject_code_grade_level_quarter_idx"
+                ON "curriculum_resources"("tenant_id", "subject_code", "grade_level", "quarter")
+            """
         )
-        """
-    )
+    except Exception as e:
+        print(f"⚠️ Could not create curriculum_resources table/index: {e}")
 
-    await db.execute_raw(
-        """
-        CREATE INDEX IF NOT EXISTS "assessment_solutions_assessment_id_question_id_idx"
-            ON "assessment_solutions"("assessment_id", "question_id")
-        """
-    )
+    try:
+        await db.execute_raw(
+            f"""
+            CREATE TABLE IF NOT EXISTS "assessment_solutions" (
+                {id_col},
+                "assessment_id" TEXT NOT NULL,
+                "question_id" TEXT NOT NULL,
+                "variant_number" INTEGER NOT NULL DEFAULT 1,
+                "step_by_step_solution" TEXT NOT NULL,
+                "solution_formulas" TEXT,
+                "rubric_criteria_json" TEXT NOT NULL DEFAULT '[]',
+                "author_note" TEXT,
+                "created_at" {ts_type} NOT NULL DEFAULT CURRENT_TIMESTAMP{as_pk}
+            )
+            """
+        )
+        await db.execute_raw(
+            """
+            CREATE INDEX IF NOT EXISTS "assessment_solutions_assessment_id_question_id_idx"
+                ON "assessment_solutions"("assessment_id", "question_id")
+            """
+        )
+    except Exception as e:
+        print(f"⚠️ Could not create assessment_solutions table/index: {e}")
