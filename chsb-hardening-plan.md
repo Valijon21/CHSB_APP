@@ -102,7 +102,7 @@ CHSB_APP/
 
 ### 3-To'lqin: Real Ma'lumotlar, Live Proctoring, Tezlik va Kod Tozalash
 
-- [ ] **TASK-3.1: Organization, Teachers va Profile Modullarini Real API ga Ulash**
+- [x] **TASK-3.1: Organization, Teachers va Profile Modullarini Real API ga Ulash**
   - **Agent:** `backend-specialist` + `frontend-specialist` | **Skills:** `api-patterns`, `clean-code`
   - **INPUT:** `backend/app/api/v1/endpoints/` (`schools.py`, `teachers.py` yangi; `students.py` `PUT/PATCH`), `frontend/src/shared/api/realApi.ts`
   - **OUTPUT:** Maktablar, o'qituvchilar, profil (`GET /auth/me` dan) va o'quvchi tahrirlash (`PATCH /students/{id}`) to'liq PostgreSQL/SQLite da ishlaydi; hardcoded stublar o'chiriladi.

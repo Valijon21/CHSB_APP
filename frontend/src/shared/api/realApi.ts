@@ -635,16 +635,29 @@ export class RealTeacherRepository implements TeacherRepository {
   }
 
   async getProfile(tenantId: string): Promise<TeacherProfile> {
+    interface AuthMePayload {
+      id: string;
+      tenantId: string;
+      schoolName?: string;
+      username: string;
+      fullName: string;
+      role: string;
+      email?: string;
+    }
+    const [me, classes] = await Promise.all([
+      httpClient.get<AuthMePayload>('/auth/me'),
+      this.getClasses(tenantId).catch(() => [] as ClassGroup[]),
+    ]);
     return {
-      id: 'usr-tch-01',
-      tenantId,
-      fullName: 'Anvar Rahimov',
-      title: "Oliy toifali informatika fani o'qituvchisi",
-      email: 'teacher@xorazm.uz',
+      id: me.id,
+      tenantId: me.tenantId || tenantId,
+      fullName: me.fullName,
+      title: me.role === 'SCHOOL_ADMIN' ? 'Maktab ma’muri' : "Fan o'qituvchisi",
+      email: me.email || `${me.username}@chsb.uz`,
       phone: '+998901234567',
-      assignedSchoolName: 'Muhammad al-Xorazmiy IT-maktabi',
-      subjects: ['Informatika va AT', 'Sun\'iy Intellekt'],
-      assignedClassIds: ['class-ax-11a', 'class-ax-11b'],
+      assignedSchoolName: me.schoolName || 'Ta’lim muassasasi',
+      subjects: ['Informatika va AT'],
+      assignedClassIds: classes.map((c) => c.id),
     };
   }
 
@@ -849,40 +862,11 @@ export class RealRegionalRepository implements RegionalRepository {
 
 export class RealOrganizationRepository implements OrganizationRepository {
   async createSchool(input: SchoolInput): Promise<SchoolRecord> {
-    return {
-      id: `sch-${Date.now()}`,
-      slug: input.slug,
-      name: input.name,
-      code: input.code,
-      type: input.type,
-      status: input.status,
-      districtId: input.districtId,
-      districtName: input.districtName,
-      directorName: input.directorName,
-      contactPhone: input.contactPhone,
-      studentCount: 0,
-      teacherCount: 0,
-      createdAt: new Date().toISOString(),
-    };
+    return await httpClient.post<SchoolRecord>('/schools', input);
   }
 
   async getAllSchools(): Promise<SchoolRecord[]> {
-    const tenants = await httpClient.get<BackendTenantItem[]>('/tenants');
-    return tenants.map((t) => ({
-      id: t.id,
-      slug: t.slug,
-      name: t.name,
-      code: t.code,
-      type: 'specialized' as const,
-      status: 'active' as const,
-      districtId: 'dist-01',
-      districtName: 'Yunusobod tumani',
-      directorName: 'Direktor',
-      contactPhone: '+998711234567',
-      studentCount: 250,
-      teacherCount: 20,
-      createdAt: t.createdAt,
-    }));
+    return await httpClient.get<SchoolRecord[]>('/schools');
   }
 
   async getSchoolBySlug(slug: string): Promise<SchoolRecord | null> {
@@ -891,60 +875,22 @@ export class RealOrganizationRepository implements OrganizationRepository {
   }
 
   async createTeacher(input: TeacherInput): Promise<TeacherRecord> {
-    return {
-      id: `tch-${Date.now()}`,
-      schoolId: input.schoolId,
-      tenantSlug: input.tenantSlug,
-      fullName: input.fullName,
-      email: input.email,
-      phone: input.phone,
-      subject: input.subject,
-      qualification: input.qualification,
-      assignedClassIds: input.assignedClassIds,
-      assignedClassNames: ['11-A'],
-      status: input.status,
-      createdAt: new Date().toISOString(),
-    };
+    return await httpClient.post<TeacherRecord>('/teachers', input);
   }
 
-  async getTeachersBySchool(_tenantSlug: string): Promise<TeacherRecord[]> {
-    return [
-      {
-        id: 'usr-tch-01',
-        schoolId: 'sch-01',
-        tenantSlug: 'al-xorazmiy',
-        fullName: 'Anvar Rahimov',
-        email: 'teacher@xorazm.uz',
-        phone: '+998901234567',
-        subject: 'Informatika va AT',
-        qualification: 'oliy' as const,
-        status: 'active' as const,
-        assignedClassIds: ['class-ax-11a', 'class-ax-11b'],
-        assignedClassNames: ['11-A', '11-B'],
-        createdAt: '2026-11-01T08:00:00Z',
-      },
-    ];
+  async getTeachersBySchool(tenantSlug: string): Promise<TeacherRecord[]> {
+    return await httpClient.get<TeacherRecord[]>('/teachers', {
+      params: { tenantSlug },
+    });
   }
 
   async updateTeacher(id: string, updates: Partial<TeacherInput>): Promise<TeacherRecord | null> {
-    return {
-      id,
-      schoolId: updates.schoolId || 'sch-01',
-      tenantSlug: updates.tenantSlug || 'al-xorazmiy',
-      fullName: updates.fullName || 'Anvar Rahimov',
-      email: updates.email || 'teacher@xorazm.uz',
-      phone: updates.phone || '+998901234567',
-      subject: updates.subject || 'Informatika va AT',
-      qualification: updates.qualification || ('oliy' as const),
-      status: updates.status || ('active' as const),
-      assignedClassIds: updates.assignedClassIds || [],
-      assignedClassNames: ['11-A'],
-      createdAt: '2026-11-01T08:00:00Z',
-    };
+    return await httpClient.patch<TeacherRecord>(`/teachers/${id}`, updates);
   }
 
-  async deleteTeacher(_id: string): Promise<boolean> {
-    return true;
+  async deleteTeacher(id: string): Promise<boolean> {
+    const res = await httpClient.delete<{ success: boolean }>(`/teachers/${id}`);
+    return Boolean(res.success);
   }
 
   async createStudent(input: StudentInput): Promise<StudentRecord> {
@@ -1025,8 +971,8 @@ export class RealOrganizationRepository implements OrganizationRepository {
     }
   }
 
-  async updateStudent(_id: string, _updates: Partial<StudentInput>): Promise<StudentRecord | null> {
-    return null;
+  async updateStudent(id: string, updates: Partial<StudentInput>): Promise<StudentRecord | null> {
+    return await httpClient.patch<StudentRecord>(`/students/${id}`, updates);
   }
 
   async deleteStudent(id: string): Promise<boolean> {

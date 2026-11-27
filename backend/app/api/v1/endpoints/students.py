@@ -33,6 +33,18 @@ class StudentCreate(BaseModel):
 class BulkDeleteRequest(BaseModel):
     studentIds: list[str]
 
+
+class StudentUpdate(BaseModel):
+    firstName: str | None = None
+    lastName: str | None = None
+    middleName: str | None = None
+    gender: str | None = None
+    birthDate: str | None = None
+    classGroupId: str | None = None
+    status: str | None = None
+    group: str | None = None
+    emaktabId: str | None = None
+
 def normalize_name_token(token: str | None) -> str:
     if not token:
         return ""
@@ -513,6 +525,89 @@ async def bulk_delete_students(
         "deletedCount": deleted_count,
         "message": f"{deleted_count} nafar o'quvchi muvaffaqiyatli o'chirildi.",
     }
+
+@router.patch("/{student_id}")
+@router.put("/{student_id}")
+async def update_student(
+    student_id: str,
+    payload: StudentUpdate,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    student = await db.student.find_unique(
+        where={"id": student_id},
+        include={"tenant": True, "classGroup": True},
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="O'quvchi topilmadi.")
+    assert_tenant_ownership(student.tenantId, actor)
+
+    update_data: dict = {}
+    if payload.firstName is not None:
+        update_data["firstName"] = payload.firstName
+    if payload.lastName is not None:
+        update_data["lastName"] = payload.lastName
+    if payload.middleName is not None:
+        update_data["middleName"] = payload.middleName
+    if payload.gender is not None:
+        update_data["gender"] = "F" if payload.gender.upper() == "F" else "M"
+    if payload.birthDate is not None:
+        try:
+            update_data["birthDate"] = datetime.strptime(payload.birthDate, "%Y-%m-%d")
+        except Exception:
+            pass
+    if payload.status is not None:
+        update_data["status"] = "ELIGIBLE" if payload.status.lower() == "eligible" else "INACTIVE"
+    if payload.group is not None:
+        update_data["group"] = payload.group if payload.group else None
+    if payload.emaktabId is not None:
+        update_data["emaktabId"] = payload.emaktabId
+
+    old_class_id = student.classGroupId
+    if payload.classGroupId and payload.classGroupId != old_class_id:
+        target_cls = await db.classgroup.find_unique(where={"id": payload.classGroupId})
+        if not target_cls or target_cls.tenantId != student.tenantId:
+            raise HTTPException(status_code=400, detail="Tanlangan sinf topilmadi.")
+        update_data["classGroupId"] = payload.classGroupId
+
+    updated = await db.student.update(
+        where={"id": student_id},
+        data=update_data,
+        include={"classGroup": True, "tenant": True},
+    )
+
+    if payload.classGroupId and payload.classGroupId != old_class_id:
+        if old_class_id:
+            old_cls = await db.classgroup.find_unique(where={"id": old_class_id})
+            await db.classgroup.update(
+                where={"id": old_class_id},
+                data={"studentCount": max(0, (old_cls.studentCount if old_cls else 1) - 1)},
+            )
+        await db.classgroup.update(
+            where={"id": payload.classGroupId},
+            data={"studentCount": {"increment": 1}},
+        )
+
+    return {
+        "id": updated.id,
+        "tenantId": updated.tenantId,
+        "tenantSlug": updated.tenant.slug if updated.tenant else "al-xorazmiy",
+        "schoolId": updated.schoolId,
+        "classGroupId": updated.classGroupId,
+        "className": updated.classGroup.name if updated.classGroup else "",
+        "rosterCode": updated.rosterCode,
+        "fullName": f"{updated.lastName} {updated.firstName} {updated.middleName or ''}".strip(),
+        "firstName": updated.firstName,
+        "lastName": updated.lastName,
+        "middleName": updated.middleName,
+        "gender": updated.gender,
+        "birthDate": updated.birthDate.strftime("%Y-%m-%d"),
+        "status": updated.status.lower(),
+        "group": updated.group,
+        "emaktabId": updated.emaktabId,
+        "createdAt": updated.createdAt.isoformat(),
+    }
+
 
 @router.delete("/{student_id}")
 async def delete_student(
