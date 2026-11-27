@@ -1,9 +1,14 @@
 from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
+from backend.app.core.dependencies import require_role
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
 
-router = APIRouter(prefix="/regional", tags=["Regional"])
+router = APIRouter(
+    prefix="/regional",
+    tags=["Regional"],
+    dependencies=[Depends(require_role(["REGIONAL_INSPECTOR", "SUPER_ADMIN"]))],
+)
 
 @router.get("/districts")
 async def get_districts(db: Prisma = Depends(get_prisma)):

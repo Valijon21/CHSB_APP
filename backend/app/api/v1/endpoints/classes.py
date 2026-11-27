@@ -1,9 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from backend.app.core.dependencies import (
+    Actor,
+    assert_tenant_ownership,
+    require_role,
+    resolve_tenant_for_actor,
+)
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
 
 router = APIRouter(prefix="/classes", tags=["Classes"])
+STAFF_ACCESS = require_role(["TEACHER", "SCHOOL_ADMIN", "REGIONAL_INSPECTOR", "SUPER_ADMIN"])
 
 class ClassGroupCreate(BaseModel):
     schoolId: str
@@ -14,12 +21,12 @@ class ClassGroupCreate(BaseModel):
     academicYear: str = "2026-2027"
 
 @router.get("")
-async def get_classes(tenantSlug: str = Query("al-xorazmiy"), db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+async def get_classes(
+    tenantSlug: str = Query("al-xorazmiy"),
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    tenant = await resolve_tenant_for_actor(tenantSlug, actor, db)
 
     classes = await db.classgroup.find_many(
         where={"tenantId": tenant.id},
@@ -53,12 +60,12 @@ async def get_classes(tenantSlug: str = Query("al-xorazmiy"), db: Prisma = Depen
     return res_classes
 
 @router.post("")
-async def create_class(payload: ClassGroupCreate, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": payload.tenantSlug}, {"id": payload.tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+async def create_class(
+    payload: ClassGroupCreate,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    tenant = await resolve_tenant_for_actor(payload.tenantSlug, actor, db)
 
     # Safely resolve valid schoolId within this tenant
     school = await db.school.find_first(
@@ -119,7 +126,12 @@ async def create_class(payload: ClassGroupCreate, db: Prisma = Depends(get_prism
     }
 
 @router.get("/{class_id}")
-async def get_class_detail(class_id: str, group: str | None = None, db: Prisma = Depends(get_prisma)):
+async def get_class_detail(
+    class_id: str,
+    group: str | None = None,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
     class_group = await db.classgroup.find_unique(
         where={"id": class_id},
         include={
@@ -135,6 +147,7 @@ async def get_class_detail(class_id: str, group: str | None = None, db: Prisma =
 
     if not class_group:
         raise HTTPException(status_code=404, detail="Sinf guruhi topilmadi.")
+    assert_tenant_ownership(class_group.tenantId, actor)
 
     total_group_counts: dict[str, int] = {}
     for s in class_group.students:
@@ -216,10 +229,15 @@ async def get_class_detail(class_id: str, group: str | None = None, db: Prisma =
     }
 
 @router.delete("/{class_id}")
-async def delete_class(class_id: str, db: Prisma = Depends(get_prisma)):
+async def delete_class(
+    class_id: str,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
     cls = await db.classgroup.find_unique(where={"id": class_id})
     if not cls:
         raise HTTPException(status_code=404, detail="Sinf topilmadi.")
+    assert_tenant_ownership(cls.tenantId, actor)
 
     # Delete students in this class first to preserve FK constraints
     students = await db.student.find_many(where={"classGroupId": class_id})
@@ -236,16 +254,15 @@ async def delete_class(class_id: str, db: Prisma = Depends(get_prisma)):
 async def delete_classes(
     tenantSlug: str | None = Query(None),
     onlyEmpty: bool = Query(False),
+    actor: Actor = Depends(STAFF_ACCESS),
     db: Prisma = Depends(get_prisma),
 ):
     where_clause: dict = {}
     if tenantSlug:
-        tenant = await db.tenant.find_first(
-            where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-        )
-        if not tenant:
-            raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+        tenant = await resolve_tenant_for_actor(tenantSlug, actor, db)
         where_clause["tenantId"] = tenant.id
+    elif not actor.is_regional:
+        where_clause["tenantId"] = actor.tenant_id
 
     if onlyEmpty:
         # Find classes with 0 students

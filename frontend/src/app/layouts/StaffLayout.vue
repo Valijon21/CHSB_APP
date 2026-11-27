@@ -20,7 +20,7 @@ const currentUser = computed(() => authStore.currentUser);
 
 const userRoleBadge = computed(() => {
   const role = authStore.currentRole;
-  if (role === 'SUPER_ADMIN') return 'Viloyat Boshqarmasi';
+  if (role === 'SUPER_ADMIN' || role === 'REGIONAL_INSPECTOR') return 'Viloyat Boshqarmasi';
   if (role === 'SCHOOL_ADMIN') return 'Maktab Admini';
   if (role === 'TEACHER') return "O'qituvchi";
   return 'Xodim';

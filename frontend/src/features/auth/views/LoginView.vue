@@ -46,7 +46,7 @@ async function handleLogin() {
     }
 
     // Role bo'yicha standart sahifaga yo'naltirish
-    if (user.role === 'SUPER_ADMIN') {
+    if (user.role === 'SUPER_ADMIN' || user.role === 'REGIONAL_INSPECTOR') {
       router.push('/regional/oversight');
     } else if (user.role === 'SCHOOL_ADMIN') {
       router.push(`/t/${user.tenantSlug || 'al-xorazmiy'}/admin`);

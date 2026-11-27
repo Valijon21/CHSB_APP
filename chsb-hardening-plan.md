@@ -52,7 +52,7 @@ CHSB_APP/
   - **OUTPUT:** Frontenddan kalit to'liq o'chiriladi; `POST /api/v1/ai/extract-questions` endpointi `settings.GEMINI_API_KEY` orqali ishlaydi (foydalanuvchi UI dan yubormasdan).
   - **VERIFY:** `rg`/`Select-String` bilan `QVEu` yoki API kalit qidirilganda 0 natija; Pytest testi 200/503 xatti-harakatini tasdiqlaydi. *(Eslatma: eski kalitni Google AI Studio'da bekor qilish kerak).*
 
-- [ ] **TASK-1.2: Barcha Endpointlarga JWT, RBAC va Tenant Izolyatsiyasini Ulash**
+- [x] **TASK-1.2: Barcha Endpointlarga JWT, RBAC va Tenant Izolyatsiyasini Ulash**
   - **Agent:** `security-auditor` + `backend-specialist` | **Skills:** `vulnerability-scanner`, `api-patterns`
   - **INPUT:** `backend/app/core/dependencies.py`, `classes.py`, `students.py`, `assessments.py`, `subjects.py`, `analytics.py`, `regional.py`, `curriculum.py`, `ai.py`, `frontend/src/features/auth/`
   - **OUTPUT:** Staff endpointlarida `Depends(require_role(...))` va `current_user.tenantId` tekshiruvi; student imtihon endpointlarida `STUDENT` JWT tekshiruvi; `REGIONAL_INSPECTOR` va `SUPER_ADMIN` rollarini frontend/router da birxillashtirish; `authStore.ts` dan production fallback parollarni olib tashlash.

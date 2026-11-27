@@ -94,7 +94,7 @@ const routes: RouteRecordRaw[] = [
         component: StaffLayout,
         meta: {
           requiresAuth: true,
-          roles: ['TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN'] as UserRole[],
+          roles: ['TEACHER', 'SCHOOL_ADMIN', 'REGIONAL_INSPECTOR', 'SUPER_ADMIN'] as UserRole[],
         },
         children: [
           {
@@ -177,7 +177,7 @@ const routes: RouteRecordRaw[] = [
             component: () => import('../../features/regional-oversight/RegionalOversightView.vue'),
             meta: {
               requiresAuth: true,
-              roles: ['SUPER_ADMIN'] as UserRole[],
+              roles: ['REGIONAL_INSPECTOR', 'SUPER_ADMIN'] as UserRole[],
             },
           },
         ],
@@ -188,7 +188,7 @@ const routes: RouteRecordRaw[] = [
         component: StaffLayout,
         meta: {
           requiresAuth: true,
-          roles: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] as UserRole[],
+          roles: ['SCHOOL_ADMIN', 'REGIONAL_INSPECTOR', 'SUPER_ADMIN'] as UserRole[],
         },
         children: [
           {
@@ -224,7 +224,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../../features/organization/views/SchoolDirectoryView.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['SUPER_ADMIN'] as UserRole[],
+      roles: ['REGIONAL_INSPECTOR', 'SUPER_ADMIN'] as UserRole[],
     },
   },
   // Catch-all 404 Not Found
@@ -262,7 +262,7 @@ router.beforeEach((to, _from, next) => {
 
   // 1. Agar sahifa faqat mehmonlar uchun bo'lsa (masalan: /login) va foydalanuvchi allaqachon kirgan bo'lsa
   if (guestOnly && authStore.isAuthenticated) {
-    if (authStore.currentRole === 'SUPER_ADMIN') {
+    if (authStore.currentRole === 'SUPER_ADMIN' || authStore.currentRole === 'REGIONAL_INSPECTOR') {
       return next('/regional/oversight');
     } else if (authStore.currentRole === 'SCHOOL_ADMIN') {
       return next(`/t/${authStore.currentTenantSlug || 'al-xorazmiy'}/admin`);

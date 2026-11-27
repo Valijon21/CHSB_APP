@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
+from backend.app.core.dependencies import Actor, require_role, resolve_tenant_for_actor
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 @router.get("/{tenant_slug}")
-async def get_tenant_analytics(tenant_slug: str, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": tenant_slug}, {"id": tenant_slug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+async def get_tenant_analytics(
+    tenant_slug: str,
+    actor: Actor = Depends(require_role(["TEACHER", "SCHOOL_ADMIN", "REGIONAL_INSPECTOR", "SUPER_ADMIN"])),
+    db: Prisma = Depends(get_prisma),
+):
+    tenant = await resolve_tenant_for_actor(tenant_slug, actor, db)
 
     classes = await db.classgroup.find_many(
         where={"tenantId": tenant.id},

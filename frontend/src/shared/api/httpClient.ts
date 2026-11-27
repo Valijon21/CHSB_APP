@@ -41,13 +41,19 @@ class HttpClient {
 
   private getToken(): string | null {
     try {
-      const sessionStr = localStorage.getItem('chsb_auth_session');
+      const sessionStr =
+        sessionStorage.getItem('chsb_auth_session') ||
+        localStorage.getItem('chsb_auth_session');
       if (sessionStr) {
         const parsed = JSON.parse(sessionStr);
         return parsed?.token || parsed?.user?.token || null;
       }
+      const studentToken = sessionStorage.getItem('chsb_student_session_token');
+      if (studentToken) {
+        return studentToken;
+      }
     } catch {
-      // Ignore localStorage parse errors
+      // Ignore storage parse errors
     }
     return null;
   }

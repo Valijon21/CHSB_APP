@@ -4,10 +4,11 @@ import { z } from 'zod';
 // 1. FOYDALANUVCHI ROLLARI (USER ROLES / RBAC)
 // ==========================================
 export const UserRoleSchema = z.enum([
-  'SUPER_ADMIN',  // Viloyat / Respublika Boshqarmasi xodimi
-  'SCHOOL_ADMIN', // Maktab Direktori / O'RINBOSARI
-  'TEACHER',      // Fan o'qituvchisi
-  'STUDENT',      // O'quvchi
+  'SUPER_ADMIN',        // Viloyat / Respublika Boshqarmasi xodimi
+  'REGIONAL_INSPECTOR', // Viloyat MMTO Nazoratchisi
+  'SCHOOL_ADMIN',       // Maktab Direktori / O'RINBOSARI
+  'TEACHER',            // Fan o'qituvchisi
+  'STUDENT',            // O'quvchi
 ]);
 
 export type UserRole = z.infer<typeof UserRoleSchema>;

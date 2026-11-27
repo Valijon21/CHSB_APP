@@ -3,10 +3,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, 
 from pydantic import BaseModel, Field
 from datetime import datetime
 import re
+from backend.app.core.dependencies import (
+    Actor,
+    assert_tenant_ownership,
+    require_role,
+    resolve_tenant_for_actor,
+)
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
 
 router = APIRouter(prefix="/students", tags=["Students"])
+STAFF_ACCESS = require_role(["TEACHER", "SCHOOL_ADMIN", "REGIONAL_INSPECTOR", "SUPER_ADMIN"])
 
 class StudentCreate(BaseModel):
     tenantSlug: str
@@ -75,13 +82,10 @@ async def get_students(
     tenantSlug: str = Query("al-xorazmiy"),
     classGroupId: str | None = None,
     group: str | None = None,
+    actor: Actor = Depends(STAFF_ACCESS),
     db: Prisma = Depends(get_prisma),
 ):
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+    tenant = await resolve_tenant_for_actor(tenantSlug, actor, db)
 
     where_clause: dict = {"tenantId": tenant.id}
     if classGroupId:
@@ -123,12 +127,12 @@ async def get_students(
     ]
 
 @router.post("")
-async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": payload.tenantSlug}, {"id": payload.tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+async def create_student(
+    payload: StudentCreate,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    tenant = await resolve_tenant_for_actor(payload.tenantSlug, actor, db)
 
     # Safely resolve valid class group and school within tenant
     class_group = None
@@ -265,7 +269,11 @@ async def _resolve_or_create_class_group(
 
 
 @router.post("/bulk")
-async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends(get_prisma)):
+async def bulk_create_students(
+    inputs: list[StudentCreate],
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
     if not inputs:
         return []
 
@@ -273,6 +281,8 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
     tenants = await db.tenant.find_many(
         where={"OR": [{"slug": {"in": list(tenant_slugs)}}, {"id": {"in": list(tenant_slugs)}}]}
     )
+    for t in tenants:
+        assert_tenant_ownership(t.id, actor)
     tenant_map = {t.slug: t for t in tenants}
     tenant_map.update({t.id: t for t in tenants})
 
@@ -389,19 +399,24 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
 async def delete_all_students(
     tenantSlug: str | None = Query(None),
     classGroupId: str | None = Query(None),
+    actor: Actor = Depends(STAFF_ACCESS),
     db: Prisma = Depends(get_prisma),
 ):
     where_clause: dict = {}
     tenant = None
     if tenantSlug:
-        tenant = await db.tenant.find_first(
-            where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-        )
+        tenant = await resolve_tenant_for_actor(tenantSlug, actor, db)
+        where_clause["tenantId"] = tenant.id
+    elif not actor.is_regional:
+        tenant = await db.tenant.find_unique(where={"id": actor.tenant_id})
         if not tenant:
             raise HTTPException(status_code=404, detail="Tenant topilmadi.")
         where_clause["tenantId"] = tenant.id
 
     if classGroupId:
+        cls_target = await db.classgroup.find_unique(where={"id": classGroupId})
+        if cls_target:
+            assert_tenant_ownership(cls_target.tenantId, actor)
         where_clause["classGroupId"] = classGroupId
         students = await db.student.find_many(where=where_clause)
         student_ids = [s.id for s in students]
@@ -454,13 +469,19 @@ async def delete_all_students(
     }
 
 @router.post("/bulk-delete")
-async def bulk_delete_students(payload: BulkDeleteRequest, db: Prisma = Depends(get_prisma)):
+async def bulk_delete_students(
+    payload: BulkDeleteRequest,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
     if not payload.studentIds:
         return {"success": True, "deletedCount": 0, "message": "O'quvchilar tanlanmagan."}
 
     students = await db.student.find_many(where={"id": {"in": payload.studentIds}})
     if not students:
         return {"success": True, "deletedCount": 0, "message": "O'quvchilar topilmadi."}
+    for s in students:
+        assert_tenant_ownership(s.tenantId, actor)
 
     student_ids = [s.id for s in students]
     await db.assessmentresult.delete_many(where={"studentId": {"in": student_ids}})
@@ -493,10 +514,15 @@ async def bulk_delete_students(payload: BulkDeleteRequest, db: Prisma = Depends(
     }
 
 @router.delete("/{student_id}")
-async def delete_student(student_id: str, db: Prisma = Depends(get_prisma)):
+async def delete_student(
+    student_id: str,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
     student = await db.student.find_unique(where={"id": student_id})
     if not student:
         return {"success": True, "message": "O'quvchi topilmadi."}
+    assert_tenant_ownership(student.tenantId, actor)
 
     await db.assessmentresult.delete_many(where={"studentId": student_id})
     await db.assessmentattempt.delete_many(where={"studentId": student_id})
@@ -516,7 +542,8 @@ async def delete_student(student_id: str, db: Prisma = Depends(get_prisma)):
 @router.post("/parse-file")
 async def parse_student_roster_file(
     file: UploadFile = File(...),
-    group: str | None = Form(None)
+    group: str | None = Form(None),
+    _actor: Actor = Depends(STAFF_ACCESS),
 ):
     from backend.app.services.excel_parser import parse_excel_or_csv_file
     file_bytes = await file.read()

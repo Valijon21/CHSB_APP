@@ -66,6 +66,9 @@ export const useStudentAdmissionStore = defineStore('studentAdmission', () => {
     errorMessage.value = null;
     confirmedStudent.value = null;
     activeAssessmentId.value = null;
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('chsb_student_session_token');
+    }
   }
 
   return {

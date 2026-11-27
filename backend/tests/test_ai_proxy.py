@@ -2,12 +2,17 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 
-def test_extract_questions_proxy_without_key_returns_clean_fallback(client: TestClient, monkeypatch):
+def test_extract_questions_proxy_without_key_returns_clean_fallback(
+    client: TestClient,
+    teacher_headers: dict[str, str],
+    monkeypatch,
+):
     monkeypatch.setattr("backend.app.api.v1.endpoints.ai.settings.GEMINI_API_KEY", "")
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
     res = client.post(
         "/api/v1/ai/extract-questions",
+        headers=teacher_headers,
         json={"rawText": "1-topshiriq. Test savol matni", "maxScore": 50},
     )
     assert res.status_code == 200
@@ -17,7 +22,11 @@ def test_extract_questions_proxy_without_key_returns_clean_fallback(client: Test
     assert "kaliti sozlanmagan" in data["error"]
 
 
-def test_extract_questions_proxy_parses_mocked_gemini_output(client: TestClient, monkeypatch):
+def test_extract_questions_proxy_parses_mocked_gemini_output(
+    client: TestClient,
+    teacher_headers: dict[str, str],
+    monkeypatch,
+):
     monkeypatch.setattr("backend.app.api.v1.endpoints.ai.settings.GEMINI_API_KEY", "test-server-key")
 
     mock_items = [
@@ -38,6 +47,7 @@ def test_extract_questions_proxy_parses_mocked_gemini_output(client: TestClient,
     with patch("backend.app.api.v1.endpoints.ai._call_gemini_json", new=AsyncMock(return_value=mock_items)):
         res = client.post(
             "/api/v1/ai/extract-questions",
+            headers=teacher_headers,
             json={"rawText": "1-topshiriq. Kiritish qurilmalari", "maxScore": 50},
         )
 
@@ -51,7 +61,11 @@ def test_extract_questions_proxy_parses_mocked_gemini_output(client: TestClient,
     assert q["subQuestions"][0]["prompt"] == "Klaviatura"
 
 
-def test_extract_roster_proxy_parses_mocked_gemini_output(client: TestClient, monkeypatch):
+def test_extract_roster_proxy_parses_mocked_gemini_output(
+    client: TestClient,
+    teacher_headers: dict[str, str],
+    monkeypatch,
+):
     monkeypatch.setattr("backend.app.api.v1.endpoints.ai.settings.GEMINI_API_KEY", "test-server-key")
 
     mock_roster = [
@@ -68,6 +82,7 @@ def test_extract_roster_proxy_parses_mocked_gemini_output(client: TestClient, mo
     with patch("backend.app.api.v1.endpoints.ai._call_gemini_json", new=AsyncMock(return_value=mock_roster)):
         res = client.post(
             "/api/v1/ai/extract-roster",
+            headers=teacher_headers,
             json={"rawText": "1 Karimova Dilnoza 1000001234567", "defaultGroup": "1-guruh"},
         )
 

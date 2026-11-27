@@ -63,6 +63,7 @@ def test_prisma_schema_switcher_utility():
     
     schema_path = settings.BASE_DIR / "prisma" / "schema.prisma"
     original_content = schema_path.read_text(encoding="utf-8")
+    original_db_url = os.environ.get("DATABASE_URL")
     
     try:
         # Test PostgreSQL URL detection
@@ -77,6 +78,8 @@ def test_prisma_schema_switcher_utility():
         content = schema_path.read_text(encoding="utf-8")
         assert 'provider = "sqlite"' in content
     finally:
+        if original_db_url is not None:
+            os.environ["DATABASE_URL"] = original_db_url
         schema_path.write_text(original_content, encoding="utf-8")
 
 def test_huggingface_spaces_configuration():

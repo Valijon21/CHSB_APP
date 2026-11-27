@@ -67,6 +67,25 @@ describe('TASK-AUTH.4: Router Navigation Guard & RBAC Protection', () => {
     expect(router.currentRoute.value.path).toBe('/schools');
   });
 
+  it('treats REGIONAL_INSPECTOR equivalently to SUPER_ADMIN for regional routes', async () => {
+    const authStore = useAuthStore();
+    sessionStorage.setItem(
+      'chsb_auth_session',
+      JSON.stringify({
+        id: 'usr-inspector-01',
+        username: 'inspector_tashkent',
+        fullName: 'Shavkat Rahimov',
+        role: 'REGIONAL_INSPECTOR',
+        token: 'jwt-inspector-token',
+      })
+    );
+    authStore.restoreSession();
+
+    expect(authStore.hasRole(['SUPER_ADMIN'])).toBe(true);
+    await router.push('/schools');
+    expect(router.currentRoute.value.path).toBe('/schools');
+  });
+
   it('redirects logged-in user away from /login to their home page', async () => {
     const authStore = useAuthStore();
     await authStore.login({

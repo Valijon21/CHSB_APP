@@ -48,7 +48,7 @@ async def test_ensure_schema_synced_sqlite_adds_missing_column(monkeypatch):
 
     async def fake_query_raw(sql: str):
         if '"class_groups"' in sql:
-            return [{"name": "id"}, {"name": "name"}]  # missing has_groups
+            return [{"name": "id"}, {"name": "name"}]
         return [{"name": "id"}, {"name": "group"}, {"name": "emaktab_id"}, {"name": "target_group"}]
 
     mock_db.query_raw = AsyncMock(side_effect=fake_query_raw)
@@ -63,18 +63,34 @@ async def test_ensure_schema_synced_sqlite_adds_missing_column(monkeypatch):
     assert not any('ALTER TABLE "students"' in s for s in executed_sql)
 
 
-def test_bulk_create_students_survives_deleted_gaps_and_classname_fallback(client: TestClient):
-    # Ensure a clean slate for 11-A
-    client.delete("/api/v1/students?tenantSlug=al-xorazmiy&classGroupId=class-ax-11a")
+def test_bulk_create_students_survives_deleted_gaps_and_classname_fallback(
+    client: TestClient,
+    teacher_headers: dict[str, str],
+):
+    c11a_res = client.post(
+        "/api/v1/classes",
+        headers=teacher_headers,
+        json={"schoolId": "school-ax-1", "tenantSlug": "al-xorazmiy", "name": "11-A sinf", "gradeLevel": 11},
+    )
+    c11b_res = client.post(
+        "/api/v1/classes",
+        headers=teacher_headers,
+        json={"schoolId": "school-ax-1", "tenantSlug": "al-xorazmiy", "name": "11-B sinf", "gradeLevel": 11},
+    )
+    c11a_id = c11a_res.json()["id"]
+    c11b_id = c11b_res.json()["id"]
 
-    # Seed 2 students in 11-B first so STU-1101/STU-1102 exist in DB while 11-A is empty
+    client.delete(f"/api/v1/students?tenantSlug=al-xorazmiy&classGroupId={c11a_id}", headers=teacher_headers)
+    client.delete(f"/api/v1/students?tenantSlug=al-xorazmiy&classGroupId={c11b_id}", headers=teacher_headers)
+
     seed_res = client.post(
         "/api/v1/students/bulk",
+        headers=teacher_headers,
         json=[
             {
                 "tenantSlug": "al-xorazmiy",
                 "schoolId": "school-ax-1",
-                "classGroupId": "class-ax-11b",
+                "classGroupId": c11b_id,
                 "className": "11-B sinf",
                 "firstName": "Gap",
                 "lastName": "StudentOne",
@@ -85,7 +101,7 @@ def test_bulk_create_students_survives_deleted_gaps_and_classname_fallback(clien
             {
                 "tenantSlug": "al-xorazmiy",
                 "schoolId": "school-ax-1",
-                "classGroupId": "class-ax-11b",
+                "classGroupId": c11b_id,
                 "className": "11-B sinf",
                 "firstName": "Gap",
                 "lastName": "StudentTwo",
@@ -99,10 +115,8 @@ def test_bulk_create_students_survives_deleted_gaps_and_classname_fallback(clien
     created_11b = seed_res.json()
     assert len(created_11b) == 2
 
-    # Delete the first student in 11-B so count drops, leaving a rosterCode gap
-    client.delete(f"/api/v1/students/{created_11b[0]['id']}")
+    client.delete(f"/api/v1/students/{created_11b[0]['id']}", headers=teacher_headers)
 
-    # Bulk import 15 students into 11-A using stale classGroupId + className fallback
     batch = [
         {
             "tenantSlug": "al-xorazmiy",
@@ -120,7 +134,7 @@ def test_bulk_create_students_survives_deleted_gaps_and_classname_fallback(clien
         for i in range(1, 16)
     ]
 
-    bulk_res = client.post("/api/v1/students/bulk", json=batch)
+    bulk_res = client.post("/api/v1/students/bulk", headers=teacher_headers, json=batch)
     assert bulk_res.status_code == 200
     imported = bulk_res.json()
     assert len(imported) == 15
@@ -128,19 +142,45 @@ def test_bulk_create_students_survives_deleted_gaps_and_classname_fallback(clien
     assert len(codes) == 15
     assert created_11b[1]["rosterCode"] not in codes
 
-    # Cleanup
-    client.delete("/api/v1/students?tenantSlug=al-xorazmiy&classGroupId=class-ax-11a")
-    client.delete("/api/v1/students?tenantSlug=al-xorazmiy&classGroupId=class-ax-11b")
+    client.delete(f"/api/v1/students?tenantSlug=al-xorazmiy&classGroupId={c11a_id}", headers=teacher_headers)
+    client.delete(f"/api/v1/students?tenantSlug=al-xorazmiy&classGroupId={c11b_id}", headers=teacher_headers)
 
 
-def test_get_class_detail_with_assessment_result(client: TestClient):
-    client.delete("/api/v1/students?tenantSlug=al-xorazmiy&classGroupId=class-ax-11a")
+def test_get_class_detail_with_assessment_result(
+    client: TestClient,
+    teacher_headers: dict[str, str],
+):
+    client.post(
+        "/api/v1/assessments",
+        headers=teacher_headers,
+        json={
+            "code": "CHSB-INF-11-Q1",
+            "title": "Informatika 11-sinf. 1-ChSB",
+            "subject": "Informatika va AT",
+            "gradeLevel": 11,
+            "quarter": 1,
+            "durationMinutes": 40,
+            "totalQuestions": 15,
+            "maxScore": 40.0,
+            "targetGroup": "all",
+        },
+    )
+    cls_res = client.post(
+        "/api/v1/classes",
+        headers=teacher_headers,
+        json={"schoolId": "school-ax-1", "tenantSlug": "al-xorazmiy", "name": "11-A sinf", "gradeLevel": 11},
+    )
+    assert cls_res.status_code == 200
+    c11a_id = cls_res.json()["id"]
+
+    client.delete(f"/api/v1/students?tenantSlug=al-xorazmiy&classGroupId={c11a_id}", headers=teacher_headers)
     res = client.post(
         "/api/v1/students",
+        headers=teacher_headers,
         json={
             "tenantSlug": "al-xorazmiy",
             "schoolId": "school-ax-1",
-            "classGroupId": "class-ax-11a",
+            "classGroupId": c11a_id,
             "firstName": "Result",
             "lastName": "Tester",
             "gender": "M",
@@ -154,6 +194,7 @@ def test_get_class_detail_with_assessment_result(client: TestClient):
 
     attempt_res = client.post(
         "/api/v1/attempts",
+        headers=teacher_headers,
         json={
             "tenantId": "tenant-al-xorazmiy",
             "assessmentId": "chsb-inf-11-q1",
@@ -163,13 +204,13 @@ def test_get_class_detail_with_assessment_result(client: TestClient):
     assert attempt_res.status_code == 200
     attempt_id = attempt_res.json()["id"]
 
-    submit_res = client.post(f"/api/v1/attempts/{attempt_id}/submit", json={})
+    submit_res = client.post(f"/api/v1/attempts/{attempt_id}/submit", headers=teacher_headers, json={})
     assert submit_res.status_code == 200
 
-    detail_res = client.get("/api/v1/classes/class-ax-11a")
+    detail_res = client.get(f"/api/v1/classes/{c11a_id}", headers=teacher_headers)
     assert detail_res.status_code == 200
     detail = detail_res.json()
     assert len(detail["results"]) >= 1
     assert detail["results"][0]["group"] == "1-guruh"
 
-    client.delete("/api/v1/students?tenantSlug=al-xorazmiy&classGroupId=class-ax-11a")
+    client.delete(f"/api/v1/students?tenantSlug=al-xorazmiy&classGroupId={c11a_id}", headers=teacher_headers)

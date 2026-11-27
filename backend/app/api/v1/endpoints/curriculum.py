@@ -1,11 +1,16 @@
 from __future__ import annotations
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from prisma import Prisma
+from backend.app.core.dependencies import Actor, require_role, resolve_tenant_for_actor
 from backend.app.db.prisma import get_prisma
 from backend.app.schemas.curriculum import CurriculumResourceResponse, AssessmentSolutionResponse
 
-router = APIRouter(prefix="/curriculum", tags=["Curriculum & Materials Hub"])
+router = APIRouter(
+    prefix="/curriculum",
+    tags=["Curriculum & Materials Hub"],
+    dependencies=[Depends(require_role(["TEACHER", "SCHOOL_ADMIN", "REGIONAL_INSPECTOR", "SUPER_ADMIN"]))],
+)
 
 @router.get("/resources", response_model=list[CurriculumResourceResponse])
 async def list_curriculum_resources(
@@ -14,16 +19,13 @@ async def list_curriculum_resources(
     subjectCode: Optional[str] = Query(None, description="Fan kodi (masalan, 'inf')"),
     resourceType: Optional[str] = Query(None, description="Resurs turi: PRESENTATION, WORKSHEET, WORKBOOK, SOLUTION"),
     tenantSlug: str = Query("al-xorazmiy", description="Muassasa identifikatori"),
+    actor: Actor = Depends(require_role(["TEACHER", "SCHOOL_ADMIN", "REGIONAL_INSPECTOR", "SUPER_ADMIN"])),
     db: Prisma = Depends(get_prisma),
 ):
     """
     5–11-sinflar uchun barcha dars taqdimotlari, topshiriqlar, nazorat daftarlari va yechimlar ro'yxati
     """
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Muassasa topilmadi.")
+    tenant = await resolve_tenant_for_actor(tenantSlug, actor, db)
 
     where_filter: dict = {"tenantId": tenant.id}
     if gradeLevel is not None:

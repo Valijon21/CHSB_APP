@@ -111,34 +111,23 @@ export const useAuthStore = defineStore('auth', () => {
         return currentUser.value;
       }
 
-      // Production path: call FastAPI backend directly
-      let authUser: AuthUser;
-      try {
-        const res = await httpClient.post<LoginResponse>('/auth/login', {
-          username: valid.username,
-          password: valid.password,
-        });
+      // Production path: strictly require FastAPI JWT authentication (no client-side password fallback)
+      const res = await httpClient.post<LoginResponse>('/auth/login', {
+        username: valid.username,
+        password: valid.password,
+      });
 
-        authUser = {
-          id: res.user.id,
-          username: res.user.username,
-          fullName: res.user.fullName,
-          role: res.user.role,
-          email: res.user.email || undefined,
-          phone: res.user.phone || undefined,
-          tenantSlug: res.user.tenantSlug || undefined,
-          schoolName: res.user.schoolName || undefined,
-          token: res.access_token,
-        };
-      } catch (backendErr: unknown) {
-        if (account && account.password === valid.password) {
-          authUser = { ...account.user };
-        } else {
-          throw backendErr instanceof Error
-            ? backendErr
-            : new Error("Foydalanuvchi topilmadi! Iltimos, qaytadan tekshirib kiring.");
-        }
-      }
+      const authUser: AuthUser = {
+        id: res.user.id,
+        username: res.user.username,
+        fullName: res.user.fullName,
+        role: res.user.role,
+        email: res.user.email || undefined,
+        phone: res.user.phone || undefined,
+        tenantSlug: res.user.tenantSlug || undefined,
+        schoolName: res.user.schoolName || undefined,
+        token: res.access_token,
+      };
 
       // Sessiyani o'rnatish
       currentUser.value = authUser;
@@ -219,7 +208,12 @@ export const useAuthStore = defineStore('auth', () => {
   function hasRole(allowedRoles: UserRole | UserRole[]): boolean {
     if (!currentUser.value) return false;
     const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-    return roles.includes(currentUser.value.role);
+    const expanded = new Set<UserRole>(roles);
+    if (expanded.has('SUPER_ADMIN') || expanded.has('REGIONAL_INSPECTOR')) {
+      expanded.add('SUPER_ADMIN');
+      expanded.add('REGIONAL_INSPECTOR');
+    }
+    return expanded.has(currentUser.value.role);
   }
 
   function saveSessionToStorage(user: AuthUser, rememberMe: boolean): void {

@@ -1,39 +1,45 @@
 import pytest
 from fastapi.testclient import TestClient
 
-@pytest.fixture(autouse=True)
-def setup_api_test_data(client: TestClient):
-    # Ensure test classes exist
-    for c_name in ["11-A sinf", "11-B sinf", "10-A sinf", "10-B sinf", "9-A sinf"]:
-        client.post("/api/v1/classes", json={
-            "schoolId": "school-ax-1",
-            "tenantSlug": "al-xorazmiy",
-            "name": c_name,
-            "gradeLevel": int(c_name.split("-")[0]),
-            "shift": 1,
-            "academicYear": "2026-2027",
-        })
 
-    # Ensure test student STU-ZUXRA-TEST exists in 11-A
-    c_res = client.get("/api/v1/classes?tenantSlug=al-xorazmiy")
+@pytest.fixture(autouse=True)
+def setup_api_test_data(client: TestClient, teacher_headers: dict[str, str]):
+    for c_name in ["11-A sinf", "11-B sinf", "10-A sinf", "10-B sinf", "9-A sinf"]:
+        client.post(
+            "/api/v1/classes",
+            headers=teacher_headers,
+            json={
+                "schoolId": "school-ax-1",
+                "tenantSlug": "al-xorazmiy",
+                "name": c_name,
+                "gradeLevel": int(c_name.split("-")[0]),
+                "shift": 1,
+                "academicYear": "2026-2027",
+            },
+        )
+
+    c_res = client.get("/api/v1/classes?tenantSlug=al-xorazmiy", headers=teacher_headers)
     c_11a = next((c for c in c_res.json() if "11-A" in c["name"]), None)
     if c_11a:
-        client.post("/api/v1/students", json={
-            "tenantSlug": "al-xorazmiy",
-            "schoolId": "school-ax-1",
-            "classGroupId": c_11a["id"],
-            "firstName": "Zuxra",
-            "lastName": "Abduraximova",
-            "middleName": "Farxod qizi",
-            "gender": "F",
-            "birthDate": "2008-05-15",
-            "status": "eligible",
-            "group": "1-guruh",
-            "rosterCode": "STU-ZUXRA-TEST",
-            "emaktabId": "1000001990090",
-        })
+        client.post(
+            "/api/v1/students",
+            headers=teacher_headers,
+            json={
+                "tenantSlug": "al-xorazmiy",
+                "schoolId": "school-ax-1",
+                "classGroupId": c_11a["id"],
+                "firstName": "Zuxra",
+                "lastName": "Abduraximova",
+                "middleName": "Farxod qizi",
+                "gender": "F",
+                "birthDate": "2008-05-15",
+                "status": "eligible",
+                "group": "1-guruh",
+                "rosterCode": "STU-ZUXRA-TEST",
+                "emaktabId": "1000001990090",
+            },
+        )
 
-    # Ensure test assessment exists
     questions = [
         {
             "questionNumber": i,
@@ -49,19 +55,24 @@ def setup_api_test_data(client: TestClient):
         }
         for i in range(1, 16)
     ]
-    client.post("/api/v1/assessments", json={
-        "code": "CHSB-INF-11-Q1",
-        "title": "Informatika va axborot texnologiyalari, 11-sinf. 1-ChSB",
-        "subject": "Informatika va AT",
-        "gradeLevel": 11,
-        "quarter": 1,
-        "durationMinutes": 40,
-        "totalQuestions": 15,
-        "maxScore": 40.0,
-        "targetGroup": "all",
-        "questions": questions,
-    })
+    client.post(
+        "/api/v1/assessments",
+        headers=teacher_headers,
+        json={
+            "code": "CHSB-INF-11-Q1",
+            "title": "Informatika va axborot texnologiyalari, 11-sinf. 1-ChSB",
+            "subject": "Informatika va AT",
+            "gradeLevel": 11,
+            "quarter": 1,
+            "durationMinutes": 40,
+            "totalQuestions": 15,
+            "maxScore": 40.0,
+            "targetGroup": "all",
+            "questions": questions,
+        },
+    )
     yield
+
 
 def test_health_check(client: TestClient):
     response = client.get("/health")
@@ -70,6 +81,7 @@ def test_health_check(client: TestClient):
     assert data["status"] == "healthy"
     assert "prisma" in data["database"]
     assert data["orm"] == "prisma-client-py"
+
 
 def test_auth_login_success(client: TestClient):
     response = client.post(
@@ -83,6 +95,8 @@ def test_auth_login_success(client: TestClient):
     assert data["user"]["role"] == "TEACHER"
     assert data["user"]["fullName"] == "Anvar Rahimov"
     assert data["user"]["username"] == "teacher_ax"
+    assert data["user"]["tenantSlug"] == "al-xorazmiy"
+
 
 def test_auth_login_invalid_password(client: TestClient):
     response = client.post(
@@ -92,8 +106,9 @@ def test_auth_login_invalid_password(client: TestClient):
     assert response.status_code == 401
     assert "Foydalanuvchi nomi yoki parol noto'g'ri" in response.json()["detail"]
 
-def test_get_classes(client: TestClient):
-    response = client.get("/api/v1/classes?tenantSlug=al-xorazmiy")
+
+def test_get_classes(client: TestClient, teacher_headers: dict[str, str]):
+    response = client.get("/api/v1/classes?tenantSlug=al-xorazmiy", headers=teacher_headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -101,18 +116,20 @@ def test_get_classes(client: TestClient):
     names = [c["name"] for c in data]
     assert "11-A sinf" in names
 
-def test_get_class_detail(client: TestClient):
-    c_res = client.get("/api/v1/classes?tenantSlug=al-xorazmiy")
+
+def test_get_class_detail(client: TestClient, teacher_headers: dict[str, str]):
+    c_res = client.get("/api/v1/classes?tenantSlug=al-xorazmiy", headers=teacher_headers)
     c_11a = next((c for c in c_res.json() if "11-A" in c["name"]), None)
     assert c_11a is not None
     cls_id = c_11a["id"]
 
-    response = client.get(f"/api/v1/classes/{cls_id}")
+    response = client.get(f"/api/v1/classes/{cls_id}", headers=teacher_headers)
     assert response.status_code == 200
     data = response.json()
     assert "11-A" in data["classGroup"]["name"]
     assert data["averageScore"] >= 0
     assert len(data["students"]) >= 1
+
 
 def test_student_admission_verify(client: TestClient):
     response = client.post(
@@ -127,17 +144,20 @@ def test_student_admission_verify(client: TestClient):
     assert data["student"]["emaktabId"] == "1000001990090"
     assert data["sessionToken"] is not None
 
-def test_analytics_endpoint(client: TestClient):
-    response = client.get("/api/v1/analytics/al-xorazmiy")
+
+def test_analytics_endpoint(client: TestClient, teacher_headers: dict[str, str]):
+    response = client.get("/api/v1/analytics/al-xorazmiy", headers=teacher_headers)
     assert response.status_code == 200
     data = response.json()
     assert "classComparisons" in data
     assert "scoreDistribution" in data
     assert data["totalStudents"] >= 0
 
-def test_ai_class_diagnosis(client: TestClient):
+
+def test_ai_class_diagnosis(client: TestClient, teacher_headers: dict[str, str]):
     response = client.post(
         "/api/v1/ai/class-diagnosis",
+        headers=teacher_headers,
         json={
             "className": "11-A",
             "averageScore": 34.2,
@@ -152,6 +172,7 @@ def test_ai_class_diagnosis(client: TestClient):
     assert "className" in data
     assert "recommendations" in data or "insights" in data
 
+
 def test_get_tenants(client: TestClient):
     response = client.get("/api/v1/tenants")
     assert response.status_code == 200
@@ -161,6 +182,7 @@ def test_get_tenants(client: TestClient):
     slugs = [t["slug"] for t in data]
     assert "al-xorazmiy" in slugs
 
+
 def test_get_tenant_context(client: TestClient):
     response = client.get("/api/v1/tenants/al-xorazmiy/context")
     assert response.status_code == 200
@@ -168,36 +190,41 @@ def test_get_tenant_context(client: TestClient):
     assert data["tenantSlug"] == "al-xorazmiy"
     assert "Xorazmiy" in data["schoolName"]
 
-def test_get_assessments(client: TestClient):
-    response = client.get("/api/v1/assessments")
+
+def test_get_assessments(client: TestClient, teacher_headers: dict[str, str]):
+    response = client.get("/api/v1/assessments", headers=teacher_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 1
     codes = [a["code"].lower() for a in data]
     assert "chsb-inf-11-q1" in codes
 
-def test_get_assessment_detail(client: TestClient):
-    c_res = client.get("/api/v1/assessments")
+
+def test_get_assessment_detail(client: TestClient, teacher_headers: dict[str, str]):
+    c_res = client.get("/api/v1/assessments", headers=teacher_headers)
     asm = next((a for a in c_res.json() if "chsb-inf-11-q1" in a["code"].lower()), None)
     assert asm is not None
     asm_id = asm["id"]
 
-    response = client.get(f"/api/v1/assessments/{asm_id}")
+    response = client.get(f"/api/v1/assessments/{asm_id}", headers=teacher_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["code"].lower() == "chsb-inf-11-q1"
     assert len(data["questions"]) == 15
 
-def test_regional_overview(client: TestClient):
-    response = client.get("/api/v1/regional/overview")
+
+def test_regional_overview(client: TestClient, inspector_headers: dict[str, str]):
+    response = client.get("/api/v1/regional/overview", headers=inspector_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["totalSchools"] >= 2
 
-def test_parse_student_roster_file_api(client: TestClient):
+
+def test_parse_student_roster_file_api(client: TestClient, teacher_headers: dict[str, str]):
     csv_content = b"T/r,eMaktab ID,O'quvchi F.I.SH,Jinsi\n1,1000001990090,Abduraximova Zuxra Farxod qizi,F\n"
     response = client.post(
         "/api/v1/students/parse-file",
+        headers=teacher_headers,
         files={"file": ("11-A_1-gurux.csv", csv_content, "text/csv")},
         data={"group": "1-guruh"},
     )
@@ -210,13 +237,19 @@ def test_parse_student_roster_file_api(client: TestClient):
     assert data["students"][0]["emaktabId"] == "1000001990090"
     assert data["students"][0]["gender"] == "F"
 
-def test_delete_all_students_endpoint(client: TestClient):
-    c_res = client.get("/api/v1/classes?tenantSlug=al-xorazmiy")
+
+def test_delete_all_students_endpoint(
+    client: TestClient,
+    teacher_headers: dict[str, str],
+    inspector_headers: dict[str, str],
+):
+    c_res = client.get("/api/v1/classes?tenantSlug=al-xorazmiy", headers=teacher_headers)
     c_11a = next((c for c in c_res.json() if "11-A" in c["name"]), None)
     assert c_11a is not None
 
     create_res = client.post(
         "/api/v1/students",
+        headers=teacher_headers,
         json={
             "tenantSlug": "al-xorazmiy",
             "schoolId": "school-ax-1",
@@ -232,10 +265,10 @@ def test_delete_all_students_endpoint(client: TestClient):
     assert create_res.status_code == 200
     stu_id = create_res.json()["id"]
 
-    del_single = client.delete(f"/api/v1/students/{stu_id}")
+    del_single = client.delete(f"/api/v1/students/{stu_id}", headers=teacher_headers)
     assert del_single.status_code == 200
 
-    del_res = client.delete("/api/v1/students?tenantSlug=temurbeklar-maktabi")
+    del_res = client.delete("/api/v1/students?tenantSlug=temurbeklar-maktabi", headers=inspector_headers)
     assert del_res.status_code == 200
     assert del_res.json()["success"] is True
     assert "deletedCount" in del_res.json()

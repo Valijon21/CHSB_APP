@@ -5,11 +5,16 @@ import os
 import re
 from typing import Any
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from backend.app.core.config import settings
+from backend.app.core.dependencies import Actor, require_role
 
-router = APIRouter(prefix="/ai", tags=["AI Pedagogical Intelligence"])
+router = APIRouter(
+    prefix="/ai",
+    tags=["AI Pedagogical Intelligence"],
+    dependencies=[Depends(require_role(["TEACHER", "SCHOOL_ADMIN", "REGIONAL_INSPECTOR", "SUPER_ADMIN"]))],
+)
 
 DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
 

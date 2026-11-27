@@ -252,6 +252,10 @@ export class RealRosterRepository implements RosterRepository {
         };
       }
 
+      if (res.sessionToken && typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('chsb_student_session_token', res.sessionToken);
+      }
+
       const s = res.student;
       return {
         status: 'success',

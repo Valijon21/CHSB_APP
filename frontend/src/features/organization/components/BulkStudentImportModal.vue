@@ -322,10 +322,25 @@ async function readFile(file: File) {
       ? `${apiBase}students/parse-file`
       : `${apiBase}/students/parse-file`;
 
+    const parseHeaders: Record<string, string> = {};
+    try {
+      const rawSession =
+        sessionStorage.getItem('chsb_auth_session') ||
+        localStorage.getItem('chsb_auth_session');
+      if (rawSession) {
+        const parsedSession = JSON.parse(rawSession);
+        const token = parsedSession?.token || parsedSession?.user?.token;
+        if (token) parseHeaders.Authorization = `Bearer ${token}`;
+      }
+    } catch {
+      // Ignore storage read errors
+    }
+
     let res: Response | null = null;
     try {
       res = await fetch(endpoint, {
         method: 'POST',
+        headers: parseHeaders,
         body: formData,
       });
     } catch {
@@ -333,6 +348,7 @@ async function readFile(file: File) {
       try {
         res = await fetch('/api/v1/students/parse-file', {
           method: 'POST',
+          headers: parseHeaders,
           body: formData,
         });
       } catch {

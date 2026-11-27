@@ -13,9 +13,18 @@ from prisma import Prisma
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+
 @router.post("/login", response_model=LoginResponse)
 async def login(payload: LoginRequest, db: Prisma = Depends(get_prisma)):
-    user = await db.user.find_unique(where={"username": payload.username})
+    user = await db.user.find_first(
+        where={
+            "OR": [
+                {"username": payload.username},
+                {"email": payload.username},
+            ]
+        },
+        include={"tenant": True},
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,6 +55,8 @@ async def login(payload: LoginRequest, db: Prisma = Depends(get_prisma)):
         user=UserProfile(
             id=user.id,
             tenantId=user.tenantId,
+            tenantSlug=user.tenant.slug if user.tenant else None,
+            schoolName=user.tenant.name if user.tenant else None,
             username=user.username,
             fullName=user.fullName,
             role=user.role,
@@ -53,20 +64,27 @@ async def login(payload: LoginRequest, db: Prisma = Depends(get_prisma)):
         ),
     )
 
+
 @router.get("/me", response_model=UserProfile)
-async def get_me(current_user=Depends(get_current_user)):
+async def get_me(
+    current_user=Depends(get_current_user),
+    db: Prisma = Depends(get_prisma),
+):
+    tenant = await db.tenant.find_unique(where={"id": current_user.tenantId})
     return UserProfile(
         id=current_user.id,
         tenantId=current_user.tenantId,
+        tenantSlug=tenant.slug if tenant else None,
+        schoolName=tenant.name if tenant else None,
         username=current_user.username,
         fullName=current_user.fullName,
         role=current_user.role,
         email=current_user.email,
     )
 
+
 @router.post("/admission/verify", response_model=AdmissionVerifyResponse)
 async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends(get_prisma)):
-    # 1. Lookup tenant
     tenant = await db.tenant.find_unique(where={"slug": payload.tenantSlug})
     if not tenant:
         return AdmissionVerifyResponse(
@@ -74,7 +92,6 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
             message="Bunday ta'lim muassasasi topilmadi.",
         )
 
-    # 2. Lookup student by roster code in this tenant
     student = await db.student.find_first(
         where={
             "tenantId": tenant.id,
@@ -95,7 +112,6 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
             message="O'quvchiga imtihonga kirish uchun ruxsat berilmagan (Holati: nofaol).",
         )
 
-    # Generate session token for exam attempt
     exam_session_token = create_access_token(
         subject=student.rosterCode,
         role="STUDENT",
@@ -117,7 +133,7 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
                 {"targetGroup": "all"},
                 {"targetGroup": student_group},
                 {"targetGroup": None},
-            ]
+            ],
         }
     )
     assessment_ids = [a.code.lower() for a in assessments] if assessments else ["chsb-inf-11-q1"]
@@ -125,6 +141,7 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
     return AdmissionVerifyResponse(
         success=True,
         sessionToken=exam_session_token,
+        schoolName=tenant.name,
         student={
             "id": student.id,
             "rosterCode": student.rosterCode,
@@ -141,7 +158,7 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
         message="O'quvchi muvaffaqiyatli tasdiqlandi. Imtihon zali tayyor.",
     )
 
+
 @router.post("/logout")
 async def logout():
     return {"success": True, "message": "Tizimdan muvaffaqiyatli chiqildi."}
-
