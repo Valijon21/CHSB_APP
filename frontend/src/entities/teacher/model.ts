@@ -92,3 +92,47 @@ export interface ReportItem {
   status: string;
 }
 
+export interface GradeResultInput {
+  score: number;
+  rubricScores?: Record<string, number>;
+  feedback?: string;
+  verifiedByTeacher?: boolean;
+}
+
+export interface FormativeScoreInput {
+  studentId: string;
+  subjectCode: string;
+  quarter: number;
+  academicYear?: string;
+  classwork: number;
+  homework: number;
+  note?: string;
+}
+
+export interface QuarterGradebookRow {
+  studentId: string;
+  rosterCode: string;
+  studentName: string;
+  classGroupId: string;
+  className: string;
+  classwork: number;
+  homework: number;
+  formativeScore: number;
+  bsbScore: number;
+  chsbScore: number;
+  totalScore100: number;
+  grade5: string;
+  preset: 'MMTV_STANDARD' | 'SPECIALIZED';
+  annualScore100?: number;
+  annualGrade5?: string;
+}
+
+export interface QuarterGradebookResponse {
+  tenantId: string;
+  quarter: number;
+  academicYear: string;
+  subjectCode: string;
+  preset: 'MMTV_STANDARD' | 'SPECIALIZED';
+  rows: QuarterGradebookRow[];
+}
+

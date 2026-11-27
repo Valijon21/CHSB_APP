@@ -10,6 +10,9 @@ import type {
   AssessmentDetail,
   AnalyticsData,
   ReportItem,
+  GradeResultInput,
+  FormativeScoreInput,
+  QuarterGradebookResponse,
 } from '@/entities/teacher/model';
 import {
   mockClassGroups,
@@ -806,5 +809,74 @@ export class MockTeacherRepository implements TeacherRepository {
         status: r.status === 'verified' ? 'Tasdiqlangan' : 'Tekshirilmoqda',
       };
     });
+  }
+
+  async gradeResult(attemptId: string, input: GradeResultInput): Promise<AssessmentResult> {
+    await this.delay();
+    const maxScore = 40;
+    const pct = Math.round((input.score / maxScore) * 100);
+    return {
+      attemptId,
+      tenantId: 'tenant-al-xorazmiy',
+      assessmentId: 'chsb-inf-11-q1',
+      rosterRecordId: 'mock-stu',
+      studentName: "Mock O'quvchi",
+      className: '11-A',
+      totalQuestions: 15,
+      answeredQuestions: 15,
+      score: input.score,
+      maxScore,
+      percentage: pct,
+      status: input.verifiedByTeacher === false ? 'provisional_demo' : 'verified',
+      verifiedByTeacher: input.verifiedByTeacher ?? true,
+      submittedAt: new Date().toISOString(),
+      teacherNote: input.feedback,
+    };
+  }
+
+  async getQuarterGradebook(
+    tenantId: string,
+    options?: { classGroupId?: string; subjectCode?: string; quarter?: number; academicYear?: string }
+  ): Promise<QuarterGradebookResponse> {
+    await this.delay();
+    const roster = await this.getRoster(tenantId, options?.classGroupId);
+    return {
+      tenantId,
+      quarter: options?.quarter ?? 1,
+      academicYear: options?.academicYear ?? '2026-2027',
+      subjectCode: options?.subjectCode ?? 'INF',
+      preset: 'MMTV_STANDARD',
+      rows: roster.map((s, idx) => {
+        const cw = 5;
+        const hw = 3.5;
+        const fb = 8.5;
+        const bsb = idx % 2 === 0 ? 44 : 38;
+        const chsb = idx % 2 === 0 ? 36 : 31;
+        const total = fb + bsb + chsb;
+        const grade5 = total >= 86 ? '5' : total >= 66 ? '4' : total >= 30 ? '3' : '2';
+        return {
+          studentId: s.id,
+          rosterCode: s.rosterCode,
+          studentName: `${s.firstName} ${s.lastName}`,
+          classGroupId: s.classGroupId,
+          className: '11-A',
+          classwork: cw,
+          homework: hw,
+          formativeScore: fb,
+          bsbScore: bsb,
+          chsbScore: chsb,
+          totalScore100: total,
+          grade5,
+          preset: 'MMTV_STANDARD',
+          annualScore100: total,
+          annualGrade5: grade5,
+        };
+      }),
+    };
+  }
+
+  async saveFormativeScore(input: FormativeScoreInput): Promise<{ totalScore: number }> {
+    await this.delay();
+    return { totalScore: Number(Math.min(10, input.classwork + input.homework).toFixed(1)) };
   }
 }

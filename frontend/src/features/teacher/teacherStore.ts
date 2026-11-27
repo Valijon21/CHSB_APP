@@ -11,7 +11,11 @@ import type {
   AssessmentDetail,
   AnalyticsData,
   ReportItem,
+  QuarterGradebookRow,
+  GradeResultInput,
+  FormativeScoreInput,
 } from '../../entities/teacher/model';
+import { GRADING_SCALE_PRESETS, type GradingPresetKey } from '../../entities/emaktab/model';
 import { api } from '../../shared/api';
 
 export const useTeacherStore = defineStore('teacher', () => {
@@ -29,7 +33,10 @@ export const useTeacherStore = defineStore('teacher', () => {
   const assessmentDetail = ref<AssessmentDetail | null>(null);
   const analytics = ref<AnalyticsData | null>(null);
   const reportData = ref<ReportItem[]>([]);
+  const quarterGradebookRows = ref<QuarterGradebookRow[]>([]);
+  const gradebookPreset = ref<GradingPresetKey>('MMTV_STANDARD');
   const isLoading = ref(false);
+  const isGradebookLoading = ref(false);
   const errorMessage = ref<string | null>(null);
 
   const filteredRoster = computed(() => {
@@ -263,11 +270,90 @@ export const useTeacherStore = defineStore('teacher', () => {
     }
   }
 
+  async function gradeStudentResult(attemptId: string, input: GradeResultInput): Promise<void> {
+    const verified = input.verifiedByTeacher ?? true;
+    updateStudentScore(attemptId, input.score, verified);
+    if (api.teacher.gradeResult) {
+      try {
+        const persisted = await api.teacher.gradeResult(attemptId, input);
+        const resIdx = results.value.findIndex((r) => r.attemptId === attemptId);
+        if (resIdx !== -1) {
+          results.value[resIdx] = {
+            ...results.value[resIdx]!,
+            score: persisted.score ?? input.score,
+            percentage: persisted.percentage ?? results.value[resIdx]!.percentage,
+            verifiedByTeacher: persisted.verifiedByTeacher ?? verified,
+            teacherNote: input.feedback,
+          };
+        }
+      } catch (err) {
+        errorMessage.value = err instanceof Error ? err.message : "Bahoni saqlashda xatolik.";
+        throw err;
+      }
+    }
+  }
+
+  function computeGrade5(total100: number, preset: GradingPresetKey): string {
+    const t = GRADING_SCALE_PRESETS[preset].thresholds;
+    if (total100 >= t.grade5Min) return '5';
+    if (total100 >= t.grade4Min) return '4';
+    if (total100 >= t.grade3Min) return '3';
+    return '2';
+  }
+
+  async function loadQuarterGradebook(
+    tenantId: string,
+    options?: { classGroupId?: string; subjectCode?: string; quarter?: number; academicYear?: string }
+  ): Promise<void> {
+    if (!api.teacher.getQuarterGradebook) return;
+    isGradebookLoading.value = true;
+    errorMessage.value = null;
+    try {
+      const data = await api.teacher.getQuarterGradebook(tenantId, options);
+      quarterGradebookRows.value = data.rows;
+      gradebookPreset.value = data.preset;
+    } catch (err) {
+      errorMessage.value = err instanceof Error ? err.message : "Choraklik jurnalni yuklashda xatolik.";
+    } finally {
+      isGradebookLoading.value = false;
+    }
+  }
+
+  async function saveFormativeScore(input: FormativeScoreInput): Promise<void> {
+    const cw = Number(Math.min(6, Math.max(0, input.classwork)).toFixed(1));
+    const hw = Number(Math.min(4, Math.max(0, input.homework)).toFixed(1));
+    const fbTotal = Number(Math.min(10, cw + hw).toFixed(1));
+
+    if (api.teacher.saveFormativeScore) {
+      await api.teacher.saveFormativeScore({ ...input, classwork: cw, homework: hw });
+    }
+
+    const idx = quarterGradebookRows.value.findIndex((r) => r.studentId === input.studentId);
+    if (idx !== -1) {
+      const current = quarterGradebookRows.value[idx]!;
+      const total100 = Number(Math.min(100, fbTotal + current.bsbScore + current.chsbScore).toFixed(1));
+      quarterGradebookRows.value[idx] = {
+        ...current,
+        classwork: cw,
+        homework: hw,
+        formativeScore: fbTotal,
+        totalScore100: total100,
+        grade5: computeGrade5(total100, current.preset || gradebookPreset.value),
+      };
+    }
+  }
+
   return {
     currentTenantId,
     classes,
     addClass,
     updateStudentScore,
+    gradeStudentResult,
+    quarterGradebookRows,
+    gradebookPreset,
+    isGradebookLoading,
+    loadQuarterGradebook,
+    saveFormativeScore,
     roster,
     addRosterRecord,
     addRosterRecords,

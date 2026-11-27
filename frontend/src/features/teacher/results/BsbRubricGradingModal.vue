@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import type { AssessmentResult } from '../../../entities/result/model';
 import { getBsbStandardByGrade } from '../../../entities/assessment/officialBsbData';
 import type { Question } from '../../../entities/assessment/model';
+import { GRADING_SCALE_PRESETS, type GradingPresetKey } from '../../../entities/emaktab/model';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -11,8 +12,22 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void;
-  (e: 'save', payload: { attemptId: string; totalScore: number; feedback: string }): void;
+  (
+    e: 'save',
+    payload: {
+      attemptId: string;
+      totalScore: number;
+      rubricScores: Record<string, number>;
+      feedback: string;
+      preset: GradingPresetKey;
+    }
+  ): void;
 }>();
+
+// Reactive map of scores per task / subquestion
+const scores = ref<Record<string, number>>({});
+const feedback = ref('');
+const activePreset = ref<GradingPresetKey>('MMTV_STANDARD');
 
 // Extract grade from class name (e.g. "9-A sinf" -> 9, default 9)
 const inferredGrade = computed(() => {
@@ -24,11 +39,15 @@ const inferredGrade = computed(() => {
 const standard = computed(() => getBsbStandardByGrade(inferredGrade.value));
 const questions = computed<Question[]>(() => standard.value.sampleQuestions);
 
-// Reactive map of scores per task / subquestion
-const scores = ref<Record<string, number>>({});
-const feedback = ref('');
+// Reactive state is initialized on mount and whenever selected result changes
+watch(
+  () => props.result,
+  () => {
+    feedback.value = props.result?.teacherNote || '';
+    initScores();
+  }
+);
 
-// Initialize default scores when result opens
 onMounted(() => {
   initScores();
 });
@@ -69,9 +88,10 @@ const percentage = computed(() => {
 
 const gradeLevel = computed(() => {
   const pct = percentage.value;
-  if (pct >= 86) return { label: 'A‘lo (5)', color: 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800' };
-  if (pct >= 71) return { label: 'Yaxshi (4)', color: 'text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-800' };
-  if (pct >= 56) return { label: 'Qoniqarli (3)', color: 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800' };
+  const thresholds = GRADING_SCALE_PRESETS[activePreset.value].thresholds;
+  if (pct >= thresholds.grade5Min) return { label: "A‘lo (5)", color: 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800' };
+  if (pct >= thresholds.grade4Min) return { label: 'Yaxshi (4)', color: 'text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-800' };
+  if (pct >= thresholds.grade3Min) return { label: 'Qoniqarli (3)', color: 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800' };
   return { label: 'Qoniqarsiz (2)', color: 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800' };
 });
 
@@ -89,7 +109,9 @@ function handleSave() {
   emit('save', {
     attemptId: props.result.attemptId,
     totalScore: totalCalculatedScore.value,
+    rubricScores: { ...scores.value },
     feedback: feedback.value,
+    preset: activePreset.value,
   });
 }
 </script>
@@ -151,7 +173,15 @@ function handleSave() {
           </span>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <select
+            v-model="activePreset"
+            aria-label="Baholash mezoni standarti"
+            class="px-2 py-1 rounded-md text-xs font-semibold border border-teal-300 dark:border-teal-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+          >
+            <option value="MMTV_STANDARD">MMTV (86/66/30)</option>
+            <option value="SPECIALIZED">Ixtisos (86/71/56)</option>
+          </select>
           <span class="text-xs text-slate-500 dark:text-slate-400">Baholash darajasi:</span>
           <span :class="['px-2.5 py-1 rounded-md text-xs font-bold border', gradeLevel.color]">
             {{ gradeLevel.label }}

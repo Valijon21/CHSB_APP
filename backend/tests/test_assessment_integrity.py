@@ -1,3 +1,4 @@
+import uuid
 from fastapi.testclient import TestClient
 
 
@@ -5,14 +6,16 @@ def test_student_does_not_receive_answer_keys_while_teacher_does(
     client: TestClient,
     teacher_headers: dict[str, str],
 ):
+    uid = uuid.uuid4().hex[:6].upper()
     cls_res = client.post(
         "/api/v1/classes",
         headers=teacher_headers,
-        json={"schoolId": "school-ax-1", "tenantSlug": "al-xorazmiy", "name": "11-INT sinf", "gradeLevel": 11},
+        json={"schoolId": "school-ax-1", "tenantSlug": "al-xorazmiy", "name": f"11-INT-{uid}", "gradeLevel": 11},
     )
     assert cls_res.status_code == 200
     cls_id = cls_res.json()["id"]
 
+    roster_code = f"STU-INT-{uid}"
     stu_res = client.post(
         "/api/v1/students",
         headers=teacher_headers,
@@ -20,12 +23,12 @@ def test_student_does_not_receive_answer_keys_while_teacher_does(
             "tenantSlug": "al-xorazmiy",
             "schoolId": "school-ax-1",
             "classGroupId": cls_id,
-            "firstName": "Integrity",
+            "firstName": f"Integrity{uid}",
             "lastName": "Tester",
             "gender": "M",
             "birthDate": "2008-01-01",
             "status": "eligible",
-            "rosterCode": "STU-INT-01",
+            "rosterCode": roster_code,
         },
     )
     if stu_res.status_code not in (200, 409):
@@ -35,7 +38,7 @@ def test_student_does_not_receive_answer_keys_while_teacher_does(
         "/api/v1/assessments",
         headers=teacher_headers,
         json={
-            "code": "CHSB-INT-11-Q1",
+            "code": f"CHSB-INT-11-{uid}",
             "title": "Integrity Test",
             "subject": "Informatika va AT",
             "gradeLevel": 11,
@@ -66,7 +69,7 @@ def test_student_does_not_receive_answer_keys_while_teacher_does(
 
     verify = client.post(
         "/api/v1/auth/admission/verify",
-        json={"tenantSlug": "al-xorazmiy", "rosterCode": "STU-INT-01"},
+        json={"tenantSlug": "al-xorazmiy", "rosterCode": roster_code},
     )
     student_data = verify.json()
     student_headers = {"Authorization": f"Bearer {student_data['sessionToken']}"}

@@ -92,7 +92,7 @@ CHSB_APP/
   - **OUTPUT:** Formativ o'rtacha (max 10) + BSB/Loyihalar yig'indisi (max 50) + CHSB (max 40) = 100 ball; yillik 4 chorak o'rtachasi; maktab `gradingPreset` ga mos 5 ballik konvertatsiya (`86/66/30` va `86/71/56`).
   - **VERIFY:** Pytest va Vitest da chegaraviy qiymatlar (`29, 30, 55, 56, 65, 66, 70, 71, 85, 86, 100`) uchun 100% unit test o'tadi.
 
-- [ ] **TASK-2.3: BSB Ochiq Topshiriqlar, Rubrika Saqlash va Choraklik Jurnal API + UI**
+- [x] **TASK-2.3: BSB Ochiq Topshiriqlar, Rubrika Saqlash va Choraklik Jurnal API + UI**
   - **Agent:** `backend-specialist` + `frontend-specialist` | **Skills:** `api-patterns`, `frontend-architecture`
   - **INPUT:** `assessments.py`, `BsbTaskRenderer.vue`, `BsbRubricGradingModal.vue`, `TeacherResultsView.vue`, `EmaktabSyncView.vue`
   - **OUTPUT:** O'quvchi BSB ochiq javoblarini DB ga saqlaydi (`pending_review` holati bilan); o'qituvchi `PATCH /api/v1/assessments/results/{attemptId}/grade` orqali rubrika ballari va izohni bazaga yozadi; yangi **Choraklik Jurnal (10+50+40)** ko'rinishi va eMaktab eksporti qo'shiladi.

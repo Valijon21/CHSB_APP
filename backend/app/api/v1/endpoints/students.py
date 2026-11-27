@@ -44,15 +44,16 @@ def pick_unique_roster_code(
     preferred: str | None = None,
     next_counter: int = 1101,
 ) -> tuple[str, int]:
-    """Return a globally unique roster code and the updated counter."""
+    """Return a globally unique uppercase roster code and the updated counter."""
     if preferred:
-        if preferred not in existing_codes:
-            existing_codes.add(preferred)
-            return preferred, next_counter
+        normalized = preferred.strip().upper()
+        if normalized not in existing_codes:
+            existing_codes.add(normalized)
+            return normalized, next_counter
         suffix = 1
-        while f"{preferred}-{suffix}" in existing_codes:
+        while f"{normalized}-{suffix}" in existing_codes:
             suffix += 1
-        candidate = f"{preferred}-{suffix}"
+        candidate = f"{normalized}-{suffix}"
         existing_codes.add(candidate)
         return candidate, next_counter
 
@@ -187,7 +188,7 @@ async def create_student(
             "middleName": payload.middleName,
             "gender": payload.gender,
             "birthDate": b_date,
-            "status": "ELIGIBLE" if payload.status == "eligible" else "INACTIVE",
+            "status": "ELIGIBLE" if payload.status.lower() == "eligible" else "INACTIVE",
             "group": payload.group if payload.group else None,
             "emaktabId": payload.emaktabId,
         },

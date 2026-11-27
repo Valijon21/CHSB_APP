@@ -25,6 +25,9 @@ import type {
   AssessmentDetail,
   AnalyticsData,
   ReportItem,
+  GradeResultInput,
+  FormativeScoreInput,
+  QuarterGradebookResponse,
 } from '../../entities/teacher/model';
 import type { ClassGroup } from '../../entities/class-group/model';
 import type {
@@ -494,7 +497,7 @@ export class RealAttemptRepository implements AttemptRepository {
 export class RealResultRepository implements ResultRepository {
   async getResultByAttemptId(_tenantId: string, attemptId: string): Promise<AssessmentResult | null> {
     try {
-      return await httpClient.get<AssessmentResult>(`/assessments/results/attempt/${attemptId}`);
+      return await httpClient.get<AssessmentResult>(`/results/attempt/${attemptId}`);
     } catch {
       return null;
     }
@@ -502,7 +505,7 @@ export class RealResultRepository implements ResultRepository {
 
   async getResultsByTenant(tenantId: string): Promise<AssessmentResult[]> {
     try {
-      return await httpClient.get<AssessmentResult[]>(`/assessments/results/tenant/${tenantId}`);
+      return await httpClient.get<AssessmentResult[]>(`/results/tenant/${tenantId}`);
     } catch {
       return [];
     }
@@ -597,10 +600,38 @@ export class RealTeacherRepository implements TeacherRepository {
 
   async getResults(tenantId: string): Promise<AssessmentResult[]> {
     try {
-      return await httpClient.get<AssessmentResult[]>(`/assessments/results/tenant/${tenantId}`);
+      return await httpClient.get<AssessmentResult[]>(`/results/tenant/${tenantId}`);
     } catch {
       return [];
     }
+  }
+
+  async gradeResult(attemptId: string, input: GradeResultInput): Promise<AssessmentResult> {
+    return await httpClient.patch<AssessmentResult>(`/assessments/results/${attemptId}/grade`, {
+      score: input.score,
+      rubricScores: input.rubricScores,
+      feedback: input.feedback,
+      verifiedByTeacher: input.verifiedByTeacher ?? true,
+    });
+  }
+
+  async getQuarterGradebook(
+    tenantId: string,
+    options?: { classGroupId?: string; subjectCode?: string; quarter?: number; academicYear?: string }
+  ): Promise<QuarterGradebookResponse> {
+    return await httpClient.get<QuarterGradebookResponse>('/gradebook/quarter', {
+      params: {
+        tenantId,
+        classGroupId: options?.classGroupId,
+        subjectCode: options?.subjectCode,
+        quarter: options?.quarter ?? 1,
+        academicYear: options?.academicYear ?? '2026-2027',
+      },
+    });
+  }
+
+  async saveFormativeScore(input: FormativeScoreInput): Promise<{ totalScore: number }> {
+    return await httpClient.post<{ totalScore: number }>('/gradebook/formative', input);
   }
 
   async getProfile(tenantId: string): Promise<TeacherProfile> {

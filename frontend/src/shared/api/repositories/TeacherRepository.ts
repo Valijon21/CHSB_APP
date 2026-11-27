@@ -9,6 +9,9 @@ import type {
   AssessmentDetail,
   AnalyticsData,
   ReportItem,
+  GradeResultInput,
+  FormativeScoreInput,
+  QuarterGradebookResponse,
 } from '../../../entities/teacher/model';
 
 export interface TeacherRepository {
@@ -17,6 +20,12 @@ export interface TeacherRepository {
   getAssessments(tenantId: string): Promise<AssessmentSummary[]>;
   createAssessment(input: CreateAssessmentInput): Promise<AssessmentSummary>;
   getResults(tenantId: string): Promise<AssessmentResult[]>;
+  gradeResult?(attemptId: string, input: GradeResultInput): Promise<AssessmentResult>;
+  getQuarterGradebook?(
+    tenantId: string,
+    options?: { classGroupId?: string; subjectCode?: string; quarter?: number; academicYear?: string }
+  ): Promise<QuarterGradebookResponse>;
+  saveFormativeScore?(input: FormativeScoreInput): Promise<{ totalScore: number }>;
   getProfile(tenantId: string): Promise<TeacherProfile>;
   getClassDetail(tenantId: string, classId: string): Promise<ClassDetail | null>;
   getStudentDetail(tenantId: string, studentId: string): Promise<StudentDetail | null>;

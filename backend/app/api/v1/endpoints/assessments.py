@@ -59,8 +59,11 @@ class SubmitAttemptPayload(BaseModel):
 class AssessmentCreate(BaseModel):
     title: str = Field(..., min_length=3)
     subject: str = Field(..., min_length=2)
+    subjectCode: str | None = None
     gradeLevel: int = Field(default=9, ge=1, le=11)
     quarter: int = Field(default=1, ge=1, le=4)
+    academicYear: str = Field(default="2025-2026")
+    assessmentType: str = Field(default="CHSB")
     durationMinutes: int = Field(default=40, ge=10, le=180)
     totalQuestions: int = Field(default=15, ge=1, le=100)
     maxScore: float = Field(default=40.0, ge=1.0)
@@ -68,41 +71,61 @@ class AssessmentCreate(BaseModel):
     code: str | None = None
     questions: list[dict] | None = None
 
+
+def _parse_json_value(raw: object, default):
+    if raw is None:
+        return default
+    if isinstance(raw, (dict, list)):
+        return raw
+    try:
+        return json.loads(str(raw))
+    except Exception:
+        return default
+
+
+def _format_assessment_summary(a) -> dict:
+    return {
+        "id": a.id,
+        "code": a.code,
+        "title": a.title,
+        "subject": a.subject,
+        "subjectCode": getattr(a, "subjectCode", None),
+        "gradeLevel": a.gradeLevel,
+        "quarter": getattr(a, "quarter", 1) or 1,
+        "academicYear": getattr(a, "academicYear", "2025-2026") or "2025-2026",
+        "assessmentType": getattr(a, "assessmentType", "CHSB") or "CHSB",
+        "durationMinutes": a.durationMinutes,
+        "totalQuestions": a.totalQuestions,
+        "maxScore": a.maxScore,
+        "targetGroup": getattr(a, "targetGroup", "all") or "all",
+        "status": "published",
+    }
+
 @router.get("/assessments")
 async def get_assessments(
     tenantId: str | None = None,
     group: str | None = None,
+    assessmentType: str | None = None,
+    quarter: int | None = None,
     _actor: Actor = Depends(get_current_actor),
     db: Prisma = Depends(get_prisma),
 ):
-    where_clause = {}
+    where_clause: dict = {}
     if group and group != "all":
-        where_clause = {
-            "OR": [
-                {"targetGroup": "all"},
-                {"targetGroup": group},
-                {"targetGroup": None},
-            ]
-        }
+        where_clause["OR"] = [
+            {"targetGroup": "all"},
+            {"targetGroup": group},
+            {"targetGroup": None},
+        ]
+    if assessmentType:
+        where_clause["assessmentType"] = assessmentType.upper()
+    if quarter is not None:
+        where_clause["quarter"] = quarter
     assessments = await db.assessment.find_many(
         where=where_clause if where_clause else None,
         order={"code": "asc"}
     )
-    return [
-        {
-            "id": a.id,
-            "code": a.code,
-            "title": a.title,
-            "subject": a.subject,
-            "gradeLevel": a.gradeLevel,
-            "durationMinutes": a.durationMinutes,
-            "totalQuestions": a.totalQuestions,
-            "maxScore": a.maxScore,
-            "targetGroup": getattr(a, "targetGroup", "all") or "all",
-            "status": "published",
-        }
-        for a in assessments
-    ]
+    return [_format_assessment_summary(a) for a in assessments]
 
 @router.post("/assessments")
 async def create_assessment(
@@ -110,26 +133,19 @@ async def create_assessment(
     _actor: Actor = Depends(STAFF_ACCESS),
     db: Prisma = Depends(get_prisma),
 ):
+    asm_type = payload.assessmentType.upper() if payload.assessmentType else "CHSB"
+    if asm_type not in {"CHSB", "BSB", "PRACTICAL"}:
+        raise HTTPException(status_code=400, detail="Noto'g'ri baholash turi (CHSB, BSB, PRACTICAL).")
+
     # Generate unique code if not provided
     code = payload.code
     if not code:
-        subject_prefix = payload.subject[:3].upper().replace(" ", "")
-        code = f"CHSB-{subject_prefix}-{payload.gradeLevel}-Q{payload.quarter}-{int(datetime.now().timestamp()) % 10000}"
+        subject_prefix = (payload.subjectCode or payload.subject)[:3].upper().replace(" ", "")
+        code = f"{asm_type}-{subject_prefix}-{payload.gradeLevel}-Q{payload.quarter}-{int(datetime.now().timestamp()) % 10000}"
 
     existing = await db.assessment.find_unique(where={"code": code})
     if existing:
-        return {
-            "id": existing.id,
-            "code": existing.code,
-            "title": existing.title,
-            "subject": existing.subject,
-            "gradeLevel": existing.gradeLevel,
-            "durationMinutes": existing.durationMinutes,
-            "totalQuestions": existing.totalQuestions,
-            "maxScore": existing.maxScore,
-            "targetGroup": getattr(existing, "targetGroup", "all") or "all",
-            "status": "published",
-        }
+        return _format_assessment_summary(existing)
 
     assessment_id = f"asm-{code.lower()}"
 
@@ -139,9 +155,13 @@ async def create_assessment(
             "code": code,
             "title": payload.title,
             "subject": payload.subject,
+            "subjectCode": payload.subjectCode,
             "gradeLevel": payload.gradeLevel,
+            "quarter": payload.quarter,
+            "academicYear": payload.academicYear,
+            "assessmentType": asm_type,
             "durationMinutes": payload.durationMinutes,
-            "totalQuestions": payload.totalQuestions,
+            "totalQuestions": payload.totalQuestions if not payload.questions else len(payload.questions),
             "maxScore": payload.maxScore,
             "targetGroup": payload.targetGroup,
         }
@@ -162,16 +182,22 @@ async def create_assessment(
             prompt = q_data.get("prompt") or q_data.get("text") or f"{idx}-savol"
             bloom = q_data.get("bloomLevel") or q_data.get("cognitiveLevel") or bloom_cycle[(idx - 1) % len(bloom_cycle)]
             pts = float(q_data.get("points", points_per_q))
+            task_type = str(q_data.get("taskType") or ("BSB_OPEN_TASK" if asm_type == "BSB" and not q_data.get("options") else "MCQ_SINGLE"))
+            sub_questions = q_data.get("subQuestions")
+            rubric = q_data.get("rubric")
             await db.question.create(
                 data={
                     "id": f"q-{created.id}-{idx}",
                     "assessmentId": created.id,
                     "questionNumber": idx,
                     "prompt": prompt,
+                    "taskType": task_type,
                     "optionsJson": json.dumps(opts),
+                    "subQuestionsJson": json.dumps(sub_questions) if sub_questions is not None else "[]",
+                    "rubricJson": json.dumps(rubric) if rubric is not None else "[]",
                     "correctOptionId": correct_opt,
                     "bloomLevel": bloom,
-                    "difficulty": "medium",
+                    "difficulty": str(q_data.get("difficulty") or "medium"),
                     "points": pts,
                 }
             )
@@ -190,6 +216,7 @@ async def create_assessment(
                     "assessmentId": created.id,
                     "questionNumber": i,
                     "prompt": f"{i}-savol: {payload.subject} {payload.gradeLevel}-sinf uchun test topshirig'i.",
+                    "taskType": "MCQ_SINGLE",
                     "optionsJson": json.dumps(options),
                     "correctOptionId": "opt-a",
                     "bloomLevel": bloom,
@@ -198,21 +225,14 @@ async def create_assessment(
                 }
             )
 
-    return {
-        "id": created.id,
-        "code": created.code,
-        "title": created.title,
-        "subject": created.subject,
-        "gradeLevel": created.gradeLevel,
-        "durationMinutes": created.durationMinutes,
-        "totalQuestions": payload.totalQuestions if not payload.questions else len(payload.questions),
-        "maxScore": created.maxScore,
-        "status": "published",
-    }
+    return _format_assessment_summary(created)
 
 class QuestionUpdate(BaseModel):
     prompt: str | None = None
+    taskType: str | None = None
     options: list[dict] | None = None
+    subQuestions: list[dict] | None = None
+    rubric: dict | list | None = None
     correctOptionId: str | None = None
     points: float | None = None
     bloomLevel: str | None = None
@@ -228,8 +248,14 @@ async def update_question(
     update_data = {}
     if payload.prompt is not None:
         update_data["prompt"] = payload.prompt
+    if payload.taskType is not None:
+        update_data["taskType"] = payload.taskType
     if payload.options is not None:
         update_data["optionsJson"] = json.dumps(payload.options)
+    if payload.subQuestions is not None:
+        update_data["subQuestionsJson"] = json.dumps(payload.subQuestions)
+    if payload.rubric is not None:
+        update_data["rubricJson"] = json.dumps(payload.rubric)
     if payload.correctOptionId is not None:
         update_data["correctOptionId"] = payload.correctOptionId
     if payload.points is not None:
@@ -266,15 +292,22 @@ async def get_assessment_by_id(
     questions = sorted(assessment.questions, key=lambda q: q.questionNumber)
     formatted_questions = []
     for q in questions:
-        options = q.optionsJson if isinstance(q.optionsJson, list) else json.loads(str(q.optionsJson or "[]"))
+        options = _parse_json_value(q.optionsJson, [])
+        sub_questions = _parse_json_value(getattr(q, "subQuestionsJson", None), None)
+        rubric = _parse_json_value(getattr(q, "rubricJson", None), None)
         item = {
             "id": q.id,
             "order": q.questionNumber,
             "text": q.prompt,
+            "taskType": getattr(q, "taskType", "MCQ_SINGLE") or "MCQ_SINGLE",
             "options": options,
             "points": q.points,
             "cognitiveLevel": q.bloomLevel,
         }
+        if sub_questions is not None:
+            item["subQuestions"] = sub_questions
+        if rubric is not None:
+            item["rubric"] = rubric
         # Zero Answer Key Invariant: never expose correctOptionId to students
         if not actor.is_student:
             item["correctOptionId"] = q.correctOptionId
@@ -285,7 +318,11 @@ async def get_assessment_by_id(
         "code": assessment.code,
         "title": assessment.title,
         "subject": assessment.subject,
+        "subjectCode": getattr(assessment, "subjectCode", None),
         "gradeLevel": assessment.gradeLevel,
+        "quarter": getattr(assessment, "quarter", 1) or 1,
+        "academicYear": getattr(assessment, "academicYear", "2025-2026") or "2025-2026",
+        "assessmentType": getattr(assessment, "assessmentType", "CHSB") or "CHSB",
         "durationMinutes": assessment.durationMinutes,
         "totalQuestions": assessment.totalQuestions,
         "maxScore": assessment.maxScore,
@@ -485,10 +522,22 @@ async def submit_attempt(
         answers = {**answers, **payload.answers}
 
     total_score = 0.0
+    has_open_tasks = False
+    mcq_types = {"MCQ_SINGLE", "MULTIPLE_CHOICE", "MCQ"}
     for q in attempt.assessment.questions:
+        task_type = (getattr(q, "taskType", None) or "MCQ_SINGLE").upper()
+        is_mcq = task_type in mcq_types
+        parsed_rubric = _parse_json_value(getattr(q, "rubricJson", None), [])
+        if (not is_mcq) or (isinstance(parsed_rubric, (list, dict)) and len(parsed_rubric) > 0):
+            has_open_tasks = True
         selected_id = answers.get(q.id) or answers.get(str(q.questionNumber))
-        if selected_id == q.correctOptionId:
+        if is_mcq and selected_id == q.correctOptionId:
             total_score += q.points
+
+    asm_type = getattr(attempt.assessment, "assessmentType", "CHSB") or "CHSB"
+    needs_review = has_open_tasks or asm_type == "BSB"
+    result_status = "pending_review" if needs_review else "verified"
+    verified_flag = not needs_review
 
     max_score = attempt.assessment.maxScore
     pct = round((total_score / max_score) * 100, 1) if max_score > 0 else 0
@@ -523,7 +572,8 @@ async def submit_attempt(
                 "maxScore": max_score,
                 "percentage": pct,
                 "grade": grade,
-                "status": "verified",
+                "status": result_status,
+                "verifiedByTeacher": verified_flag,
                 "submittedAt": now,
             }
         )
@@ -538,8 +588,52 @@ async def submit_attempt(
         "maxScore": max_score,
         "percentage": pct,
         "grade": grade,
+        "status": result_status,
+        "verifiedByTeacher": verified_flag,
         "alreadySubmitted": False,
     }
+
+
+def _format_result_row(r) -> dict:
+    asm = r.attempt.assessment if r.attempt else None
+    return {
+        "id": r.id,
+        "attemptId": r.attemptId,
+        "assessmentId": r.attempt.assessmentId if r.attempt else "",
+        "assessmentTitle": asm.title if asm else "CHSB Baholash",
+        "assessmentType": getattr(asm, "assessmentType", "CHSB") if asm else "CHSB",
+        "quarter": getattr(asm, "quarter", 1) if asm else 1,
+        "studentId": r.studentId,
+        "studentName": f"{r.student.firstName} {r.student.lastName}",
+        "className": r.student.classGroup.name if r.student.classGroup else "",
+        "score": r.score,
+        "maxScore": r.maxScore,
+        "percentage": r.percentage,
+        "grade": r.grade,
+        "status": r.status,
+        "verifiedByTeacher": bool(getattr(r, "verifiedByTeacher", False)),
+        "rubricScores": _parse_json_value(getattr(r, "rubricScoresJson", None), {}),
+        "teacherFeedback": getattr(r, "teacherFeedback", None) or "",
+        "gradedBy": getattr(r, "gradedBy", None),
+        "gradedAt": _as_utc(r.gradedAt).isoformat() if getattr(r, "gradedAt", None) else None,
+        "submittedAt": _as_utc(r.submittedAt).isoformat(),
+    }
+
+
+class GradeResultPayload(BaseModel):
+    score: float = Field(..., ge=0.0)
+    rubricScores: dict | None = None
+    feedback: str | None = None
+    verifiedByTeacher: bool = True
+
+
+class AbsencePayload(BaseModel):
+    reason: str = Field(..., min_length=2)
+
+
+class ReopenPayload(BaseModel):
+    resetTimer: bool = True
+
 
 @router.get("/results/attempt/{attempt_id}")
 async def get_result_by_attempt(
@@ -549,7 +643,10 @@ async def get_result_by_attempt(
 ):
     result = await db.assessmentresult.find_unique(
         where={"attemptId": attempt_id},
-        include={"student": {"include": {"classGroup": True}}},
+        include={
+            "student": {"include": {"classGroup": True}},
+            "attempt": {"include": {"assessment": True}},
+        },
     )
     if not result:
         raise HTTPException(status_code=404, detail="Natija topilmadi.")
@@ -558,19 +655,8 @@ async def get_result_by_attempt(
     if result.student:
         assert_tenant_ownership(result.student.tenantId, actor)
 
-    return {
-        "id": result.id,
-        "attemptId": result.attemptId,
-        "studentId": result.studentId,
-        "studentName": f"{result.student.firstName} {result.student.lastName}",
-        "className": result.student.classGroup.name if result.student.classGroup else "",
-        "score": result.score,
-        "maxScore": result.maxScore,
-        "percentage": result.percentage,
-        "grade": result.grade,
-        "status": result.status,
-        "submittedAt": result.submittedAt.isoformat(),
-    }
+    return _format_result_row(result)
+
 
 @router.get("/results/tenant/{tenant_id}")
 async def get_results_by_tenant(
@@ -587,22 +673,135 @@ async def get_results_by_tenant(
         },
         order={"submittedAt": "desc"},
     )
-    return [
-        {
-            "id": r.id,
-            "attemptId": r.attemptId,
-            "assessmentId": r.attempt.assessmentId if r.attempt else "",
-            "assessmentTitle": r.attempt.assessment.title if (r.attempt and r.attempt.assessment) else "CHSB Baholash",
-            "studentId": r.studentId,
-            "studentName": f"{r.student.firstName} {r.student.lastName}",
-            "className": r.student.classGroup.name if r.student.classGroup else "",
-            "score": r.score,
-            "maxScore": r.maxScore,
-            "percentage": r.percentage,
-            "grade": r.grade,
-            "status": r.status,
-            "submittedAt": r.submittedAt.isoformat(),
-        }
-        for r in results
-    ]
+    return [_format_result_row(r) for r in results]
+
+
+@router.patch("/assessments/results/{attempt_id}/grade")
+async def grade_assessment_result(
+    attempt_id: str,
+    payload: GradeResultPayload,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    result = await db.assessmentresult.find_unique(
+        where={"attemptId": attempt_id},
+        include={
+            "student": {"include": {"school": True, "classGroup": True}},
+            "attempt": {"include": {"assessment": True}},
+        },
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Baholanadigan natija topilmadi.")
+    if result.student:
+        assert_tenant_ownership(result.student.tenantId, actor)
+
+    if payload.score > result.maxScore:
+        raise HTTPException(status_code=400, detail=f"Ball maksimal balldan ({result.maxScore}) oshib ketdi.")
+
+    pct = round((payload.score / result.maxScore) * 100, 1) if result.maxScore > 0 else 0.0
+    school_preset = (
+        getattr(result.student.school, "gradingPreset", None)
+        if result.student and result.student.school
+        else None
+    ) or "MMTV_STANDARD"
+    grade = calculate_grade5(pct, preset=school_preset)
+    now = datetime.now(timezone.utc)
+
+    update_data: dict = {
+        "score": round(payload.score, 2),
+        "percentage": pct,
+        "grade": grade,
+        "verifiedByTeacher": payload.verifiedByTeacher,
+        "status": "verified" if payload.verifiedByTeacher else "pending_review",
+        "gradedBy": actor.id,
+        "gradedAt": now,
+    }
+    if payload.rubricScores is not None:
+        update_data["rubricScoresJson"] = json.dumps(payload.rubricScores)
+    if payload.feedback is not None:
+        update_data["teacherFeedback"] = payload.feedback
+
+    updated = await db.assessmentresult.update(
+        where={"id": result.id},
+        data=update_data,
+        include={
+            "student": {"include": {"classGroup": True}},
+            "attempt": {"include": {"assessment": True}},
+        },
+    )
+    return _format_result_row(updated)
+
+
+@router.post("/assessments/attempts/{attempt_id}/absence")
+async def mark_attempt_absent(
+    attempt_id: str,
+    payload: AbsencePayload,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    attempt = await db.assessmentattempt.find_unique(
+        where={"id": attempt_id},
+        include={"student": True},
+    )
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Urinish topilmadi.")
+    if attempt.student:
+        assert_tenant_ownership(attempt.student.tenantId, actor)
+
+    reason = payload.reason.upper()
+    if reason not in {"EXCUSED", "UNEXCUSED", "ILLNESS"}:
+        raise HTTPException(status_code=400, detail="Sabab EXCUSED, UNEXCUSED yoki ILLNESS bo'lishi kerak.")
+
+    updated = await db.assessmentattempt.update(
+        where={"id": attempt_id},
+        data={
+            "status": "absent",
+            "absenceReason": reason,
+        },
+    )
+    return {
+        "attemptId": updated.id,
+        "status": updated.status,
+        "absenceReason": updated.absenceReason,
+    }
+
+
+@router.post("/assessments/attempts/{attempt_id}/reopen")
+async def reopen_attempt(
+    attempt_id: str,
+    payload: ReopenPayload | None = None,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    attempt = await db.assessmentattempt.find_unique(
+        where={"id": attempt_id},
+        include={"student": True},
+    )
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Urinish topilmadi.")
+    if attempt.student:
+        assert_tenant_ownership(attempt.student.tenantId, actor)
+
+    now = datetime.now(timezone.utc)
+    update_data: dict = {
+        "status": "in_progress",
+        "reopenedBy": actor.id,
+        "reopenedAt": now,
+        "absenceReason": "none",
+        "submittedAt": None,
+    }
+    if not payload or payload.resetTimer:
+        update_data["startedAt"] = now
+
+    updated = await db.assessmentattempt.update(
+        where={"id": attempt_id},
+        data=update_data,
+    )
+    return {
+        "attemptId": updated.id,
+        "status": updated.status,
+        "reopenedBy": updated.reopenedBy,
+        "reopenedAt": _as_utc(updated.reopenedAt).isoformat() if updated.reopenedAt else None,
+        "startedAt": _as_utc(updated.startedAt).isoformat(),
+    }
 
