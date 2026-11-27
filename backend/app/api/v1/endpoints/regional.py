@@ -65,7 +65,7 @@ async def get_school_rankings(districtId: str | None = None, db: Prisma = Depend
             "rank": idx + 1,
             "schoolId": s.id,
             "schoolName": s.name,
-            "districtName": s.district,
+            "districtName": s.districtId,
             "averageScore": round(avg_score - (idx * 0.8), 1),
             "participationRate": max(85, 96 - idx * 2),
             "qualityRate": max(60, 80 - idx * 4),

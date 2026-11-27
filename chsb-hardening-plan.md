@@ -64,7 +64,7 @@ CHSB_APP/
   - **OUTPUT:** `GET /assessments/{id}` student uchun `correctOptionId` ni qaytarmaydi (alohida teacher endpointi bo'ladi); `save_draft` mavjud `answersJson` bilan merge qiladi; `submit_attempt` `submitted` urinishni qayta hisoblamaydi, `startedAt + durationMinutes` deadline va offline-queue dan kelgan `answers` ni tekshiradi; frontend `deadlineAt` ni real `startedAt` + `durationMinutes` dan hisoblaydi va `assessmentId` hardcoded `'chsb-inf-11-q1'` ni olib tashlaydi.
   - **VERIFY:** Pytest da ketma-ket 2 ta draft yuborilganda ikkalasi ham saqlanishi, `correctOptionId` student javobida yo'qligi va qayta submit idempotent ekani tasdiqlanadi.
 
-- [ ] **TASK-1.4: Runtime Crash (`regional.py`), Debug Guard va Rotating Loglar**
+- [x] **TASK-1.4: Runtime Crash (`regional.py`), Debug Guard va Rotating Loglar**
   - **Agent:** `backend-specialist` + `debugger` | **Skills:** `systematic-debugging`, `clean-code`
   - **INPUT:** `backend/app/api/v1/endpoints/regional.py`, `backend/app/main.py`, `backend/app/core/config.py`
   - **OUTPUT:** `regional.py:63` dagi `s.district` → `s.districtId` ga tuzatiladi; `DEBUG` flagi qo'shilib `debug-db` va `traceback` faqat `DEBUG=True` da ishlaydi; CORS `allow_origins` env dan olinadi; `logging.handlers.RotatingFileHandler` (`logs/backend.log`) yoqiladi.
