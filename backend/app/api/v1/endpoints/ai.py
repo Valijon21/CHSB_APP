@@ -1,7 +1,9 @@
 import os
+
 import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel
+
 from backend.app.core.config import settings
 
 router = APIRouter(prefix="/ai", tags=["AI Pedagogical Intelligence"])
@@ -25,7 +27,7 @@ class StudentRemediationRequest(BaseModel):
 @router.post("/class-diagnosis")
 async def generate_class_diagnosis(payload: ClassDiagnosisRequest):
     api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
-    
+
     # Prompt template for Gemini
     prompt = f"""
     Siz O'zbekiston xalq ta'limi tizimining tajribali metodist-pedagog ekspertisiz.
@@ -33,7 +35,7 @@ async def generate_class_diagnosis(payload: ClassDiagnosisRequest):
     - O'rtacha ball: {payload.averageScore} / {payload.maxScore}
     - Sifat foizi (5 va 4 baholar): {payload.qualityRate}%
     - Imtihon ishtiroki: {payload.participationRate}% ({payload.totalStudents} nafar o'quvchi)
-    
+
     Javobni o'zbek tilida, qat'iy, aniq va ruhlantiruvchi professional uslubda yozing.
     """
 

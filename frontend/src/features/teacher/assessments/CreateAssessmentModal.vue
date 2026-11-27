@@ -218,7 +218,7 @@ interface ParsedQuestion {
 const parsedQuestions = computed<ParsedQuestion[]>(() => {
   if (!customQuestionsText.value.trim()) return [];
   const raw = customQuestionsText.value.trim();
-  const blocks = raw.split(/\n\s*(?=(?:\d+[\.\)]|[Qq]\d+[:\.\)]))/g);
+  const blocks = raw.split(/\n\s*(?=(?:\d+[.)]|[Qq]\d+[:.)]))/g);
   const questions: ParsedQuestion[] = [];
   const pts = Number((maxScore.value / Math.max(1, totalQuestions.value)).toFixed(1));
 
@@ -227,14 +227,14 @@ const parsedQuestions = computed<ParsedQuestion[]>(() => {
     if (lines.length < 2) continue;
 
     const firstLine = lines[0] ?? '';
-    const prompt = firstLine.replace(/^(\d+[\.\)]|[Qq]\d+[:\.\)])\s*/, '');
+    const prompt = firstLine.replace(/^(\d+[.)]|[Qq]\d+[:.)])\s*/, '');
     const options: Array<{ id: string; label: string; text: string }> = [];
     let correctId = 'opt-a';
 
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       if (!line) continue;
-      const optMatch = line.match(/^([A-Da-d])[\.\)]\s*(.*)$/);
+      const optMatch = line.match(/^([A-Da-d])[.)]\s*(.*)$/);
       const ansMatch = line.match(/^(?:Javob|To'g'ri|Correct|Ans)[:\s]*([A-Da-d])/i);
 
       if (ansMatch && ansMatch[1]) {

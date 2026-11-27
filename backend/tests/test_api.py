@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from backend.tests.conftest import TEST_PASSWORD, auth_headers
+
 
 @pytest.fixture(autouse=True)
 def setup_api_test_data(client: TestClient):
@@ -69,8 +71,7 @@ def test_health_check(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert "prisma" in data["database"]
-    assert data["orm"] == "prisma-client-py"
+    assert data["database"] == "postgresql"
 
 def test_auth_login_success(client: TestClient):
     response = client.post(

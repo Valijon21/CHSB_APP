@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import Optional
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel
+
 
 class CurriculumResourceResponse(BaseModel):
     id: str
@@ -12,9 +13,9 @@ class CurriculumResourceResponse(BaseModel):
     title: str
     topic: str
     resourceType: str
-    description: Optional[str] = None
+    description: str | None = None
     contentJson: str
-    fileUrl: Optional[str] = None
+    fileUrl: str | None = None
     downloadCount: int = 0
     createdAt: str
     updatedAt: str
@@ -25,7 +26,7 @@ class AssessmentSolutionResponse(BaseModel):
     questionId: str
     variantNumber: int = 1
     stepByStepSolution: str
-    solutionFormulas: Optional[str] = None
+    solutionFormulas: str | None = None
     rubricCriteriaJson: str = "[]"
-    authorNote: Optional[str] = None
+    authorNote: str | None = None
     createdAt: str

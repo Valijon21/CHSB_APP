@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm --prefix frontend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
-    "dev:backend": "PYTHONPATH=. .venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload",
+    "dev:backend": ".venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload",
     "build": "npm --prefix frontend run build",
     "build:frontend": "npm --prefix frontend run build",
     "typecheck": "npm --prefix frontend run typecheck",
@@ -15,17 +15,11 @@
     "test": "npm --prefix frontend run test",
     "test:frontend": "npm --prefix frontend run test",
     "test:watch": "npm --prefix frontend run test:watch",
-    "test:backend": "PYTHONPATH=. .venv/bin/pytest backend/tests",
+    "test:backend": ".venv/bin/python -m pytest",
     "dev:v2": "npm --prefix v2 run dev",
     "build:v2": "npm --prefix v2 run build",
     "test:v2": "npx tsx --test v2/tests/*.test.ts",
-    "db:push": "npx prisma db push",
-    "db:generate": "npx prisma generate"
-  },
-  "devDependencies": {
-    "prisma": "^5.17.0"
-  },
-  "dependencies": {
-    "@prisma/client": "^5.17.0"
+    "db:migrate": ".venv/bin/python -m backend.app.manage migrate",
+    "lint:backend": ".venv/bin/ruff check backend"
   }
 }

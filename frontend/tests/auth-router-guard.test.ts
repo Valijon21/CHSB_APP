@@ -75,6 +75,10 @@ describe('TASK-AUTH.4: Router Navigation Guard & RBAC Protection', () => {
 
     await router.push('/t/al-xorazmiy/teacher/students');
     expect(router.currentRoute.value.path).toBe('/t/al-xorazmiy/teacher/regional-oversight');
+
+    // ...and their own profile, where the password is changed
+    await router.push('/t/al-xorazmiy/teacher/profile');
+    expect(router.currentRoute.value.path).toBe('/t/al-xorazmiy/teacher/profile');
   });
 
   it('redirects logged-in user away from /login to their home page', async () => {

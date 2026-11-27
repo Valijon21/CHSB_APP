@@ -1,12 +1,8 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
-import pytest
 from fastapi.testclient import TestClient
 
-from backend.app.db.schema_sync import ensure_schema_synced
-from backend.app.api.v1.endpoints.students import pick_unique_roster_code
-from backend.app.core.config import settings
+from backend.app.services.students import pick_unique_roster_code
 
 
 def test_pick_unique_roster_code_avoids_collisions():
@@ -22,45 +18,6 @@ def test_pick_unique_roster_code_avoids_collisions():
 
     c3, _ = pick_unique_roster_code(existing, "CUSTOM-1", nxt)
     assert c3 == "CUSTOM-1-1"
-
-
-@pytest.mark.asyncio
-async def test_ensure_schema_synced_postgres_ddl_statements(monkeypatch):
-    monkeypatch.setattr(settings, "DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
-    mock_db = AsyncMock()
-    mock_db.execute_raw = AsyncMock(return_value=0)
-
-    await ensure_schema_synced(mock_db)
-
-    executed_sql = "\n".join(call.args[0] for call in mock_db.execute_raw.call_args_list)
-    assert 'ALTER TABLE "class_groups" ADD COLUMN IF NOT EXISTS "has_groups"' in executed_sql
-    assert 'ALTER TABLE "students" ADD COLUMN IF NOT EXISTS "group"' in executed_sql
-    assert 'ALTER TABLE "students" ADD COLUMN IF NOT EXISTS "emaktab_id"' in executed_sql
-    assert 'ALTER TABLE "assessments" ADD COLUMN IF NOT EXISTS "target_group"' in executed_sql
-    assert 'CREATE TABLE IF NOT EXISTS "curriculum_resources"' in executed_sql
-    assert 'CREATE TABLE IF NOT EXISTS "assessment_solutions"' in executed_sql
-
-
-@pytest.mark.asyncio
-async def test_ensure_schema_synced_sqlite_adds_missing_column(monkeypatch):
-    monkeypatch.setattr(settings, "DATABASE_URL", "file:/tmp/mock.db")
-    mock_db = AsyncMock()
-
-    async def fake_query_raw(sql: str):
-        if '"class_groups"' in sql:
-            return [{"name": "id"}, {"name": "name"}]  # missing has_groups
-        return [{"name": "id"}, {"name": "group"}, {"name": "emaktab_id"}, {"name": "target_group"}]
-
-    mock_db.query_raw = AsyncMock(side_effect=fake_query_raw)
-    mock_db.execute_raw = AsyncMock(return_value=0)
-
-    await ensure_schema_synced(mock_db)
-
-    executed_sql = [call.args[0] for call in mock_db.execute_raw.call_args_list]
-    assert any(
-        'ALTER TABLE "class_groups" ADD COLUMN "has_groups"' in s for s in executed_sql
-    )
-    assert not any('ALTER TABLE "students"' in s for s in executed_sql)
 
 
 def test_bulk_create_students_survives_deleted_gaps_and_classname_fallback(client: TestClient):

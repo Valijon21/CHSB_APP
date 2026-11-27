@@ -1,6 +1,18 @@
 from fastapi import APIRouter, Depends
-from backend.app.api.v1.endpoints import auth, classes, students, analytics, ai, tenants, assessments, regional, subjects, curriculum
-from backend.app.core.permissions import school_staff, regional_viewer
+
+from backend.app.api.v1.endpoints import (
+    ai,
+    analytics,
+    assessments,
+    auth,
+    classes,
+    curriculum,
+    regional,
+    students,
+    subjects,
+    tenants,
+)
+from backend.app.core.permissions import regional_viewer, school_staff
 
 api_router = APIRouter()
 

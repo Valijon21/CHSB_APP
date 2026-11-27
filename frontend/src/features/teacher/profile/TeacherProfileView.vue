@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
+import ChangePasswordForm from '../../auth/components/ChangePasswordForm.vue';
 import {
   saveStoredGeminiApiKey,
   getCustomApiKey,
@@ -259,5 +260,7 @@ function handleSave() {
         </div>
       </div>
     </div>
+
+    <ChangePasswordForm />
   </div>
 </template>

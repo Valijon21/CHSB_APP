@@ -6,11 +6,13 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
+from sqlalchemy import update
 
 from backend.app.core.config import Settings, settings
 from backend.app.core.security import STUDENT_TOKEN, create_access_token, get_password_hash
-from backend.app.db.prisma import prisma
+from backend.app.db.session import database
 from backend.app.main import app
+from backend.app.models import User
 from backend.tests.conftest import TEST_PASSWORD, auth_headers
 
 ANONYMOUS = {"Authorization": ""}
@@ -169,10 +171,13 @@ def test_login_returns_tenant(client: TestClient):
 
 def test_published_default_password_is_blocked(client: TestClient):
     async def set_default_password():
-        await prisma.user.update(
-            where={"username": "test_admin_tm"},
-            data={"hashedPassword": get_password_hash("Secret123!")},
-        )
+        async with database.session() as db:
+            await db.execute(
+                update(User)
+                .where(User.username == "test_admin_tm")
+                .values(hashed_password=get_password_hash("Secret123!"))
+            )
+            await db.commit()
 
     client.portal.call(set_default_password)
     response = client.post("/api/v1/auth/login", json={"username": "test_admin_tm", "password": "Secret123!"})

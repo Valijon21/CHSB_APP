@@ -1,49 +1,50 @@
-from fastapi import APIRouter, Depends, HTTPException
-from backend.app.db.prisma import get_prisma
-from prisma import Prisma
-from backend.app.core.dependencies import get_current_user
-from backend.app.core.permissions import can_access_tenant, REGIONAL_INSPECTOR, SUPER_ADMIN
+from __future__ import annotations
+
+from fastapi import APIRouter, HTTPException
+from sqlalchemy import select
+
+from backend.app.core.dependencies import CurrentUser, DbSession
+from backend.app.core.permissions import REGIONAL_INSPECTOR, SUPER_ADMIN, can_access_tenant
+from backend.app.models import School, Tenant
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
 
+
+def serialize_tenant(t: Tenant) -> dict:
+    return {
+        "id": t.id,
+        "slug": t.slug,
+        "name": t.name,
+        "code": t.slug.upper(),
+        "region": t.region_id,
+        "activeYear": "2026-2027",
+        "createdAt": t.created_at.isoformat(),
+    }
+
+
 @router.get("")
-async def get_tenants(db: Prisma = Depends(get_prisma), current_user=Depends(get_current_user)):
-    sees_all = current_user.role in (SUPER_ADMIN, REGIONAL_INSPECTOR)
-    tenants = await db.tenant.find_many(
-        where=None if sees_all else {"id": current_user.tenantId},
-        order={"name": "asc"},
-    )
-    return [
-        {
-            "id": t.id,
-            "slug": t.slug,
-            "name": t.name,
-            "code": t.slug.upper(),
-            "region": t.regionId,
-            "activeYear": "2026-2027",
-            "createdAt": t.createdAt.isoformat(),
-        }
-        for t in tenants
-    ]
+async def get_tenants(db: DbSession, current_user: CurrentUser):
+    query = select(Tenant).order_by(Tenant.name)
+    if current_user.role not in (SUPER_ADMIN, REGIONAL_INSPECTOR):
+        query = query.where(Tenant.id == current_user.tenant_id)
+    return [serialize_tenant(t) for t in await db.scalars(query)]
+
 
 @router.get("/{slug}/context")
-async def get_tenant_public_context(slug: str, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_unique(
-        where={"slug": slug},
-        include={"schools": True},
-    )
+async def get_tenant_public_context(slug: str, db: DbSession):
+    tenant = await db.scalar(select(Tenant).where(Tenant.slug == slug))
     if not tenant:
         raise HTTPException(status_code=404, detail="Maktab/Tashkilot topilmadi.")
-
-    primary_school = tenant.schools[0] if tenant.schools else None
-
+    school = await db.scalar(
+        select(School).where(School.tenant_id == tenant.id).order_by(School.created_at, School.id).limit(1)
+    )
     return {
         "tenantId": tenant.id,
         "tenantSlug": tenant.slug,
         "schoolName": tenant.name,
         "schoolCode": tenant.slug.upper(),
-        "region": tenant.regionId,
-        "district": primary_school.districtId if primary_school else "Toshkent shahar",
+        "region": tenant.region_id,
+        "district": school.district_id if school else "Toshkent shahar",
         "activeAcademicYear": "2026-2027",
         "branding": {
             "title": f"{tenant.name} - CHSB Platformasi",
@@ -51,24 +52,13 @@ async def get_tenant_public_context(slug: str, db: Prisma = Depends(get_prisma))
         },
     }
 
+
 @router.get("/{id}")
-async def get_tenant_by_id(
-    id: str,
-    db: Prisma = Depends(get_prisma),
-    current_user=Depends(get_current_user),
-):
-    tenant = await db.tenant.find_unique(where={"id": id})
+async def get_tenant_by_id(id: str, db: DbSession, current_user: CurrentUser):
+    tenant = await db.get(Tenant, id)
     allowed = tenant is not None and (
         current_user.role == REGIONAL_INSPECTOR or can_access_tenant(current_user, tenant.id)
     )
     if not allowed:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
-    return {
-        "id": tenant.id,
-        "slug": tenant.slug,
-        "name": tenant.name,
-        "code": tenant.slug.upper(),
-        "region": tenant.regionId,
-        "activeYear": "2026-2027",
-        "createdAt": tenant.createdAt.isoformat(),
-    }
+    return serialize_tenant(tenant)

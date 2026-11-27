@@ -13,6 +13,9 @@ export const UserRoleSchema = z.enum([
 
 export type UserRole = z.infer<typeof UserRoleSchema>;
 
+/** Same rule as the backend */
+export const MIN_PASSWORD_LENGTH = 10;
+
 // ==========================================
 // 2. KIRISH MALUMOTLARI (LOGIN CREDENTIALS)
 // ==========================================

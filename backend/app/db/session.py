@@ -1,25 +1,53 @@
+"""
+Database engine and per-request sessions.
+"""
 from __future__ import annotations
-import asyncpg
+
+from collections.abc import AsyncIterator
+
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+
 from backend.app.core.config import settings
+from backend.app.db.url import parse_database_url
+
 
 class Database:
-    def __init__(self):
-        self.pool: asyncpg.Pool | None = None
+    """Owns the engine. Connected during the application lifespan."""
 
-    async def connect(self):
-        # Convert url to standard postgresql if needed
-        dsn = settings.DATABASE_URL.replace("+asyncpg", "")
-        self.pool = await asyncpg.create_pool(dsn=dsn, min_size=2, max_size=10)
+    def __init__(self) -> None:
+        self._engine: AsyncEngine | None = None
+        self._sessions: async_sessionmaker[AsyncSession] | None = None
 
-    async def disconnect(self):
-        if self.pool:
-            await self.pool.close()
+    def connect(self, raw_url: str | None = None) -> None:
+        if self._engine is not None:
+            return
+        url, connect_args = parse_database_url(raw_url or settings.DATABASE_URL)
+        self._engine = create_async_engine(
+            url,
+            connect_args=connect_args,
+            pool_pre_ping=True,
+            pool_size=settings.DB_POOL_SIZE,
+            max_overflow=settings.DB_POOL_SIZE,
+        )
+        self._sessions = async_sessionmaker(self._engine, expire_on_commit=False)
 
-db = Database()
+    async def disconnect(self) -> None:
+        if self._engine is not None:
+            await self._engine.dispose()
+        self._engine = None
+        self._sessions = None
 
-async def get_db():
-    if not db.pool:
-        await db.connect()
-    async with db.pool.acquire() as connection:
-        yield connection
+    def session(self) -> AsyncSession:
+        if self._sessions is None:
+            self.connect()
+        assert self._sessions is not None
+        return self._sessions()
 
+
+database = Database()
+
+
+async def get_session() -> AsyncIterator[AsyncSession]:
+    """One session per request. Writers commit explicitly; anything else is rolled back."""
+    async with database.session() as session:
+        yield session

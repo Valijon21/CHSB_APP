@@ -1,210 +1,154 @@
+"""
+Data a new installation starts with. Nothing here ever deletes or overwrites.
+"""
+from __future__ import annotations
+
 import json
-import os
-from datetime import datetime, timezone
-import sys
 from pathlib import Path
 
-# Remove local directory from sys.path to prevent backend/app/db/prisma.py from shadowing installed prisma
-_db_dir = str(Path(__file__).resolve().parent)
-if _db_dir in sys.path:
-    sys.path.remove(_db_dir)
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from prisma import Prisma
 from backend.app.core.config import settings
+from backend.app.core.logging import logger
 from backend.app.core.security import BLOCKED_PASSWORDS, MIN_PASSWORD_LENGTH, get_password_hash
+from backend.app.models import AssessmentSolution, CurriculumResource, School, Subject, Tenant, User
+
+CURRICULUM_FILE = Path(__file__).resolve().parents[1] / "data" / "curriculum.json"
+DEFAULT_TENANT_ID = "tenant-al-xorazmiy"
+
+TENANTS = [
+    {
+        "id": DEFAULT_TENANT_ID,
+        "slug": "al-xorazmiy",
+        "name": "Muhammad al-Xorazmiy nomidagi ixtisoslashtirilgan IT-maktab",
+        "region_id": "tashkent-city",
+    },
+    {
+        "id": "tenant-temurbeklar",
+        "slug": "temurbeklar-maktabi",
+        "name": "Temurbeklar Maktabi Harbiy-Akademik Litseyi",
+        "region_id": "tashkent-city",
+    },
+]
+
+SCHOOLS = [
+    {
+        "id": "school-ax-1",
+        "tenant_id": DEFAULT_TENANT_ID,
+        "name": "Al-Xorazmiy IT Bosh Kampusi",
+        "district_id": "mirzo-ulugbek",
+        "school_type": "specialized",
+    },
+    {
+        "id": "school-tm-1",
+        "tenant_id": "tenant-temurbeklar",
+        "name": "Temurbeklar Maktabi Markaziy Kampus",
+        "district_id": "chilonzor",
+        "school_type": "military",
+    },
+]
 
 SYSTEM_ACCOUNTS = [
     {
         "id": "usr-teacher-01",
-        "tenantId": "tenant-al-xorazmiy",
         "username": "teacher_ax",
         "email": "teacher@al-xorazmiy.uz",
-        "fullName": "Anvar Rahimov",
+        "full_name": "Anvar Rahimov",
         "role": "TEACHER",
     },
     {
         "id": "usr-admin-01",
-        "tenantId": "tenant-al-xorazmiy",
         "username": "admin_ax",
         "email": "admin@al-xorazmiy.uz",
-        "fullName": "Al-Xorazmiy Administrator",
+        "full_name": "Al-Xorazmiy Administrator",
         "role": "SCHOOL_ADMIN",
     },
     {
         "id": "usr-inspector-01",
-        "tenantId": "tenant-al-xorazmiy",
         "username": "inspector_tashkent",
         "email": "inspector@toshkent-xtb.uz",
-        "fullName": "Shavkat Rahimov (ShHTB)",
+        "full_name": "Shavkat Rahimov (ShHTB)",
         "role": "REGIONAL_INSPECTOR",
     },
 ]
 
-async def seed_users_if_empty(db: Prisma) -> None:
+STANDARD_SUBJECTS = [
+    ("Matematika", "MATH", "5,6,7,8,9,10,11", "Algebra, geometriya va amaliy matematika"),
+    ("Informatika va AT", "INF", "5,6,7,8,9,10,11", "Dasturlash, kompyuter savodxonligi va axborot texnologiyalari"),
+    ("Fizika", "PHYS", "7,8,9,10,11", "Mexanika, termodinamika va elektrodinamika"),
+    ("Kimyo", "CHEM", "7,8,9,10,11", "Umumiy va organik kimyo"),
+    ("Biologiya", "BIO", "5,6,7,8,9,10,11", "Botanika, zoologiya va umumiy biologiya"),
+    ("Ona tili va adabiyot", "UZB", "5,6,7,8,9,10,11", "Grammatika, adabiyot va matn bilan ishlash"),
+    ("Ingliz tili", "ENG", "5,6,7,8,9,10,11", "Xorijiy til: grammatika, leksika va tinglab tushunish"),
+    ("Tarix", "HIST", "5,6,7,8,9,10,11", "O'zbekiston tarixi va jahon tarixi"),
+    ("Geografiya", "GEO", "5,6,7,8,9,10", "Tabiiy va iqtisodiy geografiya"),
+]
+
+
+async def seed_users_if_empty(db: AsyncSession) -> None:
     """Create the system accounts, only when SEED_PASSWORD provides a private password."""
-    if await db.user.count() > 0:
+    if await db.scalar(select(func.count()).select_from(User)):
         return
     password = settings.SEED_PASSWORD
     if len(password) < MIN_PASSWORD_LENGTH or password in BLOCKED_PASSWORDS:
-        print(f"⚠️ No users created: set SEED_PASSWORD (at least {MIN_PASSWORD_LENGTH} characters) and restart.")
-        return
-    if not await db.tenant.find_unique(where={"id": "tenant-al-xorazmiy"}):
-        return
-    hashed_password = get_password_hash(password)
-    for account in SYSTEM_ACCOUNTS:
-        await db.user.create(data={**account, "hashedPassword": hashed_password, "isActive": True})
-    print(f"✅ Created {len(SYSTEM_ACCOUNTS)} system accounts.")
-
-STANDARD_SUBJECTS = [
-    {"name": "Matematika", "code": "MATH", "gradeLevels": "5,6,7,8,9,10,11", "description": "Algebra, geometriya va amaliy matematika"},
-    {"name": "Informatika va AT", "code": "INF", "gradeLevels": "5,6,7,8,9,10,11", "description": "Dasturlash, kompyuter savodxonligi va axborot texnologiyalari"},
-    {"name": "Fizika", "code": "PHYS", "gradeLevels": "7,8,9,10,11", "description": "Mexanika, termodinamika va elektrodinamika"},
-    {"name": "Kimyo", "code": "CHEM", "gradeLevels": "7,8,9,10,11", "description": "Umumiy va organik kimyo"},
-    {"name": "Biologiya", "code": "BIO", "gradeLevels": "5,6,7,8,9,10,11", "description": "Botanika, zoologiya va umumiy biologiya"},
-    {"name": "Ona tili va adabiyot", "code": "UZB", "gradeLevels": "5,6,7,8,9,10,11", "description": "Grammatika, adabiyot va matn bilan ishlash"},
-    {"name": "Ingliz tili", "code": "ENG", "gradeLevels": "5,6,7,8,9,10,11", "description": "Xorijiy til: grammatika, leksika va tinglab tushunish"},
-    {"name": "Tarix", "code": "HIST", "gradeLevels": "5,6,7,8,9,10,11", "description": "O'zbekiston tarixi va jahon tarixi"},
-    {"name": "Geografiya", "code": "GEO", "gradeLevels": "5,6,7,8,9,10", "description": "Tabiiy va iqtisodiy geografiya"},
-]
-
-async def seed_subjects_if_empty(db: Prisma):
-    """
-    Populates subjects for all existing tenants if they have none.
-    """
-    tenants = await db.tenant.find_many()
-    for t in tenants:
-        count = await db.subject.count(where={"tenantId": t.id})
-        if count == 0:
-            for s in STANDARD_SUBJECTS:
-                await db.subject.create(
-                    data={
-                        "tenantId": t.id,
-                        "name": s["name"],
-                        "code": s["code"],
-                        "gradeLevels": s["gradeLevels"],
-                        "description": s["description"],
-                        "isActive": True,
-                    }
-                )
-            print(f"✅ Seeded {len(STANDARD_SUBJECTS)} subjects for tenant '{t.slug}'")
-
-async def auto_seed_db(db: Prisma, force: bool = False):
-    """
-    Automatic self-bootstrapping seed function.
-    Populates SQLite database with full real records if database is empty.
-    """
-    print("🌱 Starting Database Auto-Seed for CHSB Assessment Platform...")
-
-    # 2. Check if Tenants exist
-    if not force:
-        existing = await db.tenant.count()
-        if existing > 0:
-            print("ℹ️ Database already has records, verifying subjects...")
-            await seed_subjects_if_empty(db)
-            return
-
-    # 3. Create Tenants
-    tenant_ax = await db.tenant.create(
-        data={
-            "id": "tenant-al-xorazmiy",
-            "slug": "al-xorazmiy",
-            "name": "Muhammad al-Xorazmiy nomidagi ixtisoslashtirilgan IT-maktab",
-            "regionId": "tashkent-city",
-            "isActive": True,
-        }
-    )
-
-    tenant_tm = await db.tenant.create(
-        data={
-            "id": "tenant-temurbeklar",
-            "slug": "temurbeklar-maktabi",
-            "name": "Temurbeklar Maktabi Harbiy-Akademik Litseyi",
-            "regionId": "tashkent-city",
-            "isActive": True,
-        }
-    )
-
-    # 4. Create Schools
-    school_ax = await db.school.create(
-        data={
-            "id": "school-ax-1",
-            "tenantId": tenant_ax.id,
-            "name": "Al-Xorazmiy IT Bosh Kampusi",
-            "districtId": "mirzo-ulugbek",
-            "schoolType": "specialized",
-            "studentCount": 0,
-        }
-    )
-
-    school_tm = await db.school.create(
-        data={
-            "id": "school-tm-1",
-            "tenantId": tenant_tm.id,
-            "name": "Temurbeklar Maktabi Markaziy Kampus",
-            "districtId": "chilonzor",
-            "schoolType": "military",
-            "studentCount": 0,
-        }
-    )
-
-    # 5. Create Users (System Accounts)
-    await seed_users_if_empty(db)
-
-    # 6. Class Groups (Clean zero baseline - classes are created via import or admin UI)
-    classes_data: list[dict] = []
-    for cg in classes_data:
-        await db.classgroup.create(
-            data={
-                "id": cg["id"],
-                "tenantId": cg["tenantId"],
-                "schoolId": cg["schoolId"],
-                "name": cg["name"],
-                "gradeLevel": cg["gradeLevel"],
-                "shift": cg["shift"],
-                "studentCount": cg["studentCount"],
-                "hasGroups": cg["hasGroups"],
-                "academicYear": "2026-2027",
-            }
+        logger.warning(
+            "No users created: set SEED_PASSWORD (at least %d characters) and restart.", MIN_PASSWORD_LENGTH
         )
+        return
+    if not await db.get(Tenant, DEFAULT_TENANT_ID):
+        return
+    school_id = await db.scalar(
+        select(School.id).where(School.tenant_id == DEFAULT_TENANT_ID).order_by(School.created_at, School.id).limit(1)
+    )
+    hashed = get_password_hash(password)
+    db.add_all(
+        User(**account, tenant_id=DEFAULT_TENANT_ID, school_id=school_id, hashed_password=hashed)
+        for account in SYSTEM_ACCOUNTS
+    )
+    await db.flush()
+    logger.info("Created %d system accounts", len(SYSTEM_ACCOUNTS))
 
-    # 7. Students (Clean zero baseline - students must be imported dynamically)
-    students_raw: list[dict] = []
-    for s in students_raw:
-        await db.student.create(data=s)
 
-    # 8. Assessments & Questions (Clean zero baseline - no mock assessments/questions)
-    # Teachers create real assessments or import curriculum
+async def seed_subjects_if_empty(db: AsyncSession) -> None:
+    """Give every tenant without subjects the standard list."""
+    for tenant in list(await db.scalars(select(Tenant))):
+        if await db.scalar(select(func.count()).select_from(Subject).where(Subject.tenant_id == tenant.id)):
+            continue
+        db.add_all(
+            Subject(tenant_id=tenant.id, name=name, code=code, grade_levels=grades, description=description)
+            for name, code, grades, description in STANDARD_SUBJECTS
+        )
+    await db.flush()
 
-    # 9. Attempts & Results (Clean zero baseline - zero mock results)
-    results_data: list[dict] = []
 
+async def seed_curriculum(db: AsyncSession, tenant_id: str = DEFAULT_TENANT_ID) -> tuple[int, int]:
+    """Add the bundled informatics material that is missing. Returns (resources, solutions) added."""
+    if not await db.get(Tenant, tenant_id):
+        raise ValueError(f"Tenant '{tenant_id}' does not exist.")
+    data = json.loads(CURRICULUM_FILE.read_text(encoding="utf-8"))
+
+    added = []
+    for model, rows, extra in (
+        (CurriculumResource, data["resources"], {"tenant_id": tenant_id}),
+        (AssessmentSolution, data["solutions"], {}),
+    ):
+        existing = set(await db.scalars(select(model.id)))
+        new = [model(**row, **extra) for row in rows if row["id"] not in existing]
+        db.add_all(new)
+        added.append(len(new))
+    await db.flush()
+    return added[0], added[1]
+
+
+async def bootstrap(db: AsyncSession) -> None:
+    """Fill an empty database with the schools, accounts and subjects needed to start."""
+    if not await db.scalar(select(func.count()).select_from(Tenant)):
+        logger.info("Empty database: creating the initial schools")
+        db.add_all(Tenant(**data) for data in TENANTS)
+        await db.flush()
+        db.add_all(School(**data) for data in SCHOOLS)
+        await db.flush()
+    await seed_users_if_empty(db)
     await seed_subjects_if_empty(db)
-
-    print("✅ Clean production bootstrap completed: 2 tenants, 2 schools, auth users, 9 standard subjects, 0 mock classes, 0 mock students.")
-
-if __name__ == "__main__":
-    import asyncio
-    if os.getenv("ALLOW_DB_RESET") != "yes":
-        sys.exit("Refusing to run: this command DELETES ALL DATA. Set ALLOW_DB_RESET=yes to confirm.")
-
-    async def run_cli_seed():
-        db = Prisma()
-        await db.connect()
-        try:
-            print("🧹 Purging old sample data...")
-            await db.assessmentresult.delete_many()
-            await db.assessmentattempt.delete_many()
-            await db.question.delete_many()
-            await db.assessment.delete_many()
-            await db.student.delete_many()
-            await db.classgroup.delete_many()
-            await db.subject.delete_many()
-            await db.user.delete_many()
-            await db.school.delete_many()
-            await db.tenant.delete_many()
-            await auto_seed_db(db, force=True)
-        finally:
-            await db.disconnect()
-
-    asyncio.run(run_cli_seed())
-
+    await db.commit()

@@ -1,6 +1,7 @@
 # Git & System
 .git
 .gitignore
+.github
 .agents
 .vscode
 .idea
@@ -8,24 +9,29 @@
 
 # Node & Frontend
 node_modules
-frontend/node_modules
+**/node_modules
 frontend/dist
 npm-debug.log*
 
 # Python & Backend
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
+**/__pycache__
+**/*.pyc
 env/
 venv/
 .venv/
 *.egg-info
 .pytest_cache
+.ruff_cache
+backend/tests
 
-# Database & Environment
-prisma/dev.db*
+# Not part of the application
+v2
+docs
+scripts
+prisma
+CHSB_11_SINF.html
+
+# Databases & Environment
+**/*.db
 .env
-.env.local
-docs/
+.env.*

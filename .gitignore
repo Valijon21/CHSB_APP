@@ -51,6 +51,7 @@ test-results/
 !.env.example
 
 # Python & Backend
+.ruff_cache/
 __pycache__/
 *.py[cod]
 *$py.class

@@ -1,8 +1,11 @@
 from __future__ import annotations
-from datetime import datetime, timedelta, timezone
-from typing import Any, Union
+
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 import bcrypt
 import jwt
+
 from backend.app.core.config import settings
 
 # Default passwords that were published in the repository
@@ -26,23 +29,25 @@ def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 def create_access_token(
-    subject: Union[str, Any],
+    subject: str | Any,
     role: str,
     tenant_id: str,
     expires_delta: timedelta | None = None,
     token_type: str = STAFF_TOKEN,
+    token_version: int = 0,
 ) -> str:
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+        expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
     to_encode = {
         "exp": expire,
         "sub": str(subject),
         "role": role,
         "tenant_id": tenant_id,
         "type": token_type,
+        "ver": token_version,
     }
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.ALGORITHM)
     return encoded_jwt

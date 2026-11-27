@@ -1,6 +1,17 @@
 # CHSB — Professional tizimga o'tish rejasi
 
-**Sana:** 2026-11-27 · **Asos:** `d974ca1` commit auditi · **Holat:** tasdiqlanishi kutilmoqda
+**Sana:** 2026-11-27 · **Asos:** `d974ca1` commit auditi · **Holat:** 0 va 1-bosqich kodi `security/phase-0` branch'ida
+
+## Bajarilish holati (2026-11-27)
+
+| Bosqich | Holat | Qolgan ish |
+|---|---|---|
+| 0 | Kod tayyor | S0-1: serverni to'xtatish, zaxira, kalitlarni almashtirish (egasi) |
+| 1 | Kod tayyor | CI va Docker build GitHub'da hali ishga tushirilmagan; F1-10 o'chirishlari tasdiq kutmoqda; haqiqiy baza nusxasida migratsiya sinalmagan |
+| 2 | Boshlanmagan | E2-1 va E2-5 1-bosqichda tuzatildi |
+| 3–5 | Boshlanmagan | — |
+
+1-bosqichdagi chetlanishlar: Python 3.12 o'rniga **3.14** (lokal sinalgan versiya); `teacher_classes` jadvali yaratildi, lekin cheklov o'qituvchiga sinf biriktirish ekrani paydo bo'lgach (3-bosqich) yoqiladi; lint 0 xato, 27 ogohlantirish chegarasi bilan.
 
 Bu hujjat `docs/` ichidagi eski reja va hisobotlar bilan zid kelsa, shu hujjat ustun (tasdiqlangandan keyin). Eski hisobotlardagi "bajarildi" belgilariga tayanmang: ularning bir qismi kodda tasdiqlanmadi.
 

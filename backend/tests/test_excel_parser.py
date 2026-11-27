@@ -1,15 +1,16 @@
-import pytest
 import io
 import zipfile
+
 from backend.app.services.excel_parser import (
-    detect_group_from_name_or_text,
     detect_class_from_name_or_text,
-    split_full_name,
+    detect_group_from_name_or_text,
     infer_gender_from_name,
     is_valid_student_name,
-    parse_rows_to_students,
     parse_excel_or_csv_file,
+    parse_rows_to_students,
+    split_full_name,
 )
+
 
 def test_detect_group_from_name_or_text():
     assert detect_group_from_name_or_text("11-A_Informatika_1-gurux.xls") == "1-guruh"

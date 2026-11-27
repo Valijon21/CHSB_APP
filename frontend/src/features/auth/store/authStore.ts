@@ -99,6 +99,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    const res = await httpClient.post<{ access_token: string }>('/auth/change-password', {
+      currentPassword,
+      newPassword,
+    });
+    if (!currentUser.value) return;
+
+    // The old token stopped working: keep the session in the same storage with the new one
+    const remembered =
+      typeof window !== 'undefined' && localStorage.getItem(AUTH_STORAGE_KEY) !== null;
+    currentUser.value = { ...currentUser.value, token: res.access_token };
+    token.value = res.access_token;
+    saveSessionToStorage(currentUser.value, remembered);
+  }
+
   function logout(): void {
     const user = currentUser.value;
     currentUser.value = null;
@@ -178,6 +193,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentTenantSlug,
 
     login,
+    changePassword,
     logout,
     restoreSession,
     hasRole,

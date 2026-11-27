@@ -1,497 +1,214 @@
 from __future__ import annotations
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-from datetime import datetime
+
 import json
-from backend.app.db.prisma import get_prisma
-from prisma import Prisma
-from backend.app.core.permissions import school_staff, resolve_tenant, ensure_tenant_access
+
+from fastapi import APIRouter, HTTPException, Request
+from sqlalchemy import or_, select
+from sqlalchemy.orm import joinedload
+
+from backend.app.core.dependencies import DbSession
+from backend.app.core.permissions import StaffUser, ensure_tenant_access, resolve_tenant
+from backend.app.models import Assessment, AssessmentAttempt, AssessmentResult, Student
+from backend.app.schemas.assessment import (
+    AssessmentCreate,
+    CreateAttemptPayload,
+    QuestionUpdate,
+    SaveDraftPayload,
+    SubmitAttemptPayload,
+)
+from backend.app.services import assessments as service
+from backend.app.services import audit
 
 router = APIRouter(tags=["Assessments"])
 
-class CreateAttemptPayload(BaseModel):
-    tenantId: str
-    assessmentId: str
-    rosterRecordId: str
-
-class SaveDraftPayload(BaseModel):
-    answers: dict
-
-class SubmitAttemptPayload(BaseModel):
-    idempotencyKey: str | None = None
-
-class AssessmentCreate(BaseModel):
-    title: str = Field(..., min_length=3)
-    subject: str = Field(..., min_length=2)
-    gradeLevel: int = Field(default=9, ge=1, le=11)
-    quarter: int = Field(default=1, ge=1, le=4)
-    durationMinutes: int = Field(default=40, ge=10, le=180)
-    totalQuestions: int = Field(default=15, ge=1, le=100)
-    maxScore: float = Field(default=40.0, ge=1.0)
-    targetGroup: str = Field(default="all")
-    code: str | None = None
-    questions: list[dict] | None = None
 
 @router.get("/assessments")
 async def get_assessments(
-    tenantId: str | None = None,
-    group: str | None = None,
-    db: Prisma = Depends(get_prisma),
+    db: DbSession, current_user: StaffUser, tenantId: str | None = None, group: str | None = None
 ):
-    where_clause = {}
+    tenant = await resolve_tenant(db, current_user, tenantId)
+    query = select(Assessment).where(Assessment.tenant_id == tenant.id).order_by(Assessment.code)
     if group and group != "all":
-        where_clause = {
-            "OR": [
-                {"targetGroup": "all"},
-                {"targetGroup": group},
-                {"targetGroup": None},
-            ]
-        }
-    assessments = await db.assessment.find_many(
-        where=where_clause if where_clause else None,
-        order={"code": "asc"}
-    )
-    return [
-        {
-            "id": a.id,
-            "code": a.code,
-            "title": a.title,
-            "subject": a.subject,
-            "gradeLevel": a.gradeLevel,
-            "durationMinutes": a.durationMinutes,
-            "totalQuestions": a.totalQuestions,
-            "maxScore": a.maxScore,
-            "targetGroup": getattr(a, "targetGroup", "all") or "all",
-            "status": "published",
-        }
-        for a in assessments
-    ]
+        query = query.where(or_(Assessment.target_group.in_(["all", group]), Assessment.target_group.is_(None)))
+    return [service.serialize_summary(a) for a in await db.scalars(query)]
+
 
 @router.post("/assessments")
-async def create_assessment(payload: AssessmentCreate, db: Prisma = Depends(get_prisma)):
-    # Generate unique code if not provided
-    code = payload.code
-    if not code:
-        subject_prefix = payload.subject[:3].upper().replace(" ", "")
-        code = f"CHSB-{subject_prefix}-{payload.gradeLevel}-Q{payload.quarter}-{int(datetime.now().timestamp()) % 10000}"
+async def create_assessment(payload: AssessmentCreate, request: Request, db: DbSession, current_user: StaffUser):
+    assessment, created = await service.create_assessment(db, current_user, payload)
+    if created:
+        audit.record(db, request, "assessment.created", user=current_user, details={"code": assessment.code})
+        await db.commit()
+    return service.serialize_summary(assessment)
 
-    existing = await db.assessment.find_unique(where={"code": code})
-    if existing:
-        return {
-            "id": existing.id,
-            "code": existing.code,
-            "title": existing.title,
-            "subject": existing.subject,
-            "gradeLevel": existing.gradeLevel,
-            "durationMinutes": existing.durationMinutes,
-            "totalQuestions": existing.totalQuestions,
-            "maxScore": existing.maxScore,
-            "targetGroup": getattr(existing, "targetGroup", "all") or "all",
-            "status": "published",
-        }
-
-    assessment_id = f"asm-{code.lower()}"
-
-    created = await db.assessment.create(
-        data={
-            "id": assessment_id,
-            "code": code,
-            "title": payload.title,
-            "subject": payload.subject,
-            "gradeLevel": payload.gradeLevel,
-            "durationMinutes": payload.durationMinutes,
-            "totalQuestions": payload.totalQuestions,
-            "maxScore": payload.maxScore,
-            "targetGroup": payload.targetGroup,
-        }
-    )
-
-    # Seed questions: custom questions if provided, otherwise default template
-    points_per_q = round(payload.maxScore / max(1, payload.totalQuestions), 1)
-    bloom_cycle = ["KNOWLEDGE", "COMPREHENSION", "APPLICATION", "ANALYSIS"]
-    if payload.questions and len(payload.questions) > 0:
-        for idx, q_data in enumerate(payload.questions, 1):
-            opts = q_data.get("options", [
-                {"id": "opt-a", "label": "A", "text": "A variant"},
-                {"id": "opt-b", "label": "B", "text": "B variant"},
-                {"id": "opt-c", "label": "C", "text": "C variant"},
-                {"id": "opt-d", "label": "D", "text": "D variant"},
-            ])
-            correct_opt = q_data.get("correctOptionId", "opt-a")
-            prompt = q_data.get("prompt") or q_data.get("text") or f"{idx}-savol"
-            bloom = q_data.get("bloomLevel") or q_data.get("cognitiveLevel") or bloom_cycle[(idx - 1) % len(bloom_cycle)]
-            pts = float(q_data.get("points", points_per_q))
-            await db.question.create(
-                data={
-                    "id": f"q-{created.id}-{idx}",
-                    "assessmentId": created.id,
-                    "questionNumber": idx,
-                    "prompt": prompt,
-                    "optionsJson": json.dumps(opts),
-                    "correctOptionId": correct_opt,
-                    "bloomLevel": bloom,
-                    "difficulty": "medium",
-                    "points": pts,
-                }
-            )
-    else:
-        for i in range(1, payload.totalQuestions + 1):
-            bloom = bloom_cycle[(i - 1) % len(bloom_cycle)]
-            options = [
-                {"id": "opt-a", "label": "A", "text": f"{payload.subject} fani bo'yicha to'g'ri javob varianti"},
-                {"id": "opt-b", "label": "B", "text": "Noto'g'ri chalg'ituvchi variant 1"},
-                {"id": "opt-c", "label": "C", "text": "Noto'g'ri chalg'ituvchi variant 2"},
-                {"id": "opt-d", "label": "D", "text": "Noto'g'ri chalg'ituvchi variant 3"},
-            ]
-            await db.question.create(
-                data={
-                    "id": f"q-{created.id}-{i}",
-                    "assessmentId": created.id,
-                    "questionNumber": i,
-                    "prompt": f"{i}-savol: {payload.subject} {payload.gradeLevel}-sinf uchun test topshirig'i.",
-                    "optionsJson": json.dumps(options),
-                    "correctOptionId": "opt-a",
-                    "bloomLevel": bloom,
-                    "difficulty": "hard" if i > 10 else "medium" if i > 5 else "easy",
-                    "points": points_per_q,
-                }
-            )
-
-    return {
-        "id": created.id,
-        "code": created.code,
-        "title": created.title,
-        "subject": created.subject,
-        "gradeLevel": created.gradeLevel,
-        "durationMinutes": created.durationMinutes,
-        "totalQuestions": payload.totalQuestions if not payload.questions else len(payload.questions),
-        "maxScore": created.maxScore,
-        "status": "published",
-    }
-
-class QuestionUpdate(BaseModel):
-    prompt: str | None = None
-    options: list[dict] | None = None
-    correctOptionId: str | None = None
-    points: float | None = None
-    bloomLevel: str | None = None
 
 @router.put("/assessments/{assessment_id}/questions/{question_id}")
 async def update_question(
     assessment_id: str,
     question_id: str,
     payload: QuestionUpdate,
-    db: Prisma = Depends(get_prisma),
+    request: Request,
+    db: DbSession,
+    current_user: StaffUser,
 ):
-    question = await db.question.find_unique(where={"id": question_id}, include={"assessment": True})
-    if not question or assessment_id.lower() not in (
-        question.assessment.id.lower(),
-        question.assessment.code.lower(),
-    ):
-        raise HTTPException(status_code=404, detail="Savol topilmadi.")
-
-    update_data = {}
-    if payload.prompt is not None:
-        update_data["prompt"] = payload.prompt
-    if payload.options is not None:
-        update_data["optionsJson"] = json.dumps(payload.options)
-    if payload.correctOptionId is not None:
-        update_data["correctOptionId"] = payload.correctOptionId
-    if payload.points is not None:
-        update_data["points"] = payload.points
-    if payload.bloomLevel is not None:
-        update_data["bloomLevel"] = payload.bloomLevel
-
-    updated = await db.question.update(
-        where={"id": question_id},
-        data=update_data,
+    question = await service.update_question(db, current_user, assessment_id, question_id, payload)
+    audit.record(
+        db, request, "assessment.question_updated", user=current_user,
+        details={"questionId": question.id, "fields": sorted(payload.model_dump(exclude_none=True))},
     )
-    return {"success": True, "id": updated.id, "prompt": updated.prompt}
+    await db.commit()
+    return {"success": True, "id": question.id, "prompt": question.prompt}
+
 
 @router.get("/assessments/{assessment_id}")
-async def get_assessment_by_id(assessment_id: str, db: Prisma = Depends(get_prisma)):
-    assessment = await db.assessment.find_first(
-        where={
-            "OR": [
-                {"id": assessment_id},
-                {"code": assessment_id},
-                {"code": assessment_id.upper()},
-                {"code": assessment_id.lower()},
-            ]
-        },
-        include={"questions": True},
-    )
+async def get_assessment_by_id(assessment_id: str, db: DbSession, current_user: StaffUser):
+    assessment = await service.find_assessment(db, assessment_id, with_questions=True)
     if not assessment:
         raise HTTPException(status_code=404, detail="Baholash testi topilmadi.")
-
-    questions = sorted(assessment.questions, key=lambda q: q.questionNumber)
-    formatted_questions = []
-    for q in questions:
-        options = q.optionsJson if isinstance(q.optionsJson, list) else json.loads(str(q.optionsJson or "[]"))
-        formatted_questions.append({
-            "id": q.id,
-            "order": q.questionNumber,
-            "text": q.prompt,
-            "options": options,
-            "points": q.points,
-            "cognitiveLevel": q.bloomLevel,
-            "correctOptionId": q.correctOptionId,
-        })
+    ensure_tenant_access(current_user, assessment.tenant_id, "Baholash testi topilmadi.")
 
     return {
-        "id": assessment.id,
-        "code": assessment.code,
-        "title": assessment.title,
-        "subject": assessment.subject,
-        "gradeLevel": assessment.gradeLevel,
-        "durationMinutes": assessment.durationMinutes,
-        "totalQuestions": assessment.totalQuestions,
-        "maxScore": assessment.maxScore,
-        "targetGroup": getattr(assessment, "targetGroup", "all") or "all",
-        "questions": formatted_questions,
+        **service.serialize_summary(assessment),
+        "questions": [
+            {
+                "id": q.id,
+                "order": q.question_number,
+                "text": q.prompt,
+                "options": json.loads(q.options_json or "[]"),
+                "points": q.points,
+                "cognitiveLevel": q.bloom_level,
+                "correctOptionId": q.correct_option_id,
+            }
+            for q in assessment.questions
+        ],
     }
 
-async def get_owned_attempt(db: Prisma, user, attempt_id: str):
-    """Load an attempt, hiding attempts of students from other tenants."""
-    attempt = await db.assessmentattempt.find_unique(
-        where={"id": attempt_id},
-        include={"student": True},
-    )
-    if not attempt:
-        raise HTTPException(status_code=404, detail="Test urinishi topilmadi.")
-    ensure_tenant_access(user, attempt.student.tenantId, "Test urinishi topilmadi.")
-    return attempt
 
 @router.post("/attempts")
-async def create_attempt(
-    payload: CreateAttemptPayload,
-    db: Prisma = Depends(get_prisma),
-    current_user=Depends(school_staff),
-):
-    # Find student by id or rosterRecordId
-    student = await db.student.find_first(
-        where={
-            "OR": [
-                {"id": payload.rosterRecordId},
-                {"rosterCode": payload.rosterRecordId},
-            ]
-        }
+async def create_attempt(payload: CreateAttemptPayload, db: DbSession, current_user: StaffUser):
+    reference = payload.rosterRecordId
+    student = await db.scalar(
+        select(Student)
+        .where(or_(Student.id == reference, Student.roster_code == reference))
+        # Locking the student prevents two parallel requests from creating two attempts
+        .with_for_update()
+        .limit(1)
     )
     if not student:
         raise HTTPException(status_code=404, detail="O'quvchi topilmadi.")
-    ensure_tenant_access(current_user, student.tenantId, "O'quvchi topilmadi.")
+    ensure_tenant_access(current_user, student.tenant_id, "O'quvchi topilmadi.")
 
-    # Find assessment
-    assessment = await db.assessment.find_first(
-        where={
-            "OR": [
-                {"id": payload.assessmentId},
-                {"code": payload.assessmentId},
-            ]
-        }
-    )
-    if not assessment:
+    assessment = await service.find_assessment(db, payload.assessmentId)
+    if not assessment or assessment.tenant_id != student.tenant_id:
         raise HTTPException(status_code=404, detail="Baholash testi topilmadi.")
 
-    # Check targetGroup restriction if set
-    target_grp = getattr(assessment, "targetGroup", "all") or "all"
-    if target_grp != "all":
-        student_grp = getattr(student, "group", None)
-        if student_grp and student_grp != target_grp:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Ushbu imtihon faqat {target_grp} uchun mo'ljallangan. Sizning guruhingiz: {student_grp}."
-            )
+    target = assessment.target_group or "all"
+    if target != "all" and student.group and student.group != target:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Ushbu imtihon faqat {target} uchun mo'ljallangan. Sizning guruhingiz: {student.group}.",
+        )
 
-    # Check existing attempt
-    existing = await db.assessmentattempt.find_first(
-        where={
-            "assessmentId": assessment.id,
-            "studentId": student.id,
-        }
+    attempt = await db.scalar(
+        select(AssessmentAttempt)
+        .where(AssessmentAttempt.assessment_id == assessment.id, AssessmentAttempt.student_id == student.id)
+        .order_by(AssessmentAttempt.started_at)
+        .limit(1)
     )
-    if existing:
-        return {
-            "id": existing.id,
-            "assessmentId": assessment.id,
-            "rosterRecordId": student.id,
-            "startedAt": existing.startedAt.isoformat(),
-            "status": existing.status,
-            "answers": existing.answersJson if isinstance(existing.answersJson, dict) else json.loads(str(existing.answersJson or "{}")),
-        }
+    if not attempt:
+        attempt = AssessmentAttempt(assessment_id=assessment.id, student_id=student.id, status="in_progress")
+        db.add(attempt)
+        await db.commit()
+    return await service.serialize_attempt(db, attempt)
 
-    attempt = await db.assessmentattempt.create(
-        data={
-            "assessmentId": assessment.id,
-            "studentId": student.id,
-            "answersJson": json.dumps({}),
-            "status": "in_progress",
-        }
-    )
-
-    return {
-        "id": attempt.id,
-        "assessmentId": assessment.id,
-        "rosterRecordId": student.id,
-        "startedAt": attempt.startedAt.isoformat(),
-        "status": attempt.status,
-        "answers": {},
-    }
 
 @router.get("/attempts/{attempt_id}")
-async def get_attempt(
-    attempt_id: str,
-    db: Prisma = Depends(get_prisma),
-    current_user=Depends(school_staff),
-):
-    attempt = await get_owned_attempt(db, current_user, attempt_id)
+async def get_attempt(attempt_id: str, db: DbSession, current_user: StaffUser):
+    attempt = await service.get_owned_attempt(db, current_user, attempt_id)
+    return await service.serialize_attempt(db, attempt)
 
-    answers = attempt.answersJson if isinstance(attempt.answersJson, dict) else json.loads(str(attempt.answersJson or "{}"))
-
-    return {
-        "id": attempt.id,
-        "assessmentId": attempt.assessmentId,
-        "rosterRecordId": attempt.studentId,
-        "startedAt": attempt.startedAt.isoformat(),
-        "submittedAt": attempt.submittedAt.isoformat() if attempt.submittedAt else None,
-        "status": attempt.status,
-        "answers": answers,
-    }
 
 @router.post("/attempts/{attempt_id}/draft")
-async def save_draft(
-    attempt_id: str,
-    payload: SaveDraftPayload,
-    db: Prisma = Depends(get_prisma),
-    current_user=Depends(school_staff),
-):
-    await get_owned_attempt(db, current_user, attempt_id)
+async def save_draft(attempt_id: str, payload: SaveDraftPayload, db: DbSession, current_user: StaffUser):
+    attempt = await service.get_owned_attempt(db, current_user, attempt_id, lock=True)
+    await service.save_answers(db, attempt, payload.answers)
+    await db.commit()
+    return {"success": True, "savedAt": service.utcnow().isoformat()}
 
-    await db.assessmentattempt.update(
-        where={"id": attempt_id},
-        data={"answersJson": json.dumps(payload.answers)},
-    )
-    return {"success": True, "savedAt": datetime.now().isoformat()}
 
 @router.post("/attempts/{attempt_id}/submit")
 async def submit_attempt(
     attempt_id: str,
+    request: Request,
+    db: DbSession,
+    current_user: StaffUser,
     payload: SubmitAttemptPayload | None = None,
-    db: Prisma = Depends(get_prisma),
-    current_user=Depends(school_staff),
 ):
-    await get_owned_attempt(db, current_user, attempt_id)
-    attempt = await db.assessmentattempt.find_unique(
-        where={"id": attempt_id},
-        include={"assessment": {"include": {"questions": True}}, "student": True},
-    )
-    if not attempt:
-        raise HTTPException(status_code=404, detail="Test urinishi topilmadi.")
-
-    # Calculate score
-    answers = attempt.answersJson if isinstance(attempt.answersJson, dict) else json.loads(str(attempt.answersJson or "{}"))
-    total_score = 0.0
-    for q in attempt.assessment.questions:
-        selected_id = answers.get(q.id) or answers.get(str(q.questionNumber))
-        if selected_id == q.correctOptionId:
-            total_score += q.points
-
-    max_score = attempt.assessment.maxScore
-    pct = round((total_score / max_score) * 100, 1) if max_score > 0 else 0
-    grade = "5" if pct >= 86 else ("4" if pct >= 71 else ("3" if pct >= 56 else "2"))
-
-    # Update attempt
-    now = datetime.now()
-    await db.assessmentattempt.update(
-        where={"id": attempt_id},
-        data={"status": "submitted", "submittedAt": now},
-    )
-
-    # Upsert result
-    existing_result = await db.assessmentresult.find_unique(where={"attemptId": attempt_id})
-    if not existing_result:
-        await db.assessmentresult.create(
-            data={
-                "attemptId": attempt_id,
-                "studentId": attempt.studentId,
-                "score": total_score,
-                "maxScore": max_score,
-                "percentage": pct,
-                "grade": grade,
-                "status": "verified",
-                "submittedAt": now,
-            }
-        )
-
+    attempt = await service.get_owned_attempt(db, current_user, attempt_id, lock=True)
+    first_time = attempt.status == "in_progress"
+    result = await service.submit(db, attempt)
+    if first_time:
+        audit.record(db, request, "attempt.submitted", user=current_user, details={"attemptId": attempt_id})
+    await db.commit()
     return {
         "attemptId": attempt_id,
         "receiptNumber": f"RCP-{attempt_id[:8].upper()}",
-        "submittedAt": now.isoformat(),
-        "score": total_score,
-        "maxScore": max_score,
-        "percentage": pct,
-        "grade": grade,
+        "submittedAt": result.submitted_at.isoformat(),
+        "score": result.score,
+        "maxScore": result.max_score,
+        "percentage": result.percentage,
+        "grade": result.grade,
     }
 
-@router.get("/results/attempt/{attempt_id}")
-async def get_result_by_attempt(
-    attempt_id: str,
-    db: Prisma = Depends(get_prisma),
-    current_user=Depends(school_staff),
-):
-    result = await db.assessmentresult.find_unique(
-        where={"attemptId": attempt_id},
-        include={"student": {"include": {"classGroup": True}}},
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail="Natija topilmadi.")
-    ensure_tenant_access(current_user, result.student.tenantId, "Natija topilmadi.")
 
+def serialize_result(result: AssessmentResult) -> dict:
+    student = result.student
     return {
         "id": result.id,
-        "attemptId": result.attemptId,
-        "studentId": result.studentId,
-        "studentName": f"{result.student.firstName} {result.student.lastName}",
-        "className": result.student.classGroup.name if result.student.classGroup else "",
+        "attemptId": result.attempt_id,
+        "studentId": result.student_id,
+        "studentName": f"{student.first_name} {student.last_name}",
+        "className": student.class_group.name,
         "score": result.score,
-        "maxScore": result.maxScore,
+        "maxScore": result.max_score,
         "percentage": result.percentage,
         "grade": result.grade,
         "status": result.status,
-        "submittedAt": result.submittedAt.isoformat(),
+        "submittedAt": result.submitted_at.isoformat(),
     }
 
+
+@router.get("/results/attempt/{attempt_id}")
+async def get_result_by_attempt(attempt_id: str, db: DbSession, current_user: StaffUser):
+    result = await db.scalar(
+        select(AssessmentResult)
+        .options(joinedload(AssessmentResult.student).joinedload(Student.class_group))
+        .where(AssessmentResult.attempt_id == attempt_id)
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Natija topilmadi.")
+    ensure_tenant_access(current_user, result.student.tenant_id, "Natija topilmadi.")
+    return serialize_result(result)
+
+
 @router.get("/results/tenant/{tenant_id}")
-async def get_results_by_tenant(
-    tenant_id: str,
-    db: Prisma = Depends(get_prisma),
-    current_user=Depends(school_staff),
-):
+async def get_results_by_tenant(tenant_id: str, db: DbSession, current_user: StaffUser):
     tenant = await resolve_tenant(db, current_user, tenant_id)
-    results = await db.assessmentresult.find_many(
-        where={"student": {"tenantId": tenant.id}},
-        include={
-            "student": {"include": {"classGroup": True}},
-            "attempt": {"include": {"assessment": True}},
-        },
-        order={"submittedAt": "desc"},
+    results = await db.scalars(
+        select(AssessmentResult)
+        .join(AssessmentResult.student)
+        .options(
+            joinedload(AssessmentResult.student).joinedload(Student.class_group),
+            joinedload(AssessmentResult.attempt).joinedload(AssessmentAttempt.assessment),
+        )
+        .where(Student.tenant_id == tenant.id)
+        .order_by(AssessmentResult.submitted_at.desc())
     )
     return [
         {
-            "id": r.id,
-            "attemptId": r.attemptId,
-            "assessmentId": r.attempt.assessmentId if r.attempt else "",
-            "assessmentTitle": r.attempt.assessment.title if (r.attempt and r.attempt.assessment) else "CHSB Baholash",
-            "studentId": r.studentId,
-            "studentName": f"{r.student.firstName} {r.student.lastName}",
-            "className": r.student.classGroup.name if r.student.classGroup else "",
-            "score": r.score,
-            "maxScore": r.maxScore,
-            "percentage": r.percentage,
-            "grade": r.grade,
-            "status": r.status,
-            "submittedAt": r.submittedAt.isoformat(),
+            **serialize_result(r),
+            "assessmentId": r.attempt.assessment_id,
+            "assessmentTitle": r.attempt.assessment.title,
         }
         for r in results
     ]
-

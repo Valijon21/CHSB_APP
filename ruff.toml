@@ -1,0 +1,18 @@
+line-length = 120
+target-version = "py314"
+include = ["backend/**/*.py"]
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+# FastAPI declares dependencies and form fields as argument defaults
+ignore = ["B008"]
+
+[lint.per-file-ignores]
+# Long Uzbek texts and SQL read better unbroken
+"backend/app/api/v1/endpoints/ai.py" = ["E501"]
+"backend/app/api/v1/endpoints/regional.py" = ["E501"]
+"backend/app/db/seed.py" = ["E501"]
+"backend/app/db/migrations/versions/*.py" = ["E501"]
+"backend/app/services/excel_parser.py" = ["E501"]
+"backend/tests/*.py" = ["E501"]
+"backend/tests/conftest.py" = ["E402", "E501"]

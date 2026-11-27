@@ -1,16 +1,22 @@
-import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from backend.app.core.config import settings
-from backend.app.api.v1.router import api_router
-from backend.app.db.prisma import prisma
 
-logger = logging.getLogger("chsb")
+from backend.app.api.v1.router import api_router
+from backend.app.core.config import settings
+from backend.app.core.errors import error_response, register_error_handlers
+from backend.app.core.logging import RequestContextMiddleware, logger, setup_logging
+from backend.app.db.seed import bootstrap
+from backend.app.db.session import database
+
+setup_logging(settings.LOG_LEVEL)
+
 
 def find_frontend_file(url_path: str) -> Path | None:
     """Return a file inside the frontend build, never anything outside of it."""
@@ -23,37 +29,19 @@ def find_frontend_file(url_path: str) -> Path | None:
         return None
     return None
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Connecting Prisma Client to Database...")
-    if not prisma.is_connected():
-        await prisma.connect()
-
-    # Ensure runtime DB schema includes newly added columns/tables
+    database.connect()
     try:
-        from backend.app.db.schema_sync import ensure_schema_synced
-        await ensure_schema_synced(prisma)
-    except Exception as e:
-        print(f"⚠️ Runtime schema sync warning: {e}")
+        # Fails loudly if the database is unreachable or not migrated
+        async with database.session() as session:
+            await bootstrap(session)
+        logger.info("Application started")
+        yield
+    finally:
+        await database.disconnect()
 
-    # Self-bootstrapping check: if DB is fresh, populate clean production foundation
-    try:
-        tenant_count = await prisma.tenant.count()
-        if tenant_count == 0:
-            print("🌱 Database is empty! Bootstrapping clean production foundation...")
-            from backend.app.db.seed import auto_seed_db
-            await auto_seed_db(prisma)
-            print("✅ Clean production foundation bootstrapped!")
-        else:
-            from backend.app.db.seed import seed_users_if_empty
-            await seed_users_if_empty(prisma)
-    except Exception as e:
-        print(f"⚠️ Production bootstrap warning: {e}")
-
-    yield
-    print("🛑 Disconnecting Prisma Client...")
-    if prisma.is_connected():
-        await prisma.disconnect()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -61,14 +49,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS configuration for Frontend Vue 3
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Prevent browser/proxy caching on dynamic API responses
 @app.middleware("http")
@@ -80,30 +60,44 @@ async def add_no_cache_headers(request: Request, call_next):
         response.headers["Expires"] = "0"
     return response
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-Request-ID", "Retry-After"],
+)
+# Added last so it wraps everything else
+app.add_middleware(RequestContextMiddleware)
+register_error_handlers(app)
+
 # 1. API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
 
 # 2. Health check route
 @app.get("/health", tags=["Health"])
 async def health_check():
-    db_type = "postgresql" if settings.DATABASE_URL.startswith(("postgres://", "postgresql://")) else "sqlite"
+    try:
+        async with database.session() as session:
+            await session.execute(text("SELECT 1"))
+    except Exception:
+        logger.exception("Health check: database is unreachable")
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "version": settings.VERSION})
     return {
         "status": "healthy",
-        "database": f"{db_type}-prisma",
-        "orm": "prisma-client-py",
+        "database": "postgresql",
         "version": settings.VERSION,
     }
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    # Details stay in the server log; clients get no internals
-    logger.error("Unhandled error on %s %s", request.method, request.url.path, exc_info=exc)
-    return JSONResponse(status_code=500, content={"detail": "Serverda ichki xatolik yuz berdi."})
 
 # 3. Static assets mount (if frontend/dist/assets exists)
 assets_dir = settings.FRONTEND_DIST / "assets"
 if assets_dir.exists():
     app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
 
 # 4. Root handler: SPA index.html or API JSON
 @app.get("/", tags=["Root"])
@@ -117,6 +111,7 @@ async def root():
         "health": "/health",
     }
 
+
 # 5. SPA Fallback / 404 Exception Handler for HTML5 History Mode
 @app.exception_handler(StarletteHTTPException)
 async def spa_fallback_exception_handler(request: Request, exc: StarletteHTTPException):
@@ -129,18 +124,10 @@ async def spa_fallback_exception_handler(request: Request, exc: StarletteHTTPExc
             "/openapi.json",
             "/health",
         )
-        if any(request.url.path.startswith(prefix) for prefix in non_spa_prefixes):
-            return JSONResponse(status_code=404, content={"detail": exc.detail or "Not Found"})
+        if not any(request.url.path.startswith(prefix) for prefix in non_spa_prefixes):
+            # A real file from the frontend build (e.g. favicon.ico), else the Vue app
+            file = find_frontend_file(request.url.path) or find_frontend_file("index.html")
+            if file:
+                return FileResponse(str(file))
 
-        # Check if the requested file exists directly in frontend/dist (e.g. favicon.ico, logo.svg)
-        requested_file = find_frontend_file(request.url.path)
-        if requested_file:
-            return FileResponse(str(requested_file))
-
-        # Otherwise serve Vue 3 SPA index.html for client-side routing
-        index_file = settings.FRONTEND_DIST / "index.html"
-        if index_file.exists():
-            return FileResponse(str(index_file))
-
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-
+    return error_response(request, exc.status_code, str(exc.detail), headers=exc.headers)

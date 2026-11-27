@@ -1,5 +1,5 @@
-import pytest
 from fastapi.testclient import TestClient
+
 
 def test_get_available_grades(client: TestClient):
     response = client.get("/api/v1/curriculum/grades")

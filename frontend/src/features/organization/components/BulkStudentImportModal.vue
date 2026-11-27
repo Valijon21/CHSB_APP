@@ -45,6 +45,13 @@ useModalA11y(toRef(props, 'isOpen'), () => {
   emit('close');
 });
 
+// Classes created while importing, until the parent's list includes them
+const createdClasses = ref<ClassGroupRecord[]>([]);
+const classOptions = computed(() => [
+  ...props.availableClasses,
+  ...createdClasses.value.filter((c) => !props.availableClasses.some((own) => own.id === c.id)),
+]);
+
 const selectedClassId = ref(props.availableClasses[0]?.id || '');
 const selectedGroup = ref<'1-guruh' | '2-guruh' | null>(null);
 const autoDetectedGroup = ref<string | null>(null);
@@ -61,7 +68,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 
 // Watch availableClasses to ensure selectedClassId is populated
 watch(
-  () => props.availableClasses,
+  () => classOptions.value,
   (classes) => {
     if ((!selectedClassId.value || !classes.some((c) => c.id === selectedClassId.value)) && classes.length > 0) {
       if (classes[0]) selectedClassId.value = classes[0].id;
@@ -74,8 +81,8 @@ watch(
   () => props.isOpen,
   (open) => {
     if (open) {
-      if ((!selectedClassId.value || !props.availableClasses.some((c) => c.id === selectedClassId.value)) && props.availableClasses.length > 0) {
-        if (props.availableClasses[0]) selectedClassId.value = props.availableClasses[0].id;
+      if ((!selectedClassId.value || !classOptions.value.some((c) => c.id === selectedClassId.value)) && classOptions.value.length > 0) {
+        if (classOptions.value[0]) selectedClassId.value = classOptions.value[0].id;
       }
     } else {
       reset();
@@ -86,7 +93,7 @@ watch(
 watch(
   () => selectedClassId.value,
   (newId) => {
-    const cls = props.availableClasses.find((c) => c.id === newId);
+    const cls = classOptions.value.find((c) => c.id === newId);
     if (cls && parsedStudents.value.length > 0) {
       parsedStudents.value.forEach((s) => {
         s.classGroupId = newId;
@@ -258,7 +265,7 @@ async function readFile(file: File) {
         if (clientRes.detectedClass) {
           autoDetectedClass.value = clientRes.detectedClass;
           const normDetected = normalizeClassCode(clientRes.detectedClass);
-          let matched = props.availableClasses.find((c) => {
+          let matched = classOptions.value.find((c) => {
             const normC = normalizeClassCode(c.name);
             return normC === normDetected || normC.includes(normDetected) || normDetected.includes(normC);
           });
@@ -279,9 +286,7 @@ async function readFile(file: File) {
                 academicYear: '2026-2027',
               });
               matched = created;
-              if (!props.availableClasses.some((c) => c.id === created.id)) {
-                props.availableClasses.push(created);
-              }
+              createdClasses.value.push(created);
             } catch (err) {
               console.warn("Failed to auto-create class group:", err);
             }
@@ -292,7 +297,7 @@ async function readFile(file: File) {
           }
         }
 
-        const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+        const cls = classOptions.value.find((c) => c.id === selectedClassId.value);
         const className = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
 
         parsedStudents.value = clientRes.students.map((s) => ({
@@ -345,7 +350,7 @@ async function readFile(file: File) {
       if (data.detectedClass) {
         autoDetectedClass.value = data.detectedClass;
         const normDetected = normalizeClassCode(data.detectedClass);
-        let matched = props.availableClasses.find((c) => {
+        let matched = classOptions.value.find((c) => {
           const normC = normalizeClassCode(c.name);
           return normC === normDetected || normC.includes(normDetected) || normDetected.includes(normC);
         });
@@ -365,9 +370,7 @@ async function readFile(file: File) {
               academicYear: '2026-2027',
             });
             matched = created;
-            if (!props.availableClasses.some((c) => c.id === created.id)) {
-              props.availableClasses.push(created);
-            }
+            createdClasses.value.push(created);
           } catch (err) {
             console.warn("Failed to auto-create class group:", err);
           }
@@ -378,7 +381,7 @@ async function readFile(file: File) {
         }
       }
 
-      const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+      const cls = classOptions.value.find((c) => c.id === selectedClassId.value);
       const className = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
 
       parsedStudents.value = data.students.map((s) => ({
@@ -450,7 +453,7 @@ async function handleAiExtract() {
     });
 
     if (res.success && res.students.length > 0) {
-      const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+      const cls = classOptions.value.find((c) => c.id === selectedClassId.value);
       const className = cls?.name || 'Sinf';
 
       if (res.detectedGroup) {
@@ -498,7 +501,7 @@ function parseInput() {
     }
   }
 
-  const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+  const cls = classOptions.value.find((c) => c.id === selectedClassId.value);
   const className = cls?.name || 'Sinf';
 
   const lines = rawText.value
@@ -598,7 +601,7 @@ function removeStudent(index: number) {
 
 function handleConfirm() {
   if (newStudentsToImport.value.length > 0 && !props.isSubmitting) {
-    const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+    const cls = classOptions.value.find((c) => c.id === selectedClassId.value);
     const finalClassName = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
     emit(
       'bulk-import',
@@ -700,8 +703,8 @@ function downloadSample() {
               v-model="selectedClassId"
               class="p-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-teal-800 dark:text-teal-300"
             >
-              <option v-if="availableClasses.length === 0" value="">Sinf tanlanmagan</option>
-              <option v-for="c in availableClasses" :key="c.id" :value="c.id">{{ c.name }}</option>
+              <option v-if="classOptions.length === 0" value="">Sinf tanlanmagan</option>
+              <option v-for="c in classOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </div>
 
@@ -932,7 +935,7 @@ function downloadSample() {
 
         <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
           <span class="text-xs text-slate-500 dark:text-slate-400">
-            Biriktirilmoqda: <strong class="text-teal-800 dark:text-teal-300">{{ availableClasses.find(c => c.id === selectedClassId)?.name }} {{ selectedGroup ? `(${selectedGroup})` : '(Umumiy sinf)' }}</strong>
+            Biriktirilmoqda: <strong class="text-teal-800 dark:text-teal-300">{{ classOptions.find(c => c.id === selectedClassId)?.name }} {{ selectedGroup ? `(${selectedGroup})` : '(Umumiy sinf)' }}</strong>
           </span>
 
           <div class="flex items-center gap-2">

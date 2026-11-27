@@ -1,6 +1,7 @@
 import pytest
 from starlette.testclient import TestClient
 
+
 @pytest.fixture(autouse=True)
 def setup_test_students(client: TestClient):
     # Ensure test class exists

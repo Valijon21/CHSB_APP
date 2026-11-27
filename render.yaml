@@ -5,6 +5,7 @@ services:
     plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         sync: false

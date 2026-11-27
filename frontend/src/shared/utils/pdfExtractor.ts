@@ -35,7 +35,7 @@ export async function extractTextFromPdf(input: File | ArrayBuffer | Uint8Array)
     
     // Group text items by line
     let lastY: number | null = null;
-    let pageLines: string[] = [];
+    const pageLines: string[] = [];
     let currentLine = '';
 
     for (const item of textContent.items) {

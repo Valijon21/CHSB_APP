@@ -171,6 +171,10 @@ const routes: RouteRecordRaw[] = [
             path: 'profile',
             name: 'TeacherProfile',
             component: () => import('../../features/teacher/profile/TeacherProfileView.vue'),
+            meta: {
+              requiresAuth: true,
+              roles: ['TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN', 'REGIONAL_INSPECTOR'] as UserRole[],
+            },
           },
           {
             path: 'regional-oversight',

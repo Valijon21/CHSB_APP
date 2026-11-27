@@ -1,87 +1,61 @@
-from fastapi import APIRouter, Depends, HTTPException
-from backend.app.db.prisma import get_prisma
-from prisma import Prisma
-from backend.app.core.permissions import school_staff, resolve_tenant
+from __future__ import annotations
+
+from fastapi import APIRouter
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
+from backend.app.core.dependencies import DbSession
+from backend.app.core.permissions import StaffUser, resolve_tenant
+from backend.app.models import ClassGroup, Student
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
+
 @router.get("/{tenant_slug}")
-async def get_tenant_analytics(
-    tenant_slug: str,
-    db: Prisma = Depends(get_prisma),
-    current_user=Depends(school_staff),
-):
+async def get_tenant_analytics(tenant_slug: str, db: DbSession, current_user: StaffUser):
     tenant = await resolve_tenant(db, current_user, tenant_slug)
+    classes = list(await db.scalars(
+        select(ClassGroup)
+        .options(selectinload(ClassGroup.students).selectinload(Student.results))
+        .where(ClassGroup.tenant_id == tenant.id)
+        .order_by(ClassGroup.name)
+    ))
+    all_results = [r for c in classes for s in c.students for r in s.results]
 
-    classes = await db.classgroup.find_many(
-        where={"tenantId": tenant.id},
-        include={"students": {"include": {"results": True}}},
-    )
+    total = len(all_results)
+    average = round(sum(r.score for r in all_results) / total, 1) if total else 0
+    grades = {grade: sum(1 for r in all_results if r.grade == grade) for grade in "5432"}
 
-    all_results = await db.assessmentresult.find_many(
-        where={"student": {"tenantId": tenant.id}},
-        include={"student": True},
-    )
-
-    total_results = len(all_results)
-    avg_score = (
-        round(sum(r.score for r in all_results) / total_results, 1)
-        if total_results > 0
-        else 0
-    )
-
-    # Grade distribution
-    g5 = sum(1 for r in all_results if r.grade == "5")
-    g4 = sum(1 for r in all_results if r.grade == "4")
-    g3 = sum(1 for r in all_results if r.grade == "3")
-    g2 = sum(1 for r in all_results if r.grade == "2")
-
-    class_comparisons = []
+    comparisons = []
     for c in classes:
-        c_results = [
-            r for s in c.students for r in s.results
-        ]
-        c_avg = (
-            round(sum(r.score for r in c_results) / len(c_results), 1)
-            if c_results
-            else 0
-        )
-        c_part = (
-            round((len(c_results) / len(c.students)) * 100)
-            if c.students
-            else 0
-        )
-        class_comparisons.append({
+        results = [r for s in c.students for r in s.results]
+        comparisons.append({
             "className": c.name,
-            "averageScore": c_avg,
+            "averageScore": round(sum(r.score for r in results) / len(results), 1) if results else 0,
             "maxPossibleScore": 40,
             "studentCount": len(c.students),
-            "participationRate": c_part,
+            "participationRate": round((len(results) / len(c.students)) * 100) if c.students else 0,
         })
 
     return {
         "tenantSlug": tenant.slug,
         "schoolName": tenant.name,
         "totalStudents": sum(len(c.students) for c in classes),
-        "totalAssessed": total_results,
-        "averageScore": avg_score,
+        "totalAssessed": total,
+        "averageScore": average,
         "maxScore": 40,
-        "passingRate": 100 if total_results > 0 else 0,
-        "qualityRate": round(((g5 + g4) / total_results) * 100) if total_results > 0 else 0,
-        "classComparisons": class_comparisons,
+        "passingRate": 100 if total else 0,
+        "qualityRate": round(((grades["5"] + grades["4"]) / total) * 100) if total else 0,
+        "classComparisons": comparisons,
         "scoreDistribution": {
-            "excellent": g5,
-            "good": g4,
-            "satisfactory": g3,
-            "unsatisfactory": g2,
-            "total": total_results,
+            "excellent": grades["5"],
+            "good": grades["4"],
+            "satisfactory": grades["3"],
+            "unsatisfactory": grades["2"],
+            "total": total,
         },
-        "cognitiveBreakdown": {
-            "knowledge": 92,
-            "comprehension": 84,
-            "application": 76,
-            "analysis": 68,
-        },
+        # Placeholder values, to be computed from answers in phase 3 of the rebuild plan
+        "cognitiveBreakdown": {"knowledge": 92, "comprehension": 84, "application": 76, "analysis": 68},
         "questionStats": [
             {"order": 1, "cognitiveLevel": "(B)", "points": 2.5, "correctRate": 95},
             {"order": 2, "cognitiveLevel": "(B)", "points": 2.5, "correctRate": 90},
@@ -91,4 +65,3 @@ async def get_tenant_analytics(
             {"order": 6, "cognitiveLevel": "(T)", "points": 2.5, "correctRate": 68},
         ],
     }
-

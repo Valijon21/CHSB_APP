@@ -3,38 +3,39 @@ Smart Excel (.xlsx, .xls) and CSV Roster Parser Service
 Deterministic heuristic column detection + data cleaning.
 Guarantees 0 junk rows and 0 `Ismsiz` entries.
 """
-from typing import List, Dict, Any, Optional, Tuple
+import csv
 import io
 import re
-import csv
-import zipfile
 import xml.etree.ElementTree as ET
+import zipfile
+
 from pydantic import BaseModel
+
 
 class ParsedStudent(BaseModel):
     orderIndex: int
     fullName: str
     firstName: str
     lastName: str
-    middleName: Optional[str] = None
-    emaktabId: Optional[str] = None
+    middleName: str | None = None
+    emaktabId: str | None = None
     gender: str = "M"
     birthDate: str = "2009-01-01"
-    group: Optional[str] = None
+    group: str | None = None
     status: str = "eligible"
 
 class ParseFileResult(BaseModel):
     success: bool
     fileName: str
-    detectedGroup: Optional[str] = None
-    detectedClass: Optional[str] = None
+    detectedGroup: str | None = None
+    detectedClass: str | None = None
     totalParsed: int
-    students: List[ParsedStudent]
-    warnings: List[str] = []
-    error: Optional[str] = None
+    students: list[ParsedStudent]
+    warnings: list[str] = []
+    error: str | None = None
 
 
-def detect_class_from_name_or_text(text: str) -> Optional[str]:
+def detect_class_from_name_or_text(text: str) -> str | None:
     """Fayl nomi yoki sarlavhadan sinf nomini aniqlash (masalan: 10-V, 11-A, 9-B)"""
     m = re.search(r'(?:^|[^0-9])(1[0-1]|[1-9])[-_\s]*([A-Za-zА-Яа-я])(?=[^A-Za-zА-Яа-я0-9]|$)', text)
     if m:
@@ -46,7 +47,7 @@ def detect_class_from_name_or_text(text: str) -> Optional[str]:
     return None
 
 
-def detect_group_from_name_or_text(text: str) -> Optional[str]:
+def detect_group_from_name_or_text(text: str) -> str | None:
     """Fayl nomi yoki sarlavhadan guruhni aniqlash"""
     if re.search(r'(?:2|II)[-_\s.]*(?:gurux|guruh)', text, re.IGNORECASE):
         return '2-guruh'
@@ -55,7 +56,7 @@ def detect_group_from_name_or_text(text: str) -> Optional[str]:
     return None
 
 
-def infer_gender_from_name(full_name: str, explicit_gender: Optional[str] = None) -> str:
+def infer_gender_from_name(full_name: str, explicit_gender: str | None = None) -> str:
     """Jinsni aniqlash (M yoki F)"""
     if explicit_gender:
         g = explicit_gender.strip().upper()
@@ -78,7 +79,7 @@ def infer_gender_from_name(full_name: str, explicit_gender: Optional[str] = None
     return 'M'
 
 
-def split_full_name(name: str) -> Tuple[str, str, Optional[str]]:
+def split_full_name(name: str) -> tuple[str, str, str | None]:
     """Familiya, Ism, Sharifga ajratish"""
     cleaned = re.sub(r'^\d+[\s.)-]+', '', name.strip())
     cleaned = re.sub(r'["\']+', '', cleaned).strip()
@@ -134,14 +135,14 @@ def is_valid_student_name(val: str) -> bool:
     return True
 
 
-def read_xls_rows(file_bytes: bytes) -> List[List[str]]:
+def read_xls_rows(file_bytes: bytes) -> list[list[str]]:
     """XLRD orqali .xls faylini o'qish"""
     import xlrd
     book = xlrd.open_workbook(file_contents=file_bytes)
     sheet = book.sheet_by_index(0)
-    rows: List[List[str]] = []
+    rows: list[list[str]] = []
     for r in range(sheet.nrows):
-        row_vals: List[str] = []
+        row_vals: list[str] = []
         for c in range(sheet.ncols):
             val = sheet.cell_value(r, c)
             if isinstance(val, float) and val.is_integer():
@@ -155,13 +156,13 @@ def read_xls_rows(file_bytes: bytes) -> List[List[str]]:
     return rows
 
 
-def read_xlsx_rows(file_bytes: bytes) -> List[List[str]]:
+def read_xlsx_rows(file_bytes: bytes) -> list[list[str]]:
     """ZIP va XML orqali to'g'ridan-to'g'ri .xlsx faylini o'qish (nol dependency)"""
     bio = io.BytesIO(file_bytes)
-    rows: List[List[str]] = []
+    rows: list[list[str]] = []
     with zipfile.ZipFile(bio, 'r') as zf:
         # 1. Shared Strings ni o'qish
-        shared_strings: List[str] = []
+        shared_strings: list[str] = []
         if 'xl/sharedStrings.xml' in zf.namelist():
             sst_xml = ET.fromstring(zf.read('xl/sharedStrings.xml'))
             ns = {'ns': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
@@ -181,7 +182,7 @@ def read_xlsx_rows(file_bytes: bytes) -> List[List[str]]:
             sheet_xml = ET.fromstring(zf.read(sheet_path))
             ns = {'ns': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
             for row_elem in sheet_xml.findall('.//ns:row', ns):
-                row_vals: List[str] = []
+                row_vals: list[str] = []
                 for c in row_elem.findall('.//ns:c', ns):
                     t = c.attrib.get('t')
                     v = c.find('ns:v', ns)
@@ -201,7 +202,7 @@ def read_xlsx_rows(file_bytes: bytes) -> List[List[str]]:
     return rows
 
 
-def read_csv_rows(file_bytes: bytes) -> List[List[str]]:
+def read_csv_rows(file_bytes: bytes) -> list[list[str]]:
     """CSV / TSV fayllarni turli kodlashlar bilan o'qish"""
     for encoding in ['utf-8-sig', 'utf-8', 'windows-1251', 'latin-1', 'cp1254']:
         try:
@@ -220,9 +221,9 @@ def read_csv_rows(file_bytes: bytes) -> List[List[str]]:
     return []
 
 
-def parse_rows_to_students(rows: List[List[str]], default_group: str = '1-guruh') -> List[ParsedStudent]:
+def parse_rows_to_students(rows: list[list[str]], default_group: str = '1-guruh') -> list[ParsedStudent]:
     """Qatorlardan ustunlarni avtomatik aniqlab, o'quvchilarni shakllantirish"""
-    students: List[ParsedStudent] = []
+    students: list[ParsedStudent] = []
 
     # 1. Sarlavha qatorini qidirish (ilk 15 qatordan)
     header_idx = -1
@@ -239,13 +240,17 @@ def parse_rows_to_students(rows: List[List[str]], default_group: str = '1-guruh'
             header_idx = r_idx
             for c_idx, c_val in enumerate(row_lower):
                 if 'id' in c_val or 'emaktab' in c_val or 'kod' in c_val:
-                    if id_col == -1: id_col = c_idx
+                    if id_col == -1:
+                        id_col = c_idx
                 elif 'f.i.sh' in c_val or 'fish' in c_val or 'familiya' in c_val or 'ism' in c_val or 'o\'quvchi' in c_val or 'name' in c_val:
-                    if name_col == -1: name_col = c_idx
+                    if name_col == -1:
+                        name_col = c_idx
                 elif 'jinsi' in c_val or 'jins' in c_val or 'pol' in c_val or 'gender' in c_val:
-                    if gender_col == -1: gender_col = c_idx
+                    if gender_col == -1:
+                        gender_col = c_idx
                 elif 'guruh' in c_val or 'gurux' in c_val or 'group' in c_val:
-                    if group_col == -1: group_col = c_idx
+                    if group_col == -1:
+                        group_col = c_idx
             break
 
     # 2. Qatorlarni tahlil qilish
@@ -299,7 +304,7 @@ def parse_rows_to_students(rows: List[List[str]], default_group: str = '1-guruh'
 
         # Agar ism topilmasa yoki yaroqsiz bo'lsa, boshqa katakchalardan tekshirish
         if not is_valid_student_name(raw_name):
-            for c_idx, cell in enumerate(row):
+            for cell in row:
                 cand = str(cell).strip()
                 if is_valid_student_name(cand):
                     raw_name = cand
@@ -331,7 +336,7 @@ def parse_rows_to_students(rows: List[List[str]], default_group: str = '1-guruh'
     return students
 
 
-def parse_excel_or_csv_file(file_name: str, file_bytes: bytes, group_override: Optional[str] = None) -> ParseFileResult:
+def parse_excel_or_csv_file(file_name: str, file_bytes: bytes, group_override: str | None = None) -> ParseFileResult:
     """Istalgan .xlsx, .xls yoki .csv faylni to'liq xatosiz tahlil qilish"""
     lower_name = file_name.lower()
     detected_group = group_override or detect_group_from_name_or_text(file_name)

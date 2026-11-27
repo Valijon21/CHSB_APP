@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from pydantic import BaseModel, Field
+
 
 class SubjectCreate(BaseModel):
     tenantSlug: str = Field(default="al-xorazmiy")

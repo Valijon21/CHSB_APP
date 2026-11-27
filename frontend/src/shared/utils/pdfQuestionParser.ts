@@ -42,7 +42,7 @@ function extractAnswerKeysMap(text: string): Map<number, string> {
 
   if (match && match[1]) {
     const keyText = match[1];
-    const pairRegex = /(\d+)[\.\-\)\:\s]+([A-Da-d])/g;
+    const pairRegex = /(\d+)[.\-):\s]+([A-Da-d])/g;
     let pair;
     while ((pair = pairRegex.exec(keyText)) !== null) {
       const qNum = parseInt(pair[1] || '0', 10);
@@ -64,13 +64,13 @@ export function cleanBsbFillLines(text: string): string {
   if (!text) return '';
   return text
     // 1. Remove underscores and underscore-dash combos e.g. "– __ __ ______", "___", "____"
-    .replace(/[\s–—\-]*_{2,}[\s_–—\-]*/g, ' ')
+    .replace(/[\s–—-]*_{2,}[\s_–—-]*/g, ' ')
     // 2. Remove dotted fill-in lines e.g. "....." or ". . . . ."
     .replace(/(?:\.\s*){4,}/g, ' ')
     // 3. Remove bracketed score tags e.g. ": [ 10 ball ]", "[10 ball]", "(2.5 ball)", or standalone ": 10 ball"
-    .replace(/(?:[:\s]*[\[\(]\s*\d+(?:\.\d+)?\s*ball\s*[\]\)]|:\s*\d+(?:\.\d+)?\s*ball\b)/gi, ' ')
+    .replace(/(?:[:\s]*[[(]\s*\d+(?:\.\d+)?\s*ball\s*[\])]|:\s*\d+(?:\.\d+)?\s*ball\b)/gi, ' ')
     // 4. Remove lingering trailing dashes, colons, hyphens, or dots: "Kiritish qurilmasi –" -> "Kiritish qurilmasi"
-    .replace(/[\s–—\-:\.]+$/, '')
+    .replace(/[\s–—\-:.]+$/, '')
     // 5. Remove lingering leading dashes or colons
     .replace(/^[\s–—\-:]+/, '')
     // 6. Normalize multiple spaces/tabs
@@ -84,7 +84,7 @@ export function cleanBsbFillLines(text: string): string {
 export function isPureBlankLine(line: string): boolean {
   const trimmed = line.trim();
   if (!trimmed) return true;
-  return /^[\s_–—\-\.:]+$/.test(trimmed);
+  return /^[\s_–—\-.:]+$/.test(trimmed);
 }
 
 /**
@@ -111,7 +111,7 @@ export function parseExamQuestionsFromText(
   const trailingKeys = extractAnswerKeysMap(cleanText);
 
   // Split into question blocks: lines starting with "1.", "1)", "1-topshiriq", "Topshiriq 1:", "1-savol"
-  const questionDelimiter = /\n\s*(?=(?:(?:(?:Savol|Topshiriq|Vazifa)\s+\d+)|(?:\d+\s*[\-\.]\s*(?:topshiriq|savol|vazifa))|(?:\d+[\.\)]\s+)))/i;
+  const questionDelimiter = /\n\s*(?=(?:(?:(?:Savol|Topshiriq|Vazifa)\s+\d+)|(?:\d+\s*[-.]\s*(?:topshiriq|savol|vazifa))|(?:\d+[.)]\s+)))/i;
   const rawBlocks = cleanText.split(questionDelimiter).map((b) => b.trim()).filter(Boolean);
 
   const parsedList: ParsedQuestionItem[] = [];
@@ -126,18 +126,18 @@ export function parseExamQuestionsFromText(
     const firstLine = lines[0] || '';
 
     // Ignore preamble / header lines (e.g. "9-sinf Informatika", "1-BSB 1-chorak", "Jami: 50 ball")
-    if (/^\s*(?:\d+[\s\-]*sinf|bsb|chsb|jami|umumiy)/i.test(firstLine) && !/(?:topshiriq|savol|vazifa)/i.test(firstLine)) {
+    if (/^\s*(?:\d+[\s-]*sinf|bsb|chsb|jami|umumiy)/i.test(firstLine) && !/(?:topshiriq|savol|vazifa)/i.test(firstLine)) {
       continue;
     }
 
     // Match question number and prompt start (e.g. "1-topshiriq [10 ball].", "Topshiriq 1:", "1. Savol")
-    const isTaskHeader = /^(?:(?:Savol|Topshiriq|Vazifa)\s+(\d+)|(\d+)\s*[\-\.]\s*(?:topshiriq|savol|vazifa)|(\d+)[\.\)])/i.test(firstLine);
+    const isTaskHeader = /^(?:(?:Savol|Topshiriq|Vazifa)\s+(\d+)|(\d+)\s*[-.]\s*(?:topshiriq|savol|vazifa)|(\d+)[.)])/i.test(firstLine);
     if (!isTaskHeader) {
       continue;
     }
 
     const numMatch = firstLine.match(
-      /^(?:(?:Savol|Topshiriq|Vazifa)\s+(\d+)|(\d+)\s*[\-\.]\s*(?:topshiriq|savol|vazifa)|(\d+)[\.\)])(?:\s*[:\s]*[\[\(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\]\)]?)?[\.\:\s\-]*(.*)$/i
+      /^(?:(?:Savol|Topshiriq|Vazifa)\s+(\d+)|(\d+)\s*[-.]\s*(?:topshiriq|savol|vazifa)|(\d+)[.)])(?:\s*[:\s]*[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?)?[.:\s-]*(.*)$/i
     );
 
     if (!numMatch) {
@@ -151,7 +151,7 @@ export function parseExamQuestionsFromText(
 
     // If explicitPoints wasn't in the task header, check if initialPrompt begins with score tag
     if (!explicitPoints) {
-      const ptsInPrompt = initialPrompt.match(/^[:\s]*[\[\(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\]\)]?/i);
+      const ptsInPrompt = initialPrompt.match(/^[:\s]*[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?/i);
       if (ptsInPrompt && ptsInPrompt[1]) {
         explicitPoints = parseFloat(ptsInPrompt[1]);
         initialPrompt = initialPrompt.replace(ptsInPrompt[0], ' ').trim();
@@ -167,7 +167,7 @@ export function parseExamQuestionsFromText(
     let readingSubs = false;
 
     // Check if initialPrompt contains an inline subquestion (e.g. "a) Kiritish qurilmasi")
-    const inlineSubMatch = initialPrompt.match(/^(.*?)(?:^|[:\s]+)([a-e])\s*[\.\)]\s*(.*)$/i);
+    const inlineSubMatch = initialPrompt.match(/^(.*?)(?:^|[:\s]+)([a-e])\s*[.)]\s*(.*)$/i);
     if (inlineSubMatch && inlineSubMatch[2]) {
       const promptPrefix = cleanBsbFillLines(inlineSubMatch[1] || '');
       if (promptPrefix) {
@@ -175,7 +175,7 @@ export function parseExamQuestionsFromText(
       }
       const firstSubLabel = inlineSubMatch[2].toLowerCase() + ')';
       const firstSubRaw = inlineSubMatch[3] || '';
-      const subPtsMatch = firstSubRaw.match(/[\[\(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\]\)]?/i);
+      const subPtsMatch = firstSubRaw.match(/[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?/i);
       const subPts = subPtsMatch && subPtsMatch[1] ? parseFloat(subPtsMatch[1]) : 2.5;
       const cleanSub = cleanBsbFillLines(firstSubRaw);
       extractedSubs.push({
@@ -202,7 +202,7 @@ export function parseExamQuestionsFromText(
       }
 
       // Check if line is a standalone points tag like ": [ 10 ball ]"
-      const standalonePtsMatch = line.match(/^[:\s]*[\[\(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\]\)]?[:\s]*$/i);
+      const standalonePtsMatch = line.match(/^[:\s]*[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?[:\s]*$/i);
       if (standalonePtsMatch && standalonePtsMatch[1]) {
         if (!explicitPoints) {
           explicitPoints = parseFloat(standalonePtsMatch[1]);
@@ -225,7 +225,7 @@ export function parseExamQuestionsFromText(
       }
 
       // Check option pattern: UPPERCASE A) text, A. text
-      const optMatch = line.match(/^([A-D])\s*[\.\)\-\]]\s*(.*)$/);
+      const optMatch = line.match(/^([A-D])\s*[.)\-\]]\s*(.*)$/);
       if (optMatch && optMatch[1]) {
         readingOptions = true;
         readingSubs = false;
@@ -239,7 +239,7 @@ export function parseExamQuestionsFromText(
       }
 
       // Check sub-question pattern: LOWERCASE a) text, b) text, with optional score prefix like ": [ 10 ball ] a ) ..."
-      const subMatch = line.match(/^(?:[:\s]*[\[\(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\]\)]?[:\s]*)?([a-e])\s*[\.\)]\s*(.*)$/i);
+      const subMatch = line.match(/^(?:[:\s]*[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?[:\s]*)?([a-e])\s*[.)]\s*(.*)$/i);
       if (subMatch && subMatch[2]) {
         readingSubs = true;
         readingOptions = false;
@@ -248,7 +248,7 @@ export function parseExamQuestionsFromText(
         }
         const subLabel = subMatch[2].toLowerCase() + ')';
         const subTextRaw = subMatch[3] || '';
-        const subPtsMatch = subTextRaw.match(/[\[\(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\]\)]?/i);
+        const subPtsMatch = subTextRaw.match(/[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?/i);
         const subPts = subPtsMatch && subPtsMatch[1] ? parseFloat(subPtsMatch[1]) : 2.5;
         const cleanSub = cleanBsbFillLines(subTextRaw);
 
