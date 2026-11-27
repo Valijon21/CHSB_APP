@@ -67,8 +67,8 @@ describe('TASK-AUTH.3: LoginView.vue UI & Interactions', () => {
     const usernameInput = wrapper.find<HTMLInputElement>('#auth-username');
     const passwordInput = wrapper.find<HTMLInputElement>('#auth-password');
 
-    expect(usernameInput.element.value).toBe('admin@xorazm.uz');
-    expect(passwordInput.element.value).toBe('admin123');
+    expect(usernameInput.element.value).toBe('admin@al-xorazmiy.uz');
+    expect(passwordInput.element.value).toBe('Secret123!');
   });
 
   it('toggles password visibility when eye icon clicked', async () => {

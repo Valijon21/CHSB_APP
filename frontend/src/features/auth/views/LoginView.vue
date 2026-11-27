@@ -182,42 +182,42 @@ async function handleLogin() {
             <!-- Demo Teacher -->
             <button
               type="button"
-              @click="selectDemoAccount('teacher@xorazm.uz', 'teacher123')"
+              @click="selectDemoAccount('teacher@al-xorazmiy.uz', 'Secret123!')"
               class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 bg-slate-50 dark:bg-slate-700/50 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 text-left transition text-xs cursor-pointer group"
             >
               <span class="block font-bold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-300">
                 👨‍🏫 O'qituvchi
               </span>
               <span class="block text-[10px] text-slate-500 font-mono mt-0.5 truncate">
-                teacher@xorazm.uz
+                teacher@al-xorazmiy.uz
               </span>
             </button>
 
             <!-- Demo Admin -->
             <button
               type="button"
-              @click="selectDemoAccount('admin@xorazm.uz', 'admin123')"
+              @click="selectDemoAccount('admin@al-xorazmiy.uz', 'Secret123!')"
               class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 bg-slate-50 dark:bg-slate-700/50 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 text-left transition text-xs cursor-pointer group"
             >
               <span class="block font-bold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-300">
                 🏫 Maktab Admini
               </span>
               <span class="block text-[10px] text-slate-500 font-mono mt-0.5 truncate">
-                admin@xorazm.uz
+                admin@al-xorazmiy.uz
               </span>
             </button>
 
             <!-- Demo Regional -->
             <button
               type="button"
-              @click="selectDemoAccount('regional@xorazm.uz', 'regional123')"
+              @click="selectDemoAccount('inspector@toshkent-xtb.uz', 'Secret123!')"
               class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 bg-slate-50 dark:bg-slate-700/50 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 text-left transition text-xs cursor-pointer group"
             >
               <span class="block font-bold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-300">
                 🏛️ Viloyat Boshqarmasi
               </span>
               <span class="block text-[10px] text-slate-500 font-mono mt-0.5 truncate">
-                regional@xorazm.uz
+                inspector@toshkent-xtb.uz
               </span>
             </button>
           </div>
