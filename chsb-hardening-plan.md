@@ -74,7 +74,7 @@ CHSB_APP/
 
 ### 2-To'lqin: O'zbekiston BSB / CHSB / Formativ (100 Ballik Tizim)
 
-- [ ] **TASK-2.1: Prisma Sxemasini 100-Ballik Tizim Uchun Kengaytirish**
+- [x] **TASK-2.1: Prisma Sxemasini 100-Ballik Tizim Uchun Kengaytirish**
   - **Agent:** `database-architect` | **Skills:** `database-design`
   - **INPUT:** `prisma/schema.prisma`, `backend/app/db/schema_sync.py`
   - **OUTPUT:**
