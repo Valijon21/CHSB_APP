@@ -16,9 +16,6 @@
     "test:frontend": "npm --prefix frontend run test",
     "test:watch": "npm --prefix frontend run test:watch",
     "test:backend": "PYTHONPATH=. .venv/bin/pytest backend/tests",
-    "dev:v2": "npm --prefix v2 run dev",
-    "build:v2": "npm --prefix v2 run build",
-    "test:v2": "npx tsx --test v2/tests/*.test.ts",
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate"
   },
