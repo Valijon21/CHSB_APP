@@ -5,6 +5,7 @@ import type {
   LiveEventStreamItem,
   ProctorActionPayload,
 } from '../../../entities/proctor/model';
+import { httpClient } from '../../../shared/api/httpClient';
 
 const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
 
@@ -270,6 +271,13 @@ export const useLiveProctorStore = defineStore('liveProctor', () => {
         message: `O'qituvchi tomonidan +${Math.round(extraSeconds / 60)} daqiqa vaqt qo'shildi (${reason})`,
         severity: 'info',
       });
+      if (!isTestEnv && session.attemptId) {
+        void httpClient.post(`/proctor/attempts/${session.attemptId}/action`, {
+          action: 'grant_time',
+          extraSeconds,
+          reason,
+        });
+      }
     }
   }
 
@@ -294,6 +302,13 @@ export const useLiveProctorStore = defineStore('liveProctor', () => {
         message: `O'qituvchi ogohlantirish yubordi: "${message}"`,
         severity: 'warning',
       });
+      if (!isTestEnv && session.attemptId) {
+        void httpClient.post(`/proctor/attempts/${session.attemptId}/action`, {
+          action: 'send_warning',
+          warningMessage: message,
+          reason: "O'qituvchi ogohlantirishi",
+        });
+      }
     }
   }
 
@@ -317,6 +332,26 @@ export const useLiveProctorStore = defineStore('liveProctor', () => {
         message: `Imtihon majburiy yakunlandi: ${reason}`,
         severity: 'danger',
       });
+      if (!isTestEnv && session.attemptId) {
+        void httpClient.post(`/proctor/attempts/${session.attemptId}/action`, {
+          action: 'force_submit',
+          reason,
+        });
+      }
+    }
+  }
+
+  async function loadLiveSessions(assessmentId: string, tenantId?: string): Promise<void> {
+    if (isTestEnv) return;
+    try {
+      const data = await httpClient.get<{ sessions: LiveStudentSession[]; events: LiveEventStreamItem[] }>(
+        `/proctor/assessments/${assessmentId}/live-sessions`,
+        { params: { tenantId } }
+      );
+      sessions.value = data.sessions || [];
+      eventStream.value = data.events || [];
+    } catch {
+      // Keep current list on transient network glitch
     }
   }
 
@@ -352,6 +387,7 @@ export const useLiveProctorStore = defineStore('liveProctor', () => {
     setSearchQuery,
     setSessions,
     pushEvent,
+    loadLiveSessions,
     grantExtraTime,
     sendWarning,
     forceSubmit,

@@ -14,7 +14,9 @@ const router = useRouter();
 const tenantStore = useTenantStore();
 const admissionStore = useStudentAdmissionStore();
 const assessmentStore = useAssessmentStore();
-const proctor = useExamProctor(3);
+const proctor = useExamProctor(3, {
+  attemptId: () => assessmentStore.attempt?.id || null,
+});
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const assessmentId = (route.params.assessmentId as string) || 'chsb-inf-11-q1';

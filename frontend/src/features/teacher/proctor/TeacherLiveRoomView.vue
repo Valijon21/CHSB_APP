@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useLiveProctorStore } from './liveProctorStore';
 import type { LiveStudentSession, ProctorActionType } from '../../../entities/proctor/model';
@@ -12,6 +12,21 @@ const proctorStore = useLiveProctorStore();
 
 const tenantSlug = (route?.params?.tenantSlug as string) || 'al-xorazmiy';
 const assessmentId = (route?.params?.assessmentId as string) || 'chsb-inf-11-q1';
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+onMounted(() => {
+  void proctorStore.loadLiveSessions(assessmentId, tenantSlug);
+  pollTimer = setInterval(() => {
+    void proctorStore.loadLiveSessions(assessmentId, tenantSlug);
+  }, 5000);
+});
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+});
 
 // Modal state
 const isActionModalOpen = ref(false);

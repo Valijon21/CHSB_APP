@@ -11,6 +11,7 @@ export const LiveStudentStatusSchema = z.enum([
 export type LiveStudentStatus = z.infer<typeof LiveStudentStatusSchema>;
 
 export const LiveStudentSessionSchema = z.object({
+  attemptId: z.string().optional(),
   rosterRecordId: z.string().min(1),
   studentName: z.string().min(1),
   className: z.string().min(1),

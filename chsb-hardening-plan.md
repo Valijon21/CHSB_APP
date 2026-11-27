@@ -114,7 +114,7 @@ CHSB_APP/
   - **OUTPUT:** `passingRate`, `cognitiveBreakdown` (Bilish/Qo'llash/Mulohaza savollar natijasidan), `questionStats` (har bir savol bo'yicha real % to'g'ri javob) va hududiy reytinglar SQL/Prisma agregatsiyasidan real hisoblanadi; o'quvchiga testlar sinf va guruhi bo'yicha bazadan dinamik biriktiriladi; `GET /students` ga paginatsiya (`page`, `limit`, `search`) qo'shiladi.
   - **VERIFY:** Pytest da real natijalar asosida foizlar to'g'ri chiqishi va paginatsiya ishlashi tekshiriladi.
 
-- [ ] **TASK-3.3: Live Proctoring Telemetriyasini Serverga Ulash**
+- [x] **TASK-3.3: Live Proctoring Telemetriyasini Serverga Ulash**
   - **Agent:** `backend-specialist` + `frontend-specialist` | **Skills:** `api-patterns`, `frontend-architecture`
   - **INPUT:** `useExamProctor.ts`, `liveProctorStore.ts`, `TeacherLiveRoomView.vue`, `backend/app/api/v1/endpoints/proctor.py` (yangi)
   - **OUTPUT:** `POST /attempts/{id}/proctor-event` (heartbeat + tab_hidden/window_blur/fullscreen_exit), `GET /assessments/{id}/live-sessions`, o'qituvchi amallari (`grant_time`, `send_warning`, `force_submit`) serverda saqlanadi va o'quvchi ekraniga yetib boradi.

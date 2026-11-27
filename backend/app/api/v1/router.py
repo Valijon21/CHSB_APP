@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.app.api.v1.endpoints import auth, classes, students, analytics, ai, tenants, assessments, regional, subjects, curriculum, gradebook, schools, teachers
+from backend.app.api.v1.endpoints import auth, classes, students, analytics, ai, tenants, assessments, regional, subjects, curriculum, gradebook, schools, teachers, proctor
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
@@ -15,3 +15,4 @@ api_router.include_router(curriculum.router)
 api_router.include_router(gradebook.router)
 api_router.include_router(schools.router)
 api_router.include_router(teachers.router)
+api_router.include_router(proctor.router)
