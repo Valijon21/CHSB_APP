@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import StaffLayout from '../src/app/layouts/StaffLayout.vue';
 import { useAuthStore } from '../src/features/auth/store/authStore';
+import { mockLoginApi, TEST_PASSWORD } from './mocks/mockAuthApi';
 
 const mockPush = vi.fn();
 vi.mock('vue-router', () => ({
@@ -17,6 +18,7 @@ vi.mock('vue-router', () => ({
 
 describe('TASK-AUTH.5: StaffLayout Auth & Logout Integration', () => {
   beforeEach(() => {
+    mockLoginApi();
     setActivePinia(createPinia());
     mockPush.mockClear();
     sessionStorage.clear();
@@ -26,8 +28,8 @@ describe('TASK-AUTH.5: StaffLayout Auth & Logout Integration', () => {
   it('renders authenticated teacher name and role badge', async () => {
     const authStore = useAuthStore();
     await authStore.login({
-      username: 'teacher@xorazm.uz',
-      password: 'teacher123',
+      username: 'teacher_ax',
+      password: TEST_PASSWORD,
     });
 
     const wrapper = mount(StaffLayout, {
@@ -50,8 +52,8 @@ describe('TASK-AUTH.5: StaffLayout Auth & Logout Integration', () => {
   it('renders super admin with Viloyat Boshqarmasi badge and link', async () => {
     const authStore = useAuthStore();
     await authStore.login({
-      username: 'regional@xorazm.uz',
-      password: 'regional123',
+      username: 'super_admin',
+      password: TEST_PASSWORD,
     });
 
     const wrapper = mount(StaffLayout, {
@@ -72,8 +74,8 @@ describe('TASK-AUTH.5: StaffLayout Auth & Logout Integration', () => {
   it('triggers logout and redirects to /login when Chiqish button clicked', async () => {
     const authStore = useAuthStore();
     await authStore.login({
-      username: 'teacher@xorazm.uz',
-      password: 'teacher123',
+      username: 'teacher_ax',
+      password: TEST_PASSWORD,
     });
 
     expect(authStore.isAuthenticated).toBe(true);

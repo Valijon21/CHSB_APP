@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
+from backend.app.core.permissions import school_staff, resolve_tenant, ensure_tenant_access
 
 router = APIRouter(tags=["Assessments"])
 
@@ -182,6 +183,13 @@ async def update_question(
     payload: QuestionUpdate,
     db: Prisma = Depends(get_prisma),
 ):
+    question = await db.question.find_unique(where={"id": question_id}, include={"assessment": True})
+    if not question or assessment_id.lower() not in (
+        question.assessment.id.lower(),
+        question.assessment.code.lower(),
+    ):
+        raise HTTPException(status_code=404, detail="Savol topilmadi.")
+
     update_data = {}
     if payload.prompt is not None:
         update_data["prompt"] = payload.prompt
@@ -243,8 +251,23 @@ async def get_assessment_by_id(assessment_id: str, db: Prisma = Depends(get_pris
         "questions": formatted_questions,
     }
 
+async def get_owned_attempt(db: Prisma, user, attempt_id: str):
+    """Load an attempt, hiding attempts of students from other tenants."""
+    attempt = await db.assessmentattempt.find_unique(
+        where={"id": attempt_id},
+        include={"student": True},
+    )
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Test urinishi topilmadi.")
+    ensure_tenant_access(user, attempt.student.tenantId, "Test urinishi topilmadi.")
+    return attempt
+
 @router.post("/attempts")
-async def create_attempt(payload: CreateAttemptPayload, db: Prisma = Depends(get_prisma)):
+async def create_attempt(
+    payload: CreateAttemptPayload,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
+):
     # Find student by id or rosterRecordId
     student = await db.student.find_first(
         where={
@@ -256,6 +279,7 @@ async def create_attempt(payload: CreateAttemptPayload, db: Prisma = Depends(get
     )
     if not student:
         raise HTTPException(status_code=404, detail="O'quvchi topilmadi.")
+    ensure_tenant_access(current_user, student.tenantId, "O'quvchi topilmadi.")
 
     # Find assessment
     assessment = await db.assessment.find_first(
@@ -315,10 +339,12 @@ async def create_attempt(payload: CreateAttemptPayload, db: Prisma = Depends(get
     }
 
 @router.get("/attempts/{attempt_id}")
-async def get_attempt(attempt_id: str, db: Prisma = Depends(get_prisma)):
-    attempt = await db.assessmentattempt.find_unique(where={"id": attempt_id})
-    if not attempt:
-        raise HTTPException(status_code=404, detail="Test urinishi topilmadi.")
+async def get_attempt(
+    attempt_id: str,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
+):
+    attempt = await get_owned_attempt(db, current_user, attempt_id)
 
     answers = attempt.answersJson if isinstance(attempt.answersJson, dict) else json.loads(str(attempt.answersJson or "{}"))
 
@@ -333,10 +359,13 @@ async def get_attempt(attempt_id: str, db: Prisma = Depends(get_prisma)):
     }
 
 @router.post("/attempts/{attempt_id}/draft")
-async def save_draft(attempt_id: str, payload: SaveDraftPayload, db: Prisma = Depends(get_prisma)):
-    attempt = await db.assessmentattempt.find_unique(where={"id": attempt_id})
-    if not attempt:
-        raise HTTPException(status_code=404, detail="Test urinishi topilmadi.")
+async def save_draft(
+    attempt_id: str,
+    payload: SaveDraftPayload,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
+):
+    await get_owned_attempt(db, current_user, attempt_id)
 
     await db.assessmentattempt.update(
         where={"id": attempt_id},
@@ -345,7 +374,13 @@ async def save_draft(attempt_id: str, payload: SaveDraftPayload, db: Prisma = De
     return {"success": True, "savedAt": datetime.now().isoformat()}
 
 @router.post("/attempts/{attempt_id}/submit")
-async def submit_attempt(attempt_id: str, payload: SubmitAttemptPayload | None = None, db: Prisma = Depends(get_prisma)):
+async def submit_attempt(
+    attempt_id: str,
+    payload: SubmitAttemptPayload | None = None,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
+):
+    await get_owned_attempt(db, current_user, attempt_id)
     attempt = await db.assessmentattempt.find_unique(
         where={"id": attempt_id},
         include={"assessment": {"include": {"questions": True}}, "student": True},
@@ -399,13 +434,18 @@ async def submit_attempt(attempt_id: str, payload: SubmitAttemptPayload | None =
     }
 
 @router.get("/results/attempt/{attempt_id}")
-async def get_result_by_attempt(attempt_id: str, db: Prisma = Depends(get_prisma)):
+async def get_result_by_attempt(
+    attempt_id: str,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
+):
     result = await db.assessmentresult.find_unique(
         where={"attemptId": attempt_id},
         include={"student": {"include": {"classGroup": True}}},
     )
     if not result:
         raise HTTPException(status_code=404, detail="Natija topilmadi.")
+    ensure_tenant_access(current_user, result.student.tenantId, "Natija topilmadi.")
 
     return {
         "id": result.id,
@@ -422,14 +462,14 @@ async def get_result_by_attempt(attempt_id: str, db: Prisma = Depends(get_prisma
     }
 
 @router.get("/results/tenant/{tenant_id}")
-async def get_results_by_tenant(tenant_id: str, db: Prisma = Depends(get_prisma)):
+async def get_results_by_tenant(
+    tenant_id: str,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
+):
+    tenant = await resolve_tenant(db, current_user, tenant_id)
     results = await db.assessmentresult.find_many(
-        where={
-            "OR": [
-                {"student": {"tenantId": tenant_id}},
-                {"student": {"tenant": {"slug": tenant_id}}},
-            ]
-        },
+        where={"student": {"tenantId": tenant.id}},
         include={
             "student": {"include": {"classGroup": True}},
             "attempt": {"include": {"assessment": True}},

@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Request
@@ -8,6 +9,19 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend.app.core.config import settings
 from backend.app.api.v1.router import api_router
 from backend.app.db.prisma import prisma
+
+logger = logging.getLogger("chsb")
+
+def find_frontend_file(url_path: str) -> Path | None:
+    """Return a file inside the frontend build, never anything outside of it."""
+    root = settings.FRONTEND_DIST.resolve()
+    try:
+        candidate = (root / url_path.lstrip("/")).resolve()
+        if candidate.is_relative_to(root) and candidate.is_file():
+            return candidate
+    except (OSError, ValueError):
+        return None
+    return None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,6 +44,9 @@ async def lifespan(app: FastAPI):
             from backend.app.db.seed import auto_seed_db
             await auto_seed_db(prisma)
             print("✅ Clean production foundation bootstrapped!")
+        else:
+            from backend.app.db.seed import seed_users_if_empty
+            await seed_users_if_empty(prisma)
     except Exception as e:
         print(f"⚠️ Production bootstrap warning: {e}")
 
@@ -47,8 +64,8 @@ app = FastAPI(
 # CORS configuration for Frontend Vue 3
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],
-    allow_credentials=True,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -75,51 +92,13 @@ async def health_check():
         "database": f"{db_type}-prisma",
         "orm": "prisma-client-py",
         "version": settings.VERSION,
-        "deploy_id": "v2.0.1-debug",
     }
-
-@app.get("/api/v1/system/debug-db", tags=["System"])
-async def debug_db():
-    import traceback
-    results = {}
-    try:
-        t = await prisma.tenant.find_first()
-        results["tenant"] = t.slug if t else None
-    except Exception as e:
-        results["tenant_error"] = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
-
-    try:
-        if settings.DATABASE_URL.startswith(("postgres://", "postgresql://")):
-            cols = await prisma.query_raw(
-                "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'class_groups'"
-            )
-            results["class_groups_columns"] = [c.get("column_name") for c in cols]
-            st_cols = await prisma.query_raw(
-                "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'students'"
-            )
-            results["students_columns"] = [c.get("column_name") for c in st_cols]
-    except Exception as e:
-        results["columns_error"] = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
-
-    try:
-        classes = await prisma.classgroup.find_many()
-        results["class_count"] = len(classes)
-    except Exception as e:
-        results["classes_find_error"] = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
-
-    return results
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    import traceback
-    return JSONResponse(
-        status_code=500,
-        content={
-            "detail": str(exc),
-            "type": type(exc).__name__,
-            "traceback": traceback.format_exc(),
-        }
-    )
+    # Details stay in the server log; clients get no internals
+    logger.error("Unhandled error on %s %s", request.method, request.url.path, exc_info=exc)
+    return JSONResponse(status_code=500, content={"detail": "Serverda ichki xatolik yuz berdi."})
 
 # 3. Static assets mount (if frontend/dist/assets exists)
 assets_dir = settings.FRONTEND_DIST / "assets"
@@ -154,8 +133,8 @@ async def spa_fallback_exception_handler(request: Request, exc: StarletteHTTPExc
             return JSONResponse(status_code=404, content={"detail": exc.detail or "Not Found"})
 
         # Check if the requested file exists directly in frontend/dist (e.g. favicon.ico, logo.svg)
-        requested_file = settings.FRONTEND_DIST / request.url.path.lstrip("/")
-        if requested_file.is_file():
+        requested_file = find_frontend_file(request.url.path)
+        if requested_file:
             return FileResponse(str(requested_file))
 
         # Otherwise serve Vue 3 SPA index.html for client-side routing

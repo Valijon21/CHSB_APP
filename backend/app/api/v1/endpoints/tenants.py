@@ -1,12 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
+from backend.app.core.dependencies import get_current_user
+from backend.app.core.permissions import can_access_tenant, REGIONAL_INSPECTOR, SUPER_ADMIN
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
 
 @router.get("")
-async def get_tenants(db: Prisma = Depends(get_prisma)):
-    tenants = await db.tenant.find_many(order={"name": "asc"})
+async def get_tenants(db: Prisma = Depends(get_prisma), current_user=Depends(get_current_user)):
+    sees_all = current_user.role in (SUPER_ADMIN, REGIONAL_INSPECTOR)
+    tenants = await db.tenant.find_many(
+        where=None if sees_all else {"id": current_user.tenantId},
+        order={"name": "asc"},
+    )
     return [
         {
             "id": t.id,
@@ -46,9 +52,16 @@ async def get_tenant_public_context(slug: str, db: Prisma = Depends(get_prisma))
     }
 
 @router.get("/{id}")
-async def get_tenant_by_id(id: str, db: Prisma = Depends(get_prisma)):
+async def get_tenant_by_id(
+    id: str,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(get_current_user),
+):
     tenant = await db.tenant.find_unique(where={"id": id})
-    if not tenant:
+    allowed = tenant is not None and (
+        current_user.role == REGIONAL_INSPECTOR or can_access_tenant(current_user, tenant.id)
+    )
+    if not allowed:
         raise HTTPException(status_code=404, detail="Tenant topilmadi.")
     return {
         "id": tenant.id,

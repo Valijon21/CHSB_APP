@@ -1,8 +1,7 @@
 name: Sync to Hugging Face Spaces
 
+# Manual only: publishing must be a deliberate act, after the checks have passed.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -21,8 +20,8 @@ jobs:
         run: |
           if [ -n "$HF_TOKEN" ] && [ -n "$HF_SPACE_REPO" ]; then
             echo "Pushing code to Hugging Face Space: $HF_SPACE_REPO..."
-            git push https://user:$HF_TOKEN@huggingface.co/spaces/$HF_SPACE_REPO main:main --force
+            git push https://user:$HF_TOKEN@huggingface.co/spaces/$HF_SPACE_REPO main:main
             echo "✅ Successfully synced repository to Hugging Face Space!"
           else
-            echo "ℹ️ HF_TOKEN or HF_SPACE_REPO secret is not configured in GitHub Repository Settings. Manual push or space connection can be used."
+            echo "ℹ️ HF_TOKEN or HF_SPACE_REPO secret is not configured in GitHub Repository Settings."
           fi

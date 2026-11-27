@@ -7,8 +7,14 @@ async function main() {
   console.log('🌱 Starting Prisma Database Seed for CHSB Assessment Platform...');
 
   // 1. Password Hashing
-  const defaultPassword = 'Secret123!';
-  const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+  if (process.env.ALLOW_DB_RESET !== 'yes') {
+    throw new Error('Refusing to run: this seed DELETES ALL DATA. Set ALLOW_DB_RESET=yes to confirm.');
+  }
+  const seedPassword = process.env.SEED_PASSWORD ?? '';
+  if (seedPassword.length < 10 || seedPassword === 'Secret123!') {
+    throw new Error('Set SEED_PASSWORD to a private password of at least 10 characters.');
+  }
+  const hashedPassword = await bcrypt.hash(seedPassword, 10);
 
   // 2. Clear old data in reverse dependency order
   await prisma.assessmentResult.deleteMany();

@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 from backend.app.core.config import settings
+from backend.app.core.security import STAFF_TOKEN
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
 
@@ -24,7 +25,8 @@ async def get_current_user(
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
-        if username is None:
+        # Student exam tokens are signed with the same key and must never open staff routes
+        if username is None or payload.get("type") != STAFF_TOKEN:
             raise credentials_exception
     except jwt.PyJWTError:
         raise credentials_exception
@@ -39,7 +41,7 @@ def require_role(allowed_roles: list[str]):
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Ushbu amalni bajarish uchun '{current_user.role}' roliga ruxsat berilmagan.",
+                detail="Sizda bu amalni bajarish uchun ruxsat yo'q.",
             )
         return current_user
     return role_checker

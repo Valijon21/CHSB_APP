@@ -20,6 +20,7 @@ describe('CurriculumHubView Component', () => {
       if (url.includes('/api/v1/curriculum/solutions')) {
         return Promise.resolve({
           ok: true,
+          headers: new Headers({ 'content-type': 'application/json' }),
           json: () =>
             Promise.resolve([
               {
@@ -37,6 +38,7 @@ describe('CurriculumHubView Component', () => {
       }
       return Promise.resolve({
         ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: () =>
           Promise.resolve([
             {

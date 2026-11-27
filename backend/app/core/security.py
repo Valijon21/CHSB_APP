@@ -5,6 +5,13 @@ import bcrypt
 import jwt
 from backend.app.core.config import settings
 
+# Default passwords that were published in the repository
+BLOCKED_PASSWORDS = frozenset({"Secret123!"})
+MIN_PASSWORD_LENGTH = 10
+
+STAFF_TOKEN = "staff"
+STUDENT_TOKEN = "student"
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         return bcrypt.checkpw(
@@ -22,7 +29,8 @@ def create_access_token(
     subject: Union[str, Any],
     role: str,
     tenant_id: str,
-    expires_delta: timedelta | None = None
+    expires_delta: timedelta | None = None,
+    token_type: str = STAFF_TOKEN,
 ) -> str:
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -33,7 +41,8 @@ def create_access_token(
         "exp": expire,
         "sub": str(subject),
         "role": role,
-        "tenant_id": tenant_id
+        "tenant_id": tenant_id,
+        "type": token_type,
     }
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.ALGORITHM)
     return encoded_jwt

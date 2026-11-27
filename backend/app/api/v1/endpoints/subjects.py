@@ -2,20 +2,18 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 from prisma import Prisma
 from backend.app.db.prisma import get_prisma
+from backend.app.core.permissions import school_staff, school_admin, resolve_tenant, ensure_tenant_access
 from backend.app.schemas.subject import SubjectCreate, SubjectUpdate, SubjectResponse
 
 router = APIRouter(prefix="/subjects", tags=["Subjects"])
 
 @router.get("", response_model=list[SubjectResponse])
 async def list_subjects(
-    tenantSlug: str = Query("al-xorazmiy", description="Muassasa identifikatori"),
+    tenantSlug: str | None = Query(None, description="Muassasa identifikatori"),
     db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
 ):
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Muassasa topilmadi.")
+    tenant = await resolve_tenant(db, current_user, tenantSlug, "Muassasa topilmadi.")
 
     subjects = await db.subject.find_many(
         where={"tenantId": tenant.id},
@@ -42,12 +40,9 @@ async def list_subjects(
 async def create_subject(
     payload: SubjectCreate,
     db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_admin),
 ):
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": payload.tenantSlug}, {"id": payload.tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Muassasa topilmadi.")
+    tenant = await resolve_tenant(db, current_user, payload.tenantSlug, "Muassasa topilmadi.")
 
     clean_code = payload.code.strip().upper()
     clean_name = payload.name.strip()
@@ -94,10 +89,12 @@ async def update_subject(
     subject_id: str,
     payload: SubjectUpdate,
     db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_admin),
 ):
     subject = await db.subject.find_unique(where={"id": subject_id}, include={"tenant": True})
     if not subject:
         raise HTTPException(status_code=404, detail="Fan topilmadi.")
+    ensure_tenant_access(current_user, subject.tenantId, "Fan topilmadi.")
 
     update_data = {}
     if payload.name is not None:
@@ -134,10 +131,12 @@ async def update_subject(
 async def delete_subject(
     subject_id: str,
     db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_admin),
 ):
     subject = await db.subject.find_unique(where={"id": subject_id})
     if not subject:
         raise HTTPException(status_code=404, detail="Fan topilmadi.")
+    ensure_tenant_access(current_user, subject.tenantId, "Fan topilmadi.")
 
     await db.subject.delete(where={"id": subject_id})
     return {"success": True, "message": f"'{subject.name}' fani muvaffaqiyatli o'chirildi."}

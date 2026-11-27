@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import LoginView from '../src/features/auth/views/LoginView.vue';
 import { useAuthStore } from '../src/features/auth/store/authStore';
+import { mockLoginApi, TEST_PASSWORD } from './mocks/mockAuthApi';
 
 const mockPush = vi.fn();
 vi.mock('vue-router', () => ({
@@ -17,13 +18,14 @@ vi.mock('vue-router', () => ({
 
 describe('TASK-AUTH.3: LoginView.vue UI & Interactions', () => {
   beforeEach(() => {
+    mockLoginApi();
     setActivePinia(createPinia());
     mockPush.mockClear();
     sessionStorage.clear();
     localStorage.clear();
   });
 
-  it('renders login form with accessible inputs and demo pills', () => {
+  it('renders login form with accessible inputs and no demo accounts', () => {
     const wrapper = mount(LoginView, {
       global: {
         stubs: {
@@ -36,39 +38,10 @@ describe('TASK-AUTH.3: LoginView.vue UI & Interactions', () => {
 
     expect(wrapper.text()).toContain('CHSB Platform');
     expect(wrapper.text()).toContain("O'qituvchilar va Maktab Ma'muriyati");
-
-    const usernameInput = wrapper.find('#auth-username');
-    const passwordInput = wrapper.find('#auth-password');
-    expect(usernameInput.exists()).toBe(true);
-    expect(passwordInput.exists()).toBe(true);
-
-    // 3 Demo buttons present
-    expect(wrapper.text()).toContain("O'qituvchi");
-    expect(wrapper.text()).toContain('Maktab Admini');
-    expect(wrapper.text()).toContain('Viloyat Boshqarmasi');
-  });
-
-  it('clicking demo pill autofills username and password', async () => {
-    const wrapper = mount(LoginView, {
-      global: {
-        stubs: {
-          RouterLink: { template: '<a><slot /></a>' },
-        },
-      },
-    });
-
-    const demoButtons = wrapper.findAll('button[type="button"]');
-    // First button might be eye icon or demo button. Let's find button with text "Maktab Admini"
-    const adminButton = demoButtons.find((btn) => btn.text().includes('Maktab Admini'));
-    expect(adminButton).toBeDefined();
-
-    await adminButton!.trigger('click');
-
-    const usernameInput = wrapper.find<HTMLInputElement>('#auth-username');
-    const passwordInput = wrapper.find<HTMLInputElement>('#auth-password');
-
-    expect(usernameInput.element.value).toBe('admin@xorazm.uz');
-    expect(passwordInput.element.value).toBe('admin123');
+    expect(wrapper.find('#auth-username').exists()).toBe(true);
+    expect(wrapper.find('#auth-password').exists()).toBe(true);
+    expect(wrapper.html()).not.toContain('Demo');
+    expect(wrapper.html()).not.toContain('xorazm.uz');
   });
 
   it('toggles password visibility when eye icon clicked', async () => {
@@ -125,8 +98,8 @@ describe('TASK-AUTH.3: LoginView.vue UI & Interactions', () => {
     const usernameInput = wrapper.find('#auth-username');
     const passwordInput = wrapper.find('#auth-password');
 
-    await usernameInput.setValue('teacher@xorazm.uz');
-    await passwordInput.setValue('teacher123');
+    await usernameInput.setValue('teacher_ax');
+    await passwordInput.setValue(TEST_PASSWORD);
     await wrapper.find('form').trigger('submit.prevent');
 
     // Wait microtask

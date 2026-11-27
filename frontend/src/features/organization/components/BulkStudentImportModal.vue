@@ -9,6 +9,23 @@ import { extractStudentsRosterWithAi } from '../../../shared/utils/groundedAiExt
 import { parseExcelFileClientSide } from '../../emaktab/services/clientExcelParser';
 import { useTeacherStore } from '../../teacher/teacherStore';
 import { useOrganizationStore } from '../store/organizationStore';
+import { httpClient } from '../../../shared/api/httpClient';
+
+interface ParseFileResponse {
+  success: boolean;
+  error?: string;
+  detectedGroup?: string;
+  detectedClass?: string;
+  students?: Array<{
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    gender?: string;
+    birthDate?: string;
+    group?: string;
+    emaktabId?: string;
+  }>;
+}
 
 const props = defineProps<{
   isOpen: boolean;
@@ -312,107 +329,86 @@ async function readFile(file: File) {
       formData.append('group', selectedGroup.value);
     }
 
-    const isLocal =
-      typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1' ||
-        window.location.port === '5173');
-    const apiBase = isLocal ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1');
-    const endpoint = apiBase.endsWith('/')
-      ? `${apiBase}students/parse-file`
-      : `${apiBase}/students/parse-file`;
+    const data = await httpClient.postForm<ParseFileResponse>('/students/parse-file', formData, {
+      timeoutMs: 30000,
+    });
 
-    let res: Response | null = null;
-    try {
-      res = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
-    } catch {
-      // Direct connection error fallback to relative path (Vite proxy)
-      try {
-        res = await fetch('/api/v1/students/parse-file', {
-          method: 'POST',
-          body: formData,
+    if (data.success && Array.isArray(data.students) && data.students.length > 0) {
+      if (data.detectedGroup) {
+        selectedGroup.value = data.detectedGroup as '1-guruh' | '2-guruh';
+        autoDetectedGroup.value = data.detectedGroup;
+      } else if (!detected) {
+        selectedGroup.value = null;
+        autoDetectedGroup.value = null;
+      }
+
+      if (data.detectedClass) {
+        autoDetectedClass.value = data.detectedClass;
+        const normDetected = normalizeClassCode(data.detectedClass);
+        let matched = props.availableClasses.find((c) => {
+          const normC = normalizeClassCode(c.name);
+          return normC === normDetected || normC.includes(normDetected) || normDetected.includes(normC);
         });
-      } catch {
-        res = null;
-      }
-    }
 
-    if (res && res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.students) && data.students.length > 0) {
-        if (data.detectedGroup) {
-          selectedGroup.value = data.detectedGroup as '1-guruh' | '2-guruh';
-          autoDetectedGroup.value = data.detectedGroup;
-        } else if (!detected) {
-          selectedGroup.value = null;
-          autoDetectedGroup.value = null;
-        }
+        if (!matched) {
+          const gradeMatch = data.detectedClass.match(/^(\d+)/);
+          const grade = gradeMatch ? parseInt(gradeMatch[1]!, 10) : 10;
+          const newClassName = `${data.detectedClass} sinf`;
 
-        if (data.detectedClass) {
-          autoDetectedClass.value = data.detectedClass;
-          const normDetected = normalizeClassCode(data.detectedClass);
-          let matched = props.availableClasses.find((c) => {
-            const normC = normalizeClassCode(c.name);
-            return normC === normDetected || normC.includes(normDetected) || normDetected.includes(normC);
-          });
-
-          if (!matched) {
-            const gradeMatch = data.detectedClass.match(/^(\d+)/);
-            const grade = gradeMatch ? parseInt(gradeMatch[1]!, 10) : 10;
-            const newClassName = `${data.detectedClass} sinf`;
-
-            try {
-              const created = await orgStore.createClassGroup({
-                schoolId: props.schoolId,
-                tenantSlug: props.tenantSlug,
-                name: newClassName,
-                gradeLevel: grade,
-                shift: 1,
-                academicYear: '2026-2027',
-              });
-              matched = created;
-              if (!props.availableClasses.some((c) => c.id === created.id)) {
-                props.availableClasses.push(created);
-              }
-            } catch (err) {
-              console.warn("Failed to auto-create class group:", err);
+          try {
+            const created = await orgStore.createClassGroup({
+              schoolId: props.schoolId,
+              tenantSlug: props.tenantSlug,
+              name: newClassName,
+              gradeLevel: grade,
+              shift: 1,
+              academicYear: '2026-2027',
+            });
+            matched = created;
+            if (!props.availableClasses.some((c) => c.id === created.id)) {
+              props.availableClasses.push(created);
             }
-          }
-
-          if (matched) {
-            selectedClassId.value = matched.id;
+          } catch (err) {
+            console.warn("Failed to auto-create class group:", err);
           }
         }
 
-        const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
-        const className = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
-
-        parsedStudents.value = data.students.map((s: any) => ({
-          tenantSlug: props.tenantSlug,
-          schoolId: props.schoolId,
-          classGroupId: selectedClassId.value,
-          className,
-          firstName: s.firstName,
-          lastName: s.lastName,
-          middleName: s.middleName || undefined,
-          gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
-          birthDate: s.birthDate || '2009-01-01',
-          group: s.group || selectedGroup.value || null,
-          emaktabId: s.emaktabId,
-          status: 'eligible',
-        }));
-        previewPage.value = 1;
-        isParsed.value = true;
-        isLoadingFile.value = false;
-        return;
-      } else if (data.error) {
-        errorMessage.value = data.error;
+        if (matched) {
+          selectedClassId.value = matched.id;
+        }
       }
+
+      const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+      const className = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
+
+      parsedStudents.value = data.students.map((s) => ({
+        tenantSlug: props.tenantSlug,
+        schoolId: props.schoolId,
+        classGroupId: selectedClassId.value,
+        className,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        middleName: s.middleName || undefined,
+        gender: (s.gender === 'F' ? 'F' : 'M') as StudentGender,
+        birthDate: s.birthDate || '2009-01-01',
+        group: s.group || selectedGroup.value || null,
+        emaktabId: s.emaktabId,
+        status: 'eligible',
+      }));
+      previewPage.value = 1;
+      isParsed.value = true;
+      isLoadingFile.value = false;
+      return;
+    } else if (data.error) {
+      errorMessage.value = data.error;
     }
-  } catch {
+  } catch (err) {
+    const status = (err as { status?: number })?.status;
+    if (status === 401 || status === 403) {
+      errorMessage.value = (err as Error).message;
+      isLoadingFile.value = false;
+      return;
+    }
     // If backend is not reached, fall through to client fallback
   }
 

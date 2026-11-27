@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { router } from '../src/app/router';
 import { useAuthStore } from '../src/features/auth/store/authStore';
+import { mockLoginApi, TEST_PASSWORD } from './mocks/mockAuthApi';
 
 describe('TASK-ARC.1..3: Dynamic Route-Level Code Splitting & Chunk Architecture', () => {
   beforeEach(async () => {
+    mockLoginApi();
     setActivePinia(createPinia());
     sessionStorage.clear();
     localStorage.clear();
@@ -62,8 +64,8 @@ describe('TASK-ARC.1..3: Dynamic Route-Level Code Splitting & Chunk Architecture
   it('dynamically resolves authenticated teacher views with role guards intact', async () => {
     const authStore = useAuthStore();
     await authStore.login({
-      username: 'teacher@xorazm.uz',
-      password: 'teacher123',
+      username: 'teacher_ax',
+      password: TEST_PASSWORD,
     });
 
     await router.push('/t/al-xorazmiy/teacher/analytics');

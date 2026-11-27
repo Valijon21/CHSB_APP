@@ -7,50 +7,6 @@ import { httpClient } from '../../../shared/api/httpClient';
 
 export const AUTH_STORAGE_KEY = 'chsb_auth_session';
 
-export const DEMO_USERS: Record<string, { password: string; user: AuthUser }> = {
-  'teacher@xorazm.uz': {
-    password: 'teacher123',
-    user: {
-      id: 'usr-tch-01',
-      username: 'teacher@xorazm.uz',
-      fullName: 'Anvar Rahimov',
-      role: 'TEACHER',
-      email: 'anvar@al-xorazmiy.uz',
-      phone: '+998901234567',
-      tenantSlug: 'al-xorazmiy',
-      schoolName: 'Al-Xorazmiy IT-maktab',
-      token: 'real-jwt-bearer-token-teacher',
-    },
-  },
-  'admin@xorazm.uz': {
-    password: 'admin123',
-    user: {
-      id: 'usr-adm-01',
-      username: 'admin@xorazm.uz',
-      fullName: 'Shavkat Boboyev (Direktor)',
-      role: 'SCHOOL_ADMIN',
-      email: 'info@al-xorazmiy.uz',
-      phone: '+998622241020',
-      tenantSlug: 'al-xorazmiy',
-      schoolName: 'Al-Xorazmiy IT-maktab',
-      token: 'real-jwt-bearer-token-admin',
-    },
-  },
-  'regional@xorazm.uz': {
-    password: 'regional123',
-    user: {
-      id: 'usr-reg-01',
-      username: 'regional@xorazm.uz',
-      fullName: 'Xorazm Viloyati MMTO Boshqarmasi',
-      role: 'SUPER_ADMIN',
-      email: 'boshqarma@xorazm.uz',
-      phone: '+998622230011',
-      schoolName: 'Viloyat Ta\'lim Boshqarmasi',
-      token: 'real-jwt-bearer-token-super',
-    },
-  },
-};
-
 interface LoginResponse {
   access_token: string;
   token_type: string;
@@ -93,52 +49,23 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const valid = LoginCredentialsSchema.parse(credentials);
-      const normalized = valid.username.toLowerCase();
-      const account = DEMO_USERS[normalized];
+      // Only the backend decides who may sign in: there is no local fallback
+      const res = await httpClient.post<LoginResponse>('/auth/login', {
+        username: valid.username,
+        password: valid.password,
+      });
 
-      // In unit test environment without active backend process:
-      const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || process.env?.VITEST === 'true');
-      if (isTest) {
-        if (!account) {
-          throw new Error("Foydalanuvchi topilmadi! Iltimos, demo hisoblaridan birini tanlang.");
-        }
-        if (account.password !== valid.password) {
-          throw new Error("Parol noto'g'ri! Iltimos, qaytadan tekshirib kiring.");
-        }
-        currentUser.value = { ...account.user };
-        token.value = account.user.token;
-        saveSessionToStorage(currentUser.value, valid.rememberMe);
-        return currentUser.value;
-      }
-
-      // Production path: call FastAPI backend directly
-      let authUser: AuthUser;
-      try {
-        const res = await httpClient.post<LoginResponse>('/auth/login', {
-          username: valid.username,
-          password: valid.password,
-        });
-
-        authUser = {
-          id: res.user.id,
-          username: res.user.username,
-          fullName: res.user.fullName,
-          role: res.user.role,
-          email: res.user.email || undefined,
-          phone: res.user.phone || undefined,
-          tenantSlug: res.user.tenantSlug || undefined,
-          schoolName: res.user.schoolName || undefined,
-          token: res.access_token,
-        };
-      } catch (backendErr: unknown) {
-        if (account && account.password === valid.password) {
-          authUser = { ...account.user };
-        } else {
-          throw backendErr instanceof Error
-            ? backendErr
-            : new Error("Foydalanuvchi topilmadi! Iltimos, qaytadan tekshirib kiring.");
-        }
-      }
+      const authUser: AuthUser = {
+        id: res.user.id,
+        username: res.user.username,
+        fullName: res.user.fullName,
+        role: res.user.role,
+        email: res.user.email || undefined,
+        phone: res.user.phone || undefined,
+        tenantSlug: res.user.tenantSlug || undefined,
+        schoolName: res.user.schoolName || undefined,
+        token: res.access_token,
+      };
 
       // Sessiyani o'rnatish
       currentUser.value = authUser;
@@ -225,6 +152,8 @@ export const useAuthStore = defineStore('auth', () => {
   function saveSessionToStorage(user: AuthUser, rememberMe: boolean): void {
     if (typeof window === 'undefined') return;
     const serialized = JSON.stringify(user);
+    // A session left over from an earlier sign-in must not shadow the new one
+    clearSessionFromStorage();
     if (rememberMe) {
       localStorage.setItem(AUTH_STORAGE_KEY, serialized);
     } else {

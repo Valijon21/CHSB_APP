@@ -67,7 +67,7 @@ git push space main --force
    - Value: `postgresql://user:password@ep-xyz.eu-central-1.aws.neon.tech/neondb?sslmode=require` (Neon.tech havolangiz)
 4. Yana bitta **"New secret"** qo'shing:
    - Name: `JWT_SECRET`
-   - Value: `chsb-super-production-jwt-key-2026`
+   - Value: `<kamida 32 belgili tasodifiy kalit>`
 5. *(Ixtiyoriy)* AI tahlillar uchun:
    - Name: `GEMINI_API_KEY`
    - Value: *(Google Gemini API kalitingiz)*
@@ -89,6 +89,6 @@ Tizim **hech qachon uxlamaydi**, 15 daqiqada o'chib qolmaydi va 16 GB RAM evazig
 ---
 
 ### 🔑 Standart Sinov Ma'lumotlari:
-- **Ustoz (Teacher):** login: `teacher_ax` | parol: `Secret123!`
-- **Maktab Admini:** login: `admin_ax` | parol: `Secret123!`
+- **Ustoz (Teacher):** login: `teacher_ax` | parol: `<SEED_PASSWORD>`
+- **Maktab Admini:** login: `admin_ax` | parol: `<SEED_PASSWORD>`
 - **O'quvchi:** Roster kod: `STU-1101`

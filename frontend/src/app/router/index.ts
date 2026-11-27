@@ -9,6 +9,7 @@ import StaffLayout from '../layouts/StaffLayout.vue';
 // Auth Store & Types
 import { useAuthStore } from '../../features/auth/store/authStore';
 import type { UserRole } from '../../features/auth/types';
+import { homePathFor } from '../../features/auth/homePath';
 import { getActivePinia } from 'pinia';
 
 const routes: RouteRecordRaw[] = [
@@ -177,7 +178,7 @@ const routes: RouteRecordRaw[] = [
             component: () => import('../../features/regional-oversight/RegionalOversightView.vue'),
             meta: {
               requiresAuth: true,
-              roles: ['SUPER_ADMIN'] as UserRole[],
+              roles: ['SUPER_ADMIN', 'REGIONAL_INSPECTOR'] as UserRole[],
             },
           },
         ],
@@ -262,13 +263,7 @@ router.beforeEach((to, _from, next) => {
 
   // 1. Agar sahifa faqat mehmonlar uchun bo'lsa (masalan: /login) va foydalanuvchi allaqachon kirgan bo'lsa
   if (guestOnly && authStore.isAuthenticated) {
-    if (authStore.currentRole === 'SUPER_ADMIN') {
-      return next('/regional/oversight');
-    } else if (authStore.currentRole === 'SCHOOL_ADMIN') {
-      return next(`/t/${authStore.currentTenantSlug || 'al-xorazmiy'}/admin`);
-    } else {
-      return next(`/t/${authStore.currentTenantSlug || 'al-xorazmiy'}/teacher/dashboard`);
-    }
+    return next(homePathFor(authStore.currentRole, authStore.currentTenantSlug));
   }
 
   // 2. Agar sahifa autentifikatsiya talab qilsa va foydalanuvchi tizimga kirmagan bo'lsa
@@ -282,13 +277,8 @@ router.beforeEach((to, _from, next) => {
   // 3. Agar maxsus ruxsatlar (roles) talab qilinsa va foydalanuvchi roli yetarli bo'lmasa
   if (requiresAuth && requiredRoles && requiredRoles.length > 0) {
     if (!authStore.hasRole(requiredRoles)) {
-      if (authStore.currentRole === 'TEACHER') {
-        return next(`/t/${authStore.currentTenantSlug || 'al-xorazmiy'}/teacher/dashboard`);
-      } else if (authStore.currentRole === 'SCHOOL_ADMIN') {
-        return next(`/t/${authStore.currentTenantSlug || 'al-xorazmiy'}/admin`);
-      } else {
-        return next('/login');
-      }
+      const home = homePathFor(authStore.currentRole, authStore.currentTenantSlug);
+      return next(home === to.path ? '/login' : home);
     }
   }
 

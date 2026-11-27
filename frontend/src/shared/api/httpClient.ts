@@ -19,6 +19,11 @@ export class ApiError extends Error {
 
 class HttpClient {
   private baseUrl: string;
+  private onUnauthorized: (() => void) | null = null;
+
+  setUnauthorizedHandler(handler: (() => void) | null): void {
+    this.onUnauthorized = handler;
+  }
 
   constructor() {
     // In Vite, import.meta.env is statically replaced at build time
@@ -41,7 +46,9 @@ class HttpClient {
 
   private getToken(): string | null {
     try {
-      const sessionStr = localStorage.getItem('chsb_auth_session');
+      // Without "remember me" the session lives in sessionStorage only
+      const sessionStr =
+        sessionStorage.getItem('chsb_auth_session') || localStorage.getItem('chsb_auth_session');
       if (sessionStr) {
         const parsed = JSON.parse(sessionStr);
         return parsed?.token || parsed?.user?.token || null;
@@ -77,6 +84,11 @@ class HttpClient {
       ...(headers as Record<string, string>),
     };
 
+    // The browser must set the multipart boundary itself
+    if (typeof FormData !== 'undefined' && rest.body instanceof FormData) {
+      delete reqHeaders['Content-Type'];
+    }
+
     const token = this.getToken();
     if (token && !reqHeaders.Authorization) {
       reqHeaders.Authorization = `Bearer ${token}`;
@@ -110,6 +122,10 @@ class HttpClient {
       }
 
       if (!response.ok) {
+        // The server no longer accepts our token: drop the stale session
+        if (response.status === 401 && token && path !== '/auth/login') {
+          this.onUnauthorized?.();
+        }
         const dataRecord = typeof responseData === 'object' && responseData !== null ? (responseData as Record<string, unknown>) : null;
         const errorMsg =
           (dataRecord?.detail as string) ||
@@ -145,6 +161,10 @@ class HttpClient {
       method: 'POST',
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
+  }
+
+  postForm<T = unknown>(path: string, form: FormData, options?: RequestOptions): Promise<T> {
+    return this.request<T>(path, { ...options, method: 'POST', body: form });
   }
 
   put<T = unknown>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {

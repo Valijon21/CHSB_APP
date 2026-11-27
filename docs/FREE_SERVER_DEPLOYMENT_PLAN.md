@@ -74,7 +74,7 @@ flowchart TD
    - **Instance Type:** `Free` (0.1 CPU, 512 MB RAM).
 5. **Environment Variables (Muhit o'zgaruvchilari)** bo'limiga qo'shing:
    - `DATABASE_URL`: *(Neon.tech-dan olingan PostgreSQL URL manzili)*
-   - `JWT_SECRET`: `chsb-super-production-jwt-secret-key-2026`
+   - `JWT_SECRET`: `<kamida 32 belgili tasodifiy kalit>`
    - `GEMINI_API_KEY`: *(Google AI Studio-dan olingan kalit - ixtiyoriy)*
    - `PYTHON_VERSION`: `3.11.9`
 6. **"Deploy Web Service"** tugmasini bosing.

@@ -1,6 +1,6 @@
 import json
+import os
 from datetime import datetime, timezone
-import bcrypt
 import sys
 from pathlib import Path
 
@@ -10,6 +10,50 @@ if _db_dir in sys.path:
     sys.path.remove(_db_dir)
 
 from prisma import Prisma
+from backend.app.core.config import settings
+from backend.app.core.security import BLOCKED_PASSWORDS, MIN_PASSWORD_LENGTH, get_password_hash
+
+SYSTEM_ACCOUNTS = [
+    {
+        "id": "usr-teacher-01",
+        "tenantId": "tenant-al-xorazmiy",
+        "username": "teacher_ax",
+        "email": "teacher@al-xorazmiy.uz",
+        "fullName": "Anvar Rahimov",
+        "role": "TEACHER",
+    },
+    {
+        "id": "usr-admin-01",
+        "tenantId": "tenant-al-xorazmiy",
+        "username": "admin_ax",
+        "email": "admin@al-xorazmiy.uz",
+        "fullName": "Al-Xorazmiy Administrator",
+        "role": "SCHOOL_ADMIN",
+    },
+    {
+        "id": "usr-inspector-01",
+        "tenantId": "tenant-al-xorazmiy",
+        "username": "inspector_tashkent",
+        "email": "inspector@toshkent-xtb.uz",
+        "fullName": "Shavkat Rahimov (ShHTB)",
+        "role": "REGIONAL_INSPECTOR",
+    },
+]
+
+async def seed_users_if_empty(db: Prisma) -> None:
+    """Create the system accounts, only when SEED_PASSWORD provides a private password."""
+    if await db.user.count() > 0:
+        return
+    password = settings.SEED_PASSWORD
+    if len(password) < MIN_PASSWORD_LENGTH or password in BLOCKED_PASSWORDS:
+        print(f"⚠️ No users created: set SEED_PASSWORD (at least {MIN_PASSWORD_LENGTH} characters) and restart.")
+        return
+    if not await db.tenant.find_unique(where={"id": "tenant-al-xorazmiy"}):
+        return
+    hashed_password = get_password_hash(password)
+    for account in SYSTEM_ACCOUNTS:
+        await db.user.create(data={**account, "hashedPassword": hashed_password, "isActive": True})
+    print(f"✅ Created {len(SYSTEM_ACCOUNTS)} system accounts.")
 
 STANDARD_SUBJECTS = [
     {"name": "Matematika", "code": "MATH", "gradeLevels": "5,6,7,8,9,10,11", "description": "Algebra, geometriya va amaliy matematika"},
@@ -50,10 +94,6 @@ async def auto_seed_db(db: Prisma, force: bool = False):
     Populates SQLite database with full real records if database is empty.
     """
     print("🌱 Starting Database Auto-Seed for CHSB Assessment Platform...")
-
-    # 1. Password Hashing
-    default_password = "Secret123!"
-    hashed_password = bcrypt.hashpw(default_password.encode("utf-8"), bcrypt.gensalt(10)).decode("utf-8")
 
     # 2. Check if Tenants exist
     if not force:
@@ -108,41 +148,7 @@ async def auto_seed_db(db: Prisma, force: bool = False):
     )
 
     # 5. Create Users (System Accounts)
-    users_data = [
-        {
-            "id": "usr-teacher-01",
-            "tenantId": tenant_ax.id,
-            "username": "teacher_ax",
-            "email": "teacher@al-xorazmiy.uz",
-            "fullName": "Anvar Rahimov",
-            "hashedPassword": hashed_password,
-            "role": "TEACHER",
-            "isActive": True,
-        },
-        {
-            "id": "usr-admin-01",
-            "tenantId": tenant_ax.id,
-            "username": "admin_ax",
-            "email": "admin@al-xorazmiy.uz",
-            "fullName": "Al-Xorazmiy Administrator",
-            "hashedPassword": hashed_password,
-            "role": "SCHOOL_ADMIN",
-            "isActive": True,
-        },
-        {
-            "id": "usr-inspector-01",
-            "tenantId": tenant_ax.id,
-            "username": "inspector_tashkent",
-            "email": "inspector@toshkent-xtb.uz",
-            "fullName": "Shavkat Rahimov (ShHTB)",
-            "hashedPassword": hashed_password,
-            "role": "REGIONAL_INSPECTOR",
-            "isActive": True,
-        },
-    ]
-
-    for u in users_data:
-        await db.user.create(data=u)
+    await seed_users_if_empty(db)
 
     # 6. Class Groups (Clean zero baseline - classes are created via import or admin UI)
     classes_data: list[dict] = []
@@ -178,6 +184,9 @@ async def auto_seed_db(db: Prisma, force: bool = False):
 
 if __name__ == "__main__":
     import asyncio
+    if os.getenv("ALLOW_DB_RESET") != "yes":
+        sys.exit("Refusing to run: this command DELETES ALL DATA. Set ALLOW_DB_RESET=yes to confirm.")
+
     async def run_cli_seed():
         db = Prisma()
         await db.connect()

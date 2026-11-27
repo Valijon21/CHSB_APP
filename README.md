@@ -157,7 +157,8 @@ cd CHSB_APP
 Loyiha ildizida `.env` faylini yarating yoki mavjudini sozlang:
 ```ini
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/chsb_db?schema=public"
-JWT_SECRET="chsb-super-secure-jwt-key-2026-production"
+JWT_SECRET=""      # Majburiy, kamida 32 belgi: python -c "import secrets; print(secrets.token_urlsafe(48))"
+SEED_PASSWORD=""   # Boshlang'ich hisoblar paroli (kamida 10 belgi)
 GEMINI_API_KEY="" # Ixtiyoriy, AI diagnostika uchun
 ```
 
@@ -169,8 +170,8 @@ npm install
 # 2. Prisma orqali PostgreSQL 18 da 10 ta jadvalni yaratish
 npx prisma db push
 
-# 3. Bazaga real maktablar, sinflar, o'quvchilar va foydalanuvchilarni to'ldirish
-npx tsx prisma/seed.ts
+# 3. (Ixtiyoriy) Bazani TOZALAB, boshlang'ich ma'lumot bilan to'ldirish. Barcha ma'lumot o'chadi!
+ALLOW_DB_RESET=yes SEED_PASSWORD='...' npx tsx prisma/seed.ts
 ```
 
 > **Maslahat:** Bazadagi ma'lumotlarni brauzerda vizual ko'rish va boshqarish uchun `npx prisma studio` buyrug'ini ishlatishingiz mumkin (ochiladi: `http://localhost:5555`).
@@ -209,16 +210,17 @@ cd frontend && npm run dev
 
 ---
 
-## 🔑 Sinov Uchun Hisoblar (Demo Accounts in PostgreSQL)
+## 🔑 Boshlang'ich Hisoblar
 
-Barcha hisoblar bazada `bcrypt` orqali shifrlangan va darhol kirishga tayyor:
+Foydalanuvchilar bo'lmagan bazada server `teacher_ax` (o'qituvchi), `admin_ax` (maktab admini) va `inspector_tashkent` (hududiy nazoratchi) hisoblarini yaratadi. Parol `SEED_PASSWORD` muhit o'zgaruvchisidan olinadi; u berilmasa hisob yaratilmaydi.
 
-| Rol | Foydalanuvchi nomi | Parol | To'liq Ism |
-| :--- | :--- | :--- | :--- |
-| **Fan O'qituvchisi** | `teacher_ax` | `Secret123!` | Anvar Rahimov (Informatika) |
-| **Maktab Direktori** | `admin_ax` | `Secret123!` | Shavkat Boboyev (Al-Xorazmiy IT-maktab) |
-| **Viloyat Nazoratchisi**| `inspector_tashkent` | `Secret123!` | Toshkent shahar MMTO Boshqarmasi |
-| **O'quvchi Imtihon Kirdi**| *(Roster Kod)* | `STU-1101` | Alisher Zokirov (11-A sinf) |
+Mavjud hisob parolini almashtirish:
+
+```bash
+python -m backend.app.manage set-password admin_ax
+```
+
+> **Diqqat:** o'quvchi imtihoni vaqtincha o'chirilgan (faqat maktab xodimi kira oladi). U xavfsiz sessiya kodlari bilan qayta yoqiladi: [docs/PROFESSIONAL_REBUILD_PLAN.md](docs/PROFESSIONAL_REBUILD_PLAN.md).
 
 ---
 

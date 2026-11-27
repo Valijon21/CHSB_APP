@@ -1,5 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from backend.app.core.security import verify_password, create_access_token
+from backend.app.core.security import (
+    verify_password,
+    create_access_token,
+    BLOCKED_PASSWORDS,
+    STUDENT_TOKEN,
+)
+from backend.app.core.permissions import school_staff, resolve_tenant
 from backend.app.core.dependencies import get_current_user
 from backend.app.db.prisma import get_prisma
 from backend.app.schemas.auth import (
@@ -12,6 +18,18 @@ from backend.app.schemas.auth import (
 from prisma import Prisma
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+def build_user_profile(user, tenant) -> UserProfile:
+    return UserProfile(
+        id=user.id,
+        tenantId=user.tenantId,
+        tenantSlug=tenant.slug if tenant else None,
+        schoolName=tenant.name if tenant else None,
+        username=user.username,
+        fullName=user.fullName,
+        role=user.role,
+        email=user.email,
+    )
 
 @router.post("/login", response_model=LoginResponse)
 async def login(payload: LoginRequest, db: Prisma = Depends(get_prisma)):
@@ -34,6 +52,14 @@ async def login(payload: LoginRequest, db: Prisma = Depends(get_prisma)):
             detail="Ushbu akkaunt faol emas. Administratorga murojaat qiling.",
         )
 
+    if payload.password in BLOCKED_PASSWORDS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Standart parol bloklangan. Administrator yangi parol o'rnatishi kerak.",
+        )
+
+    tenant = await db.tenant.find_unique(where={"id": user.tenantId})
+
     access_token = create_access_token(
         subject=user.username,
         role=user.role,
@@ -43,32 +69,25 @@ async def login(payload: LoginRequest, db: Prisma = Depends(get_prisma)):
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
-        user=UserProfile(
-            id=user.id,
-            tenantId=user.tenantId,
-            username=user.username,
-            fullName=user.fullName,
-            role=user.role,
-            email=user.email,
-        ),
+        user=build_user_profile(user, tenant),
     )
 
 @router.get("/me", response_model=UserProfile)
-async def get_me(current_user=Depends(get_current_user)):
-    return UserProfile(
-        id=current_user.id,
-        tenantId=current_user.tenantId,
-        username=current_user.username,
-        fullName=current_user.fullName,
-        role=current_user.role,
-        email=current_user.email,
-    )
+async def get_me(current_user=Depends(get_current_user), db: Prisma = Depends(get_prisma)):
+    tenant = await db.tenant.find_unique(where={"id": current_user.tenantId})
+    return build_user_profile(current_user, tenant)
 
 @router.post("/admission/verify", response_model=AdmissionVerifyResponse)
-async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends(get_prisma)):
+async def verify_admission(
+    payload: AdmissionVerifyRequest,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
+):
+    # Student self-admission is switched off until exam sessions with access codes exist.
+    # A roster code alone is guessable, so only school staff may call this.
     # 1. Lookup tenant
     tenant = await db.tenant.find_unique(where={"slug": payload.tenantSlug})
-    if not tenant:
+    if not tenant or (current_user.role != "SUPER_ADMIN" and tenant.id != current_user.tenantId):
         return AdmissionVerifyResponse(
             success=False,
             message="Bunday ta'lim muassasasi topilmadi.",
@@ -100,6 +119,7 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
         subject=student.rosterCode,
         role="STUDENT",
         tenant_id=tenant.id,
+        token_type=STUDENT_TOKEN,
     )
 
     student_group = student.group
@@ -141,7 +161,7 @@ async def verify_admission(payload: AdmissionVerifyRequest, db: Prisma = Depends
         message="O'quvchi muvaffaqiyatli tasdiqlandi. Imtihon zali tayyor.",
     )
 
-@router.post("/logout")
+@router.post("/logout", dependencies=[Depends(get_current_user)])
 async def logout():
     return {"success": True, "message": "Tizimdan muvaffaqiyatli chiqildi."}
 

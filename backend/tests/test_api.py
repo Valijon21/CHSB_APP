@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+from backend.tests.conftest import TEST_PASSWORD, auth_headers
 
 @pytest.fixture(autouse=True)
 def setup_api_test_data(client: TestClient):
@@ -74,7 +75,7 @@ def test_health_check(client: TestClient):
 def test_auth_login_success(client: TestClient):
     response = client.post(
         "/api/v1/auth/login",
-        json={"username": "teacher_ax", "password": "Secret123!"},
+        json={"username": "teacher_ax", "password": TEST_PASSWORD},
     )
     assert response.status_code == 200
     data = response.json()
@@ -153,7 +154,7 @@ def test_ai_class_diagnosis(client: TestClient):
     assert "recommendations" in data or "insights" in data
 
 def test_get_tenants(client: TestClient):
-    response = client.get("/api/v1/tenants")
+    response = client.get("/api/v1/tenants", headers=auth_headers("inspector_tashkent"))
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -189,7 +190,7 @@ def test_get_assessment_detail(client: TestClient):
     assert len(data["questions"]) == 15
 
 def test_regional_overview(client: TestClient):
-    response = client.get("/api/v1/regional/overview")
+    response = client.get("/api/v1/regional/overview", headers=auth_headers("inspector_tashkent"))
     assert response.status_code == 200
     data = response.json()
     assert data["totalSchools"] >= 2
@@ -235,7 +236,10 @@ def test_delete_all_students_endpoint(client: TestClient):
     del_single = client.delete(f"/api/v1/students/{stu_id}")
     assert del_single.status_code == 200
 
-    del_res = client.delete("/api/v1/students?tenantSlug=temurbeklar-maktabi")
+    del_res = client.delete(
+        "/api/v1/students?tenantSlug=temurbeklar-maktabi",
+        headers=auth_headers("test_admin_tm"),
+    )
     assert del_res.status_code == 200
     assert del_res.json()["success"] is True
     assert "deletedCount" in del_res.json()

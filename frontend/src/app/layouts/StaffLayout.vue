@@ -22,6 +22,7 @@ const userRoleBadge = computed(() => {
   const role = authStore.currentRole;
   if (role === 'SUPER_ADMIN') return 'Viloyat Boshqarmasi';
   if (role === 'SCHOOL_ADMIN') return 'Maktab Admini';
+  if (role === 'REGIONAL_INSPECTOR') return 'Hududiy Inspektor';
   if (role === 'TEACHER') return "O'qituvchi";
   return 'Xodim';
 });
@@ -46,6 +47,14 @@ const navigationItems = computed(() => {
     { name: 'Tahlillar', path: '/teacher/analytics', icon: '📉' },
     { name: 'Hisobotlar', path: '/teacher/reports', icon: '📑' },
   ];
+
+  // Inspectors see aggregated oversight only, never school workspaces
+  if (authStore.hasRole(['REGIONAL_INSPECTOR'])) {
+    return [
+      { name: 'Viloyat Boshqaruvi', path: '/teacher/regional-oversight', icon: '🏛️' },
+      { name: 'Profil & Sozlamalar', path: '/teacher/profile', icon: '👤' },
+    ];
+  }
 
   if (authStore.hasRole(['SUPER_ADMIN'])) {
     items.push({ name: 'Viloyat Boshqaruvi', path: '/teacher/regional-oversight', icon: '🏛️' });

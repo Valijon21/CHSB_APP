@@ -6,6 +6,7 @@ import { z } from 'zod';
 export const UserRoleSchema = z.enum([
   'SUPER_ADMIN',  // Viloyat / Respublika Boshqarmasi xodimi
   'SCHOOL_ADMIN', // Maktab Direktori / O'RINBOSARI
+  'REGIONAL_INSPECTOR', // Hududiy nazoratchi (faqat umumlashtirilgan ko'rsatkichlar)
   'TEACHER',      // Fan o'qituvchisi
   'STUDENT',      // O'quvchi
 ]);

@@ -12,3 +12,5 @@ services:
         generateValue: true
       - key: GEMINI_API_KEY
         sync: false
+      - key: SEED_PASSWORD
+        sync: false

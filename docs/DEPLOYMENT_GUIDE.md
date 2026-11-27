@@ -75,7 +75,7 @@ Agar Blueprint ishlatmasangiz:
    - **Instance Type:** `Free`
 4. **Environment Variables** bo'limiga quyidagilarni qo'shing:
    - Kalit: `DATABASE_URL` | Qiymat: `postgresql://...` (Neon.tech havolangiz)
-   - Kalit: `JWT_SECRET` | Qiymat: `chsb-jwt-secret-production-key-2026`
+   - Kalit: `JWT_SECRET` | Qiymat: `<kamida 32 belgili tasodifiy kalit>`
    - Kalit: `PORT` | Qiymat: `8000` (Render buni avtomatik boshqaradi)
 5. **"Create Web Service"** tugmasini bosing!
 
@@ -105,9 +105,9 @@ Server ilk bor ishga tushganda, tizim bo'sh PostgreSQL bazasiga barcha jadvallar
 
 | Rol | Login | Parol | Huquqlar |
 |---|---|---|---|
-| **O'qituvchi (Ustoz)** | `teacher_ax` | `Secret123!` | Baholar, sinf monitoringi, test yaratish |
-| **Maktab Admini** | `admin_ax` | `Secret123!` | Maktab o'quvchilari, o'qituvchilar va audit jurnali |
-| **Hududiy Inspektor** | `inspector_reg` | `Secret123!` | Barcha maktablar reytingi, taqqoslash va PISA hisobotlari |
+| **O'qituvchi (Ustoz)** | `teacher_ax` | `<SEED_PASSWORD>` | Baholar, sinf monitoringi, test yaratish |
+| **Maktab Admini** | `admin_ax` | `<SEED_PASSWORD>` | Maktab o'quvchilari, o'qituvchilar va audit jurnali |
+| **Hududiy Inspektor** | `inspector_reg` | `<SEED_PASSWORD>` | Barcha maktablar reytingi, taqqoslash va PISA hisobotlari |
 | **O'quvchi (Roster kod)** | `STU-1101` | *(Parolsiz)* | Imtihon topshirish, test savollari va shaxsiy natijalar |
 
 ---

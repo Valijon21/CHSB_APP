@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from prisma import Prisma
 from backend.app.db.prisma import get_prisma
+from backend.app.core.permissions import school_staff, resolve_tenant
 from backend.app.schemas.curriculum import CurriculumResourceResponse, AssessmentSolutionResponse
 
 router = APIRouter(prefix="/curriculum", tags=["Curriculum & Materials Hub"])
@@ -13,17 +14,14 @@ async def list_curriculum_resources(
     quarter: Optional[int] = Query(None, description="Chorak (1-4)"),
     subjectCode: Optional[str] = Query(None, description="Fan kodi (masalan, 'inf')"),
     resourceType: Optional[str] = Query(None, description="Resurs turi: PRESENTATION, WORKSHEET, WORKBOOK, SOLUTION"),
-    tenantSlug: str = Query("al-xorazmiy", description="Muassasa identifikatori"),
+    tenantSlug: Optional[str] = Query(None, description="Muassasa identifikatori"),
     db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
 ):
     """
     5–11-sinflar uchun barcha dars taqdimotlari, topshiriqlar, nazorat daftarlari va yechimlar ro'yxati
     """
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Muassasa topilmadi.")
+    tenant = await resolve_tenant(db, current_user, tenantSlug, "Muassasa topilmadi.")
 
     where_filter: dict = {"tenantId": tenant.id}
     if gradeLevel is not None:

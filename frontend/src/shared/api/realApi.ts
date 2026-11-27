@@ -267,7 +267,11 @@ export class RealRosterRepository implements RosterRepository {
         },
       };
     } catch (err: unknown) {
-      const msg = (err as Error)?.message || "O'quvchi topilmadi.";
+      const status = (err as { status?: number })?.status;
+      const msg =
+        status === 401 || status === 403
+          ? "O'quvchi imtihoni vaqtincha o'chirilgan. O'qituvchingizga murojaat qiling."
+          : (err as Error)?.message || "O'quvchi topilmadi.";
       return {
         status: 'not_found',
         message: msg,

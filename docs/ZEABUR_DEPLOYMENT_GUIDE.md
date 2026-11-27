@@ -48,12 +48,12 @@ Zeabur loyiha boshqaruv panelida (Variables bo'limida) quyidagilarni kiriting:
 | Kalit (Name) | Qiymat (Value) | Izoh |
 |---|---|---|
 | `DATABASE_URL` | `postgresql://user:password@ep-xyz.eu-central-1.aws.neon.tech/neondb?sslmode=require` | Neon.tech Cloud PostgreSQL havolangiz |
-| `JWT_SECRET` | `chsb-super-secret-production-2026` | Xavfsizlik kaliti |
+| `JWT_SECRET` | `<kamida 32 belgili tasodifiy kalit>` | Xavfsizlik kaliti |
 | `PORT` | `8000` | Server porti |
 
 ---
 
 ### 🔑 Test Hisoblari:
-- **Ustoz:** `teacher_ax` | `Secret123!`
-- **Maktab Admini:** `admin_ax` | `Secret123!`
+- **Ustoz:** `teacher_ax` | `<SEED_PASSWORD>`
+- **Maktab Admini:** `admin_ax` | `<SEED_PASSWORD>`
 - **O'quvchi:** Roster kod: `STU-1101`

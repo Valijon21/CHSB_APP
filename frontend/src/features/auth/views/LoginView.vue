@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../store/authStore';
+import { homePathFor } from '../homePath';
 
 const router = useRouter();
 const route = useRoute();
@@ -12,12 +13,6 @@ const password = ref('');
 const rememberMe = ref(false);
 const showPassword = ref(false);
 const formError = ref<string | null>(null);
-
-function selectDemoAccount(demoUsername: string, demoPass: string) {
-  username.value = demoUsername;
-  password.value = demoPass;
-  formError.value = null;
-}
 
 async function handleLogin() {
   formError.value = null;
@@ -46,13 +41,7 @@ async function handleLogin() {
     }
 
     // Role bo'yicha standart sahifaga yo'naltirish
-    if (user.role === 'SUPER_ADMIN') {
-      router.push('/regional/oversight');
-    } else if (user.role === 'SCHOOL_ADMIN') {
-      router.push(`/t/${user.tenantSlug || 'al-xorazmiy'}/admin`);
-    } else {
-      router.push(`/t/${user.tenantSlug || 'al-xorazmiy'}/teacher/dashboard`);
-    }
+    router.push(homePathFor(user.role, user.tenantSlug));
   } catch (err) {
     formError.value = err instanceof Error ? err.message : "Tizimga kirishda xatolik yuz berdi.";
   }
@@ -104,7 +93,7 @@ async function handleLogin() {
                 autocomplete="username"
                 required
                 aria-label="Email yoki foydalanuvchi nomi"
-                placeholder="masalan: teacher@xorazm.uz"
+                placeholder="foydalanuvchi nomingiz"
                 class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-hidden transition"
               />
             </div>
@@ -172,56 +161,6 @@ async function handleLogin() {
             <span>{{ authStore.isLoading ? 'Tekshirilmoqda...' : 'Tizimga Kirish' }}</span>
           </button>
         </form>
-
-        <!-- Demo Accounts Section -->
-        <div class="pt-4 border-t border-slate-100 dark:border-slate-700/60">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5 text-center">
-            Tezkor Demo hisoblar (1-bosish bilan):
-          </p>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <!-- Demo Teacher -->
-            <button
-              type="button"
-              @click="selectDemoAccount('teacher@xorazm.uz', 'teacher123')"
-              class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 bg-slate-50 dark:bg-slate-700/50 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 text-left transition text-xs cursor-pointer group"
-            >
-              <span class="block font-bold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-300">
-                👨‍🏫 O'qituvchi
-              </span>
-              <span class="block text-[10px] text-slate-500 font-mono mt-0.5 truncate">
-                teacher@xorazm.uz
-              </span>
-            </button>
-
-            <!-- Demo Admin -->
-            <button
-              type="button"
-              @click="selectDemoAccount('admin@xorazm.uz', 'admin123')"
-              class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 bg-slate-50 dark:bg-slate-700/50 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 text-left transition text-xs cursor-pointer group"
-            >
-              <span class="block font-bold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-300">
-                🏫 Maktab Admini
-              </span>
-              <span class="block text-[10px] text-slate-500 font-mono mt-0.5 truncate">
-                admin@xorazm.uz
-              </span>
-            </button>
-
-            <!-- Demo Regional -->
-            <button
-              type="button"
-              @click="selectDemoAccount('regional@xorazm.uz', 'regional123')"
-              class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 bg-slate-50 dark:bg-slate-700/50 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 text-left transition text-xs cursor-pointer group"
-            >
-              <span class="block font-bold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-300">
-                🏛️ Viloyat Boshqarmasi
-              </span>
-              <span class="block text-[10px] text-slate-500 font-mono mt-0.5 truncate">
-                regional@xorazm.uz
-              </span>
-            </button>
-          </div>
-        </div>
 
         <!-- Student Link Note -->
         <div class="text-center pt-2">

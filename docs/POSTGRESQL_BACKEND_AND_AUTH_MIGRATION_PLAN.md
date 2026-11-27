@@ -214,7 +214,7 @@ flowchart TD
 - [ ] **TASK-PG.3: Real Ma'lumotlarni PostgreSQL ga Ko'chirish (Seeder)**
   - **Fayl:** `backend/app/db/seed.py`
   - **Vazifa:**
-    - Frontenddagi `src/mocks/fixtures/` dagi barcha maktablar (Al-Xorazmiy, Temurbeklar), 10 ta sinf, 35 ta o'quvchi, 25 ta haqiqiy CHSB imtihon natijalari, savollar banki va foydalanuvchilar (O'qituvchi, Maktab Admini, ShHTB Nazoratchisi parollari: `Secret123!`) ni PostgreSQL ga xatosiz to'ldirish.
+    - Frontenddagi `src/mocks/fixtures/` dagi barcha maktablar (Al-Xorazmiy, Temurbeklar), 10 ta sinf, 35 ta o'quvchi, 25 ta haqiqiy CHSB imtihon natijalari, savollar banki va foydalanuvchilar (O'qituvchi, Maktab Admini, ShHTB Nazoratchisi parollari: `<SEED_PASSWORD>`) ni PostgreSQL ga xatosiz to'ldirish.
 
 - [ ] **TASK-PG.4: Baza Integratsiya Testlari (Pytest)**
   - **Fayl:** `backend/tests/test_database.py`

@@ -146,6 +146,7 @@ describe('Excel Parser & AI RAG Integration', () => {
     it('handles binary Excel file upload via parse-file API and auto-matches class', async () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
         json: async () => ({
           success: true,
           fileName: '10-V-Informatika-20_11_2026.xls',

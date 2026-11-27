@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { httpClient } from '../../../shared/api/httpClient';
 const route = useRoute();
 const tenantSlug = computed(() => (route.params.tenantSlug as string) || 'al-xorazmiy');
 
@@ -50,12 +51,13 @@ async function loadCurriculum() {
   isLoading.value = true;
   activeSlideIndex.value = 0;
   try {
-    const res = await fetch(
-      `/api/v1/curriculum/resources?gradeLevel=${selectedGrade.value}&quarter=${selectedQuarter.value}&tenantSlug=${tenantSlug.value}`
-    );
-    if (res.ok) {
-      resources.value = await res.json();
-    }
+    resources.value = await httpClient.get<CurriculumResource[]>('/curriculum/resources', {
+      params: {
+        gradeLevel: selectedGrade.value,
+        quarter: selectedQuarter.value,
+        tenantSlug: tenantSlug.value,
+      },
+    });
   } catch (err) {
     console.error('Failed to load curriculum resources:', err);
   } finally {
@@ -65,10 +67,7 @@ async function loadCurriculum() {
 
 async function loadSolutions() {
   try {
-    const res = await fetch(`/api/v1/curriculum/solutions/chsb-inf-11-q1`);
-    if (res.ok) {
-      solutions.value = await res.json();
-    }
+    solutions.value = await httpClient.get<AssessmentSolution[]>('/curriculum/solutions/chsb-inf-11-q1');
   } catch (err) {
     console.error('Failed to load solutions:', err);
   }

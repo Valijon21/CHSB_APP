@@ -5,6 +5,7 @@ from datetime import datetime
 import re
 from backend.app.db.prisma import get_prisma
 from prisma import Prisma
+from backend.app.core.permissions import school_staff, school_admin, resolve_tenant, ensure_tenant_access, can_access_tenant
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
@@ -72,16 +73,13 @@ async def get_existing_roster_codes(db: Prisma) -> tuple[set[str], int]:
 
 @router.get("")
 async def get_students(
-    tenantSlug: str = Query("al-xorazmiy"),
+    tenantSlug: str | None = Query(None),
     classGroupId: str | None = None,
     group: str | None = None,
     db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_staff),
 ):
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+    tenant = await resolve_tenant(db, current_user, tenantSlug)
 
     where_clause: dict = {"tenantId": tenant.id}
     if classGroupId:
@@ -123,12 +121,12 @@ async def get_students(
     ]
 
 @router.post("")
-async def create_student(payload: StudentCreate, db: Prisma = Depends(get_prisma)):
-    tenant = await db.tenant.find_first(
-        where={"OR": [{"slug": payload.tenantSlug}, {"id": payload.tenantSlug}]}
-    )
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant topilmadi.")
+async def create_student(
+    payload: StudentCreate,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_admin),
+):
+    tenant = await resolve_tenant(db, current_user, payload.tenantSlug)
 
     # Safely resolve valid class group and school within tenant
     class_group = None
@@ -228,6 +226,8 @@ async def _resolve_or_create_class_group(
 ):
     """Resolve class group by ID, exact/short name, or auto-create it within the tenant."""
     class_group = class_map.get(item.classGroupId) if item.classGroupId else None
+    if class_group and class_group.tenantId != tenant_id:
+        class_group = None
     if class_group or not item.className:
         return class_group
 
@@ -265,7 +265,11 @@ async def _resolve_or_create_class_group(
 
 
 @router.post("/bulk")
-async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends(get_prisma)):
+async def bulk_create_students(
+    inputs: list[StudentCreate],
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_admin),
+):
     if not inputs:
         return []
 
@@ -275,6 +279,12 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
     )
     tenant_map = {t.slug: t for t in tenants}
     tenant_map.update({t.id: t for t in tenants})
+
+    # Reject the whole batch before writing anything if any row targets a foreign tenant
+    for ref in {item.tenantSlug for item in inputs}:
+        target = tenant_map.get(ref)
+        if not target or not can_access_tenant(current_user, target.id):
+            raise HTTPException(status_code=404, detail="Tenant topilmadi.")
 
     tenant_ids = list({t.id for t in tenant_map.values()})
     all_classes = await db.classgroup.find_many(
@@ -387,21 +397,18 @@ async def bulk_create_students(inputs: list[StudentCreate], db: Prisma = Depends
 
 @router.delete("")
 async def delete_all_students(
-    tenantSlug: str | None = Query(None),
+    tenantSlug: str = Query(..., min_length=1),
     classGroupId: str | None = Query(None),
     db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_admin),
 ):
-    where_clause: dict = {}
-    tenant = None
-    if tenantSlug:
-        tenant = await db.tenant.find_first(
-            where={"OR": [{"slug": tenantSlug}, {"id": tenantSlug}]}
-        )
-        if not tenant:
-            raise HTTPException(status_code=404, detail="Tenant topilmadi.")
-        where_clause["tenantId"] = tenant.id
+    tenant = await resolve_tenant(db, current_user, tenantSlug)
+    where_clause: dict = {"tenantId": tenant.id}
 
     if classGroupId:
+        target_class = await db.classgroup.find_unique(where={"id": classGroupId})
+        if not target_class or target_class.tenantId != tenant.id:
+            raise HTTPException(status_code=404, detail="Sinf topilmadi.")
         where_clause["classGroupId"] = classGroupId
         students = await db.student.find_many(where=where_clause)
         student_ids = [s.id for s in students]
@@ -425,18 +432,6 @@ async def delete_all_students(
             "message": f"Sinfdagi {deleted_count} nafar o'quvchi ma'lumotlari to'liq o'chirildi.",
         }
 
-    if not tenant:
-        await db.assessmentresult.delete_many()
-        await db.assessmentattempt.delete_many()
-        deleted_count = await db.student.delete_many()
-        await db.classgroup.update_many(where={}, data={"studentCount": 0})
-        await db.school.update_many(where={}, data={"studentCount": 0})
-        return {
-            "success": True,
-            "deletedCount": deleted_count,
-            "message": f"Barcha ({deleted_count} nafar) o'quvchi ma'lumotlari to'liq o'chirildi.",
-        }
-
     students = await db.student.find_many(where={"tenantId": tenant.id})
     student_ids = [s.id for s in students]
     if student_ids:
@@ -454,11 +449,16 @@ async def delete_all_students(
     }
 
 @router.post("/bulk-delete")
-async def bulk_delete_students(payload: BulkDeleteRequest, db: Prisma = Depends(get_prisma)):
+async def bulk_delete_students(
+    payload: BulkDeleteRequest,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_admin),
+):
     if not payload.studentIds:
         return {"success": True, "deletedCount": 0, "message": "O'quvchilar tanlanmagan."}
 
     students = await db.student.find_many(where={"id": {"in": payload.studentIds}})
+    students = [s for s in students if can_access_tenant(current_user, s.tenantId)]
     if not students:
         return {"success": True, "deletedCount": 0, "message": "O'quvchilar topilmadi."}
 
@@ -493,10 +493,15 @@ async def bulk_delete_students(payload: BulkDeleteRequest, db: Prisma = Depends(
     }
 
 @router.delete("/{student_id}")
-async def delete_student(student_id: str, db: Prisma = Depends(get_prisma)):
+async def delete_student(
+    student_id: str,
+    db: Prisma = Depends(get_prisma),
+    current_user=Depends(school_admin),
+):
     student = await db.student.find_unique(where={"id": student_id})
     if not student:
-        return {"success": True, "message": "O'quvchi topilmadi."}
+        raise HTTPException(status_code=404, detail="O'quvchi topilmadi.")
+    ensure_tenant_access(current_user, student.tenantId, "O'quvchi topilmadi.")
 
     await db.assessmentresult.delete_many(where={"studentId": student_id})
     await db.assessmentattempt.delete_many(where={"studentId": student_id})
@@ -513,7 +518,7 @@ async def delete_student(student_id: str, db: Prisma = Depends(get_prisma)):
 
     return {"success": True, "message": "O'quvchi muvaffaqiyatli o'chirildi."}
 
-@router.post("/parse-file")
+@router.post("/parse-file", dependencies=[Depends(school_admin)])
 async def parse_student_roster_file(
     file: UploadFile = File(...),
     group: str | None = Form(None)

@@ -8,6 +8,8 @@ class LoginRequest(BaseModel):
 class UserProfile(BaseModel):
     id: str
     tenantId: str
+    tenantSlug: str | None = None
+    schoolName: str | None = None
     username: str
     fullName: str
     role: str

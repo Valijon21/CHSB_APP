@@ -1,9 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useAuthStore, AUTH_STORAGE_KEY } from '../src/features/auth/store/authStore';
+import { httpClient, ApiError } from '../src/shared/api/httpClient';
+import { mockLoginApi, TEST_PASSWORD } from './mocks/mockAuthApi';
 
 describe('TASK-AUTH.2: Pinia authStore & Session Management', () => {
   beforeEach(() => {
+    mockLoginApi();
     setActivePinia(createPinia());
     sessionStorage.clear();
     localStorage.clear();
@@ -21,8 +24,8 @@ describe('TASK-AUTH.2: Pinia authStore & Session Management', () => {
   it('logs in successfully as teacher', async () => {
     const store = useAuthStore();
     const user = await store.login({
-      username: 'teacher@xorazm.uz',
-      password: 'teacher123',
+      username: 'teacher_ax',
+      password: TEST_PASSWORD,
       rememberMe: false,
     });
 
@@ -37,8 +40,8 @@ describe('TASK-AUTH.2: Pinia authStore & Session Management', () => {
   it('logs in with rememberMe=true saving to localStorage', async () => {
     const store = useAuthStore();
     await store.login({
-      username: 'admin@xorazm.uz',
-      password: 'admin123',
+      username: 'admin_ax',
+      password: TEST_PASSWORD,
       rememberMe: true,
     });
 
@@ -47,39 +50,45 @@ describe('TASK-AUTH.2: Pinia authStore & Session Management', () => {
     expect(localStorage.getItem(AUTH_STORAGE_KEY)).toContain('Shavkat Boboyev');
   });
 
-  it('rejects unknown username with descriptive error', async () => {
+  it('rejects what the backend rejects', async () => {
     const store = useAuthStore();
     await expect(
-      store.login({
-        username: 'unknown@user.uz',
-        password: 'password123',
-        rememberMe: false,
-      })
-    ).rejects.toThrow('Foydalanuvchi topilmadi');
+      store.login({ username: 'teacher_ax', password: 'wrong_password', rememberMe: false })
+    ).rejects.toThrow("parol noto'g'ri");
 
     expect(store.isAuthenticated).toBe(false);
-    expect(store.errorMessage).toContain('Foydalanuvchi topilmadi');
+    expect(store.errorMessage).toContain("parol noto'g'ri");
   });
 
-  it('rejects incorrect password', async () => {
+  it('never signs in locally when the backend refuses or is unreachable', async () => {
+    vi.spyOn(httpClient, 'post').mockRejectedValue(new ApiError('Tarmoqda xatolik', 500));
     const store = useAuthStore();
-    await expect(
-      store.login({
-        username: 'teacher@xorazm.uz',
-        password: 'wrong_password',
-        rememberMe: false,
-      })
-    ).rejects.toThrow("Parol noto'g'ri");
 
+    for (const [username, password] of [
+      ['teacher@xorazm.uz', 'teacher123'],
+      ['admin@xorazm.uz', 'admin123'],
+      ['regional@xorazm.uz', 'regional123'],
+    ] as const) {
+      await expect(store.login({ username, password })).rejects.toThrow('Tarmoqda xatolik');
+    }
     expect(store.isAuthenticated).toBe(false);
-    expect(store.errorMessage).toContain("Parol noto'g'ri");
+    expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
+  });
+
+  it('replaces a remembered session on the next sign-in', async () => {
+    const store = useAuthStore();
+    await store.login({ username: 'admin_ax', password: TEST_PASSWORD, rememberMe: true });
+    await store.login({ username: 'teacher_ax', password: TEST_PASSWORD, rememberMe: false });
+
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
+    expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toContain('test-token-teacher_ax');
   });
 
   it('correctly checks roles with hasRole', async () => {
     const store = useAuthStore();
     await store.login({
-      username: 'regional@xorazm.uz',
-      password: 'regional123',
+      username: 'super_admin',
+      password: TEST_PASSWORD,
       rememberMe: false,
     });
 
@@ -110,8 +119,8 @@ describe('TASK-AUTH.2: Pinia authStore & Session Management', () => {
   it('logs out and wipes storage cleanly', async () => {
     const store = useAuthStore();
     await store.login({
-      username: 'teacher@xorazm.uz',
-      password: 'teacher123',
+      username: 'teacher_ax',
+      password: TEST_PASSWORD,
       rememberMe: true,
     });
 

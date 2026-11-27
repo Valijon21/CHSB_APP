@@ -5,10 +5,10 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
       POSTGRES_DB: chsb_db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -21,8 +21,9 @@ services:
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: "postgresql://postgres:postgrespassword@postgres:5432/chsb_db"
-      JWT_SECRET: "chsb-super-secure-production-jwt-token-2026"
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/chsb_db"
+      JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET in .env}"
+      SEED_PASSWORD: "${SEED_PASSWORD:-}"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
     ports:
       - "8000:8000"

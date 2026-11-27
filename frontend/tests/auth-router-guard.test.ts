@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { router } from '../src/app/router';
 import { useAuthStore } from '../src/features/auth/store/authStore';
+import { mockLoginApi, TEST_PASSWORD } from './mocks/mockAuthApi';
 
 describe('TASK-AUTH.4: Router Navigation Guard & RBAC Protection', () => {
   beforeEach(async () => {
+    mockLoginApi();
     setActivePinia(createPinia());
     sessionStorage.clear();
     localStorage.clear();
@@ -36,8 +38,8 @@ describe('TASK-AUTH.4: Router Navigation Guard & RBAC Protection', () => {
   it('allows authenticated teacher to access /teacher/dashboard', async () => {
     const authStore = useAuthStore();
     await authStore.login({
-      username: 'teacher@xorazm.uz',
-      password: 'teacher123',
+      username: 'teacher_ax',
+      password: TEST_PASSWORD,
     });
 
     await router.push('/t/al-xorazmiy/teacher/dashboard');
@@ -47,8 +49,8 @@ describe('TASK-AUTH.4: Router Navigation Guard & RBAC Protection', () => {
   it('blocks teacher from accessing SUPER_ADMIN regional oversight', async () => {
     const authStore = useAuthStore();
     await authStore.login({
-      username: 'teacher@xorazm.uz',
-      password: 'teacher123',
+      username: 'teacher_ax',
+      password: TEST_PASSWORD,
     });
 
     await router.push('/t/al-xorazmiy/teacher/regional-oversight');
@@ -59,19 +61,27 @@ describe('TASK-AUTH.4: Router Navigation Guard & RBAC Protection', () => {
   it('allows super admin to access regional oversight and schools directory', async () => {
     const authStore = useAuthStore();
     await authStore.login({
-      username: 'regional@xorazm.uz',
-      password: 'regional123',
+      username: 'super_admin',
+      password: TEST_PASSWORD,
     });
 
     await router.push('/schools');
     expect(router.currentRoute.value.path).toBe('/schools');
   });
 
+  it('keeps a regional inspector on the oversight page only', async () => {
+    const authStore = useAuthStore();
+    await authStore.login({ username: 'inspector_tashkent', password: TEST_PASSWORD });
+
+    await router.push('/t/al-xorazmiy/teacher/students');
+    expect(router.currentRoute.value.path).toBe('/t/al-xorazmiy/teacher/regional-oversight');
+  });
+
   it('redirects logged-in user away from /login to their home page', async () => {
     const authStore = useAuthStore();
     await authStore.login({
-      username: 'teacher@xorazm.uz',
-      password: 'teacher123',
+      username: 'teacher_ax',
+      password: TEST_PASSWORD,
     });
 
     await router.push('/login');
