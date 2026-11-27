@@ -154,6 +154,8 @@ async def get_class_detail(
         grp = s.group or "Umumiy sinf"
         total_group_counts[grp] = total_group_counts.get(grp, 0) + 1
 
+    all_assessments = await db.assessment.find_many(order={"code": "asc"})
+
     students_list = []
     results_list = []
 
@@ -164,6 +166,13 @@ async def get_class_detail(
                     continue
             elif s.group != group:
                 continue
+
+        matched_ids = [
+            a.code.lower()
+            for a in all_assessments
+            if a.gradeLevel == class_group.gradeLevel
+            and (getattr(a, "targetGroup", "all") in ("all", None, s.group))
+        ]
 
         students_list.append({
             "id": s.id,
@@ -178,13 +187,13 @@ async def get_class_detail(
             "group": s.group,
             "emaktabId": s.emaktabId,
             "status": s.status.lower(),
-            "availableAssessmentIds": ["chsb-inf-11-q1"],
+            "availableAssessmentIds": matched_ids,
         })
         for r in s.results:
             results_list.append({
                 "attemptId": r.attemptId,
                 "tenantId": s.tenantId,
-                "assessmentId": "chsb-inf-11-q1",
+                "assessmentId": matched_ids[0] if matched_ids else "chsb-inf-11-q1",
                 "rosterRecordId": s.id,
                 "studentName": f"{s.firstName} {s.lastName}",
                 "className": class_group.name,

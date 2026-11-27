@@ -675,7 +675,7 @@ export class RealTeacherRepository implements TeacherRepository {
       const found = students.find((s) => s.id === studentId || s.rosterCode === studentId);
       if (!found) return null;
 
-      const results = await httpClient.get<AssessmentResult[]>(`/assessments/results/tenant/${tenantId}`);
+      const results = await httpClient.get<AssessmentResult[]>(`/results/tenant/${tenantId}`);
       const studentResults = results.filter((r) => r.rosterRecordId === found.id);
       const avg =
         studentResults.length > 0
@@ -683,7 +683,7 @@ export class RealTeacherRepository implements TeacherRepository {
               studentResults.reduce((acc, curr) => acc + (curr.score || 0), 0) /
                 studentResults.length
             )
-          : 34;
+          : 0;
 
       return {
         roster: {
@@ -696,12 +696,12 @@ export class RealTeacherRepository implements TeacherRepository {
           lastName: found.lastName,
           middleName: found.middleName,
           status: (found.status === 'inactive' ? 'inactive' : 'eligible') as 'eligible' | 'inactive',
-          availableAssessmentIds: found.availableAssessmentIds || ['chsb-inf-11-q1'],
+          availableAssessmentIds: found.availableAssessmentIds || [],
         },
         className: found.className || '11-sinf',
-        schoolName: 'Muhammad al-Xorazmiy nomidagi IT-maktab',
+        schoolName: "Ta'lim muassasasi",
         results: studentResults,
-        attendanceRate: 98,
+        attendanceRate: 100,
         averageScore: avg,
       };
     } catch {
@@ -710,11 +710,29 @@ export class RealTeacherRepository implements TeacherRepository {
   }
 
   async getAssessmentDetail(
-    _tenantId: string,
+    tenantId: string,
     assessmentId: string
   ): Promise<AssessmentDetail | null> {
     try {
-      const assessment = await httpClient.get<Assessment>(`/assessments/${assessmentId}`);
+      interface StatsPayload {
+        totalAssigned: number;
+        totalCompleted: number;
+        completionRate: number;
+        averageScore: number;
+        questionStats: Array<{ order: number; cognitiveLevel: string; points: number; correctRate: number }>;
+      }
+      const [assessment, stats] = await Promise.all([
+        httpClient.get<Assessment>(`/assessments/${assessmentId}`),
+        httpClient
+          .get<StatsPayload>(`/assessments/${assessmentId}/stats`, { params: { tenantId } })
+          .catch(() => ({
+            totalAssigned: 0,
+            totalCompleted: 0,
+            completionRate: 0,
+            averageScore: 0,
+            questionStats: [],
+          })),
+      ]);
       if (!assessment) return null;
 
       return {
@@ -732,19 +750,12 @@ export class RealTeacherRepository implements TeacherRepository {
           maxScore: assessment.maxScore,
           status: assessment.status,
         },
-        totalAssigned: 50,
-        totalCompleted: 44,
-        completionRate: 88,
-        averageScore: 33.5,
-        questionStats: [
-          { order: 1, cognitiveLevel: '(B)', points: 2.5, correctRate: 95 },
-          { order: 2, cognitiveLevel: '(B)', points: 2.5, correctRate: 92 },
-          { order: 3, cognitiveLevel: '(Q)', points: 2.5, correctRate: 78 },
-          { order: 4, cognitiveLevel: '(B)', points: 2.5, correctRate: 88 },
-          { order: 5, cognitiveLevel: '(Q)', points: 2.5, correctRate: 72 },
-          { order: 6, cognitiveLevel: '(M)', points: 2.5, correctRate: 64 },
-        ],
-        questions: (assessment as any).questions || [],
+        totalAssigned: stats.totalAssigned,
+        totalCompleted: stats.totalCompleted,
+        completionRate: stats.completionRate,
+        averageScore: stats.averageScore,
+        questionStats: stats.questionStats,
+        questions: (assessment as unknown as { questions?: AssessmentDetail['questions'] }).questions || [],
       };
     } catch {
       return null;
@@ -766,17 +777,17 @@ export class RealTeacherRepository implements TeacherRepository {
           knowledge: {
             label: 'Bilish (B)',
             points: 10,
-            averageAccuracy: data.cognitiveBreakdown?.knowledge || 88,
+            averageAccuracy: data.cognitiveBreakdown?.knowledge ?? 0,
           },
           application: {
             label: "Qo'llash (Q)",
             points: 20,
-            averageAccuracy: data.cognitiveBreakdown?.comprehension || 80,
+            averageAccuracy: data.cognitiveBreakdown?.application ?? data.cognitiveBreakdown?.comprehension ?? 0,
           },
           reasoning: {
             label: 'Mulohaza (M)',
             points: 10,
-            averageAccuracy: data.cognitiveBreakdown?.analysis || 72,
+            averageAccuracy: data.cognitiveBreakdown?.analysis ?? 0,
           },
         },
       };

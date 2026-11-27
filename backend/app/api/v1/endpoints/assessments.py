@@ -330,6 +330,93 @@ async def get_assessment_by_id(
         "questions": formatted_questions,
     }
 
+
+@router.get("/assessments/{assessment_id}/stats")
+async def get_assessment_stats(
+    assessment_id: str,
+    tenantId: str | None = None,
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    assessment = await db.assessment.find_first(
+        where={
+            "OR": [
+                {"id": assessment_id},
+                {"code": assessment_id},
+                {"code": assessment_id.upper()},
+                {"code": assessment_id.lower()},
+            ]
+        },
+        include={"questions": True},
+    )
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Baholash testi topilmadi.")
+
+    effective_tenant_id = actor.tenant_id if not actor.is_regional else (tenantId or actor.tenant_id)
+    if not actor.is_regional and tenantId:
+        t = await resolve_tenant_for_actor(tenantId, actor, db)
+        effective_tenant_id = t.id
+
+    eligible_students = await db.student.find_many(
+        where={
+            "tenantId": effective_tenant_id,
+            "status": "ELIGIBLE",
+            "classGroup": {"gradeLevel": assessment.gradeLevel},
+        },
+    )
+    target_grp = getattr(assessment, "targetGroup", "all") or "all"
+    if target_grp != "all":
+        assigned_students = [s for s in eligible_students if s.group == target_grp]
+    else:
+        assigned_students = eligible_students
+
+    attempts = await db.assessmentattempt.find_many(
+        where={
+            "assessmentId": assessment.id,
+            "status": "submitted",
+            "student": {"tenantId": effective_tenant_id},
+        },
+        include={"result": True},
+    )
+
+    scores = [att.result.score for att in attempts if att.result is not None]
+    total_assigned = len(assigned_students)
+    total_completed = len(attempts)
+    completion_rate = round((total_completed / total_assigned) * 100) if total_assigned > 0 else 0
+    avg_score = round(sum(scores) / len(scores), 1) if scores else 0.0
+
+    bloom_short = {"KNOWLEDGE": "(B)", "COMPREHENSION": "(B)", "APPLICATION": "(Q)", "ANALYSIS": "(M)"}
+    mcq_types = {"MCQ_SINGLE", "MULTIPLE_CHOICE", "MCQ"}
+    questions = sorted(assessment.questions, key=lambda q: q.questionNumber)
+    q_stats = []
+    parsed_attempts = [_parse_answers_json(att.answersJson) for att in attempts]
+
+    for q in questions:
+        task_type = (getattr(q, "taskType", None) or "MCQ_SINGLE").upper()
+        total_q = len(parsed_attempts)
+        correct_q = 0
+        if task_type in mcq_types and total_q > 0:
+            for ans_map in parsed_attempts:
+                sel = ans_map.get(q.id) or ans_map.get(str(q.questionNumber))
+                if sel == q.correctOptionId:
+                    correct_q += 1
+        correct_rate = round((correct_q / total_q) * 100, 1) if total_q > 0 else 0.0
+        q_stats.append({
+            "order": q.questionNumber,
+            "cognitiveLevel": bloom_short.get((q.bloomLevel or "KNOWLEDGE").upper(), "(B)"),
+            "points": q.points,
+            "correctRate": correct_rate,
+        })
+
+    return {
+        "assessmentId": assessment.id,
+        "totalAssigned": total_assigned,
+        "totalCompleted": total_completed,
+        "completionRate": completion_rate,
+        "averageScore": avg_score,
+        "questionStats": q_stats,
+    }
+
 @router.post("/attempts")
 async def create_attempt(
     payload: CreateAttemptPayload,

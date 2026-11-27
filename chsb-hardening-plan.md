@@ -108,7 +108,7 @@ CHSB_APP/
   - **OUTPUT:** Maktablar, o'qituvchilar, profil (`GET /auth/me` dan) va o'quvchi tahrirlash (`PATCH /students/{id}`) to'liq PostgreSQL/SQLite da ishlaydi; hardcoded stublar o'chiriladi.
   - **VERIFY:** Pytest CRUD testlari + Frontend store testlari 100% PASS.
 
-- [ ] **TASK-3.2: Real Analytics, Regional Monitoring va Dinamik Test Biriktirish**
+- [x] **TASK-3.2: Real Analytics, Regional Monitoring va Dinamik Test Biriktirish**
   - **Agent:** `backend-specialist` | **Skills:** `database-design`, `performance-profiling`
   - **INPUT:** `analytics.py`, `regional.py`, `classes.py`, `students.py`
   - **OUTPUT:** `passingRate`, `cognitiveBreakdown` (Bilish/Qo'llash/Mulohaza savollar natijasidan), `questionStats` (har bir savol bo'yicha real % to'g'ri javob) va hududiy reytinglar SQL/Prisma agregatsiyasidan real hisoblanadi; o'quvchiga testlar sinf va guruhi bo'yicha bazadan dinamik biriktiriladi; `GET /students` ga paginatsiya (`page`, `limit`, `search`) qo'shiladi.

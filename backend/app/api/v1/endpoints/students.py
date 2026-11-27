@@ -90,11 +90,22 @@ async def get_existing_roster_codes(db: Prisma) -> tuple[set[str], int]:
                 max_num = val
     return codes, max_num + 1
 
+def _match_assessment_ids(assessments: list, grade_level: int, student_group: str | None) -> list[str]:
+    return [
+        a.code.lower()
+        for a in assessments
+        if a.gradeLevel == grade_level and (getattr(a, "targetGroup", "all") in ("all", None, student_group))
+    ]
+
+
 @router.get("")
 async def get_students(
     tenantSlug: str = Query("al-xorazmiy"),
     classGroupId: str | None = None,
     group: str | None = None,
+    search: str | None = None,
+    page: int | None = Query(default=None, ge=1),
+    limit: int = Query(default=50, ge=1, le=500),
     actor: Actor = Depends(STAFF_ACCESS),
     db: Prisma = Depends(get_prisma),
 ):
@@ -114,8 +125,25 @@ async def get_students(
         include={"classGroup": True},
         order={"lastName": "asc"},
     )
+    if search and search.strip():
+        needle = search.strip().lower()
+        students = [
+            s
+            for s in students
+            if needle in f"{s.lastName} {s.firstName} {s.middleName or ''}".lower()
+            or needle in (s.rosterCode or "").lower()
+        ]
 
-    return [
+    all_assessments = await db.assessment.find_many(order={"code": "asc"})
+
+    total = len(students)
+    if page is not None:
+        offset = (page - 1) * limit
+        page_slice = students[offset : offset + limit]
+    else:
+        page_slice = students
+
+    formatted = [
         {
             "id": s.id,
             "tenantId": s.tenantId,
@@ -133,11 +161,25 @@ async def get_students(
             "status": s.status.lower(),
             "group": s.group,
             "emaktabId": s.emaktabId,
-            "availableAssessmentIds": ["chsb-inf-11-q1"],
+            "availableAssessmentIds": _match_assessment_ids(
+                all_assessments,
+                s.classGroup.gradeLevel if s.classGroup else 11,
+                s.group,
+            ),
             "createdAt": s.createdAt.isoformat(),
         }
-        for s in students
+        for s in page_slice
     ]
+
+    if page is not None:
+        return {
+            "items": formatted,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "totalPages": max(1, (total + limit - 1) // limit),
+        }
+    return formatted
 
 @router.post("")
 async def create_student(
