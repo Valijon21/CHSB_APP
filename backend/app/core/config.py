@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+from typing import Any
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Root directory of the repository
@@ -29,9 +31,18 @@ class Settings(BaseSettings):
     JWT_SECRET: str = os.getenv("JWT_SECRET", "chsb-super-secure-jwt-key-2026-production")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
-    CORS_ORIGINS: list[str] = _parse_cors_origins()
+    CORS_ORIGINS: list[str] | str = _parse_cors_origins()
 
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def split_cors_origins(cls, v: Any) -> list[str]:
+        if isinstance(v, str):
+            return [o.strip() for o in v.split(",") if o.strip()]
+        if isinstance(v, list):
+            return [str(o).strip() for o in v if str(o).strip()]
+        return _parse_cors_origins()
 
     model_config = SettingsConfigDict(
         case_sensitive=True,
