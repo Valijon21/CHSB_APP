@@ -77,7 +77,7 @@ export class RealTeacherRepository implements TeacherRepository {
         title: a.title,
         subject: a.subject,
         grade: a.gradeLevel || 11,
-        quarter: 1,
+        quarter: a.quarter || 1,
         assessmentNumber: 1,
         durationMinutes: a.durationMinutes || 45,
         durationSeconds: (a.durationMinutes || 45) * 60,

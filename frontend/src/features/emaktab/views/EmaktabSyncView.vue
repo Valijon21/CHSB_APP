@@ -17,60 +17,96 @@ const teacherStore = useTeacherStore();
 const tenantStore = useTenantStore();
 
 const isThresholdsModalOpen = ref<boolean>(false);
-const selectedGroup = ref<'1-guruh' | '2-guruh'>('1-guruh');
+const selectedGroup = ref<'ALL' | '1-guruh' | '2-guruh'>('ALL');
 
 function loadGroupCandidates() {
-  const assessmentId = (route?.params?.assessmentId as string) || 'chsb-inf-11-q1';
-  const asm = teacherStore.assessments.find((a) => a.id === assessmentId || a.title.includes(assessmentId));
+  const assessmentId = (route?.params?.assessmentId as string) || 'asm-algebra-01';
+  const asm = teacherStore.assessments.find(
+    (a) => a.id === assessmentId || a.title.includes(assessmentId)
+  );
 
+  // Respect assessment targetGroup on initial load if not explicitly switched
+  const groupLabel = selectedGroup.value === 'ALL' ? 'Butun sinf' : selectedGroup.value;
+
+  // Only match results belonging to THIS assessment (never bleed results from other exams)
   const matchingResults = teacherStore.results.filter((r) => r.assessmentId === assessmentId);
-  const effectiveResults = matchingResults.length > 0 ? matchingResults : teacherStore.results;
 
-  const groupFiltered = effectiveResults.filter((r) => {
-    const stu = teacherStore.roster.find((s) => s.id === r.rosterRecordId);
-    return (stu?.group || '1-guruh') === selectedGroup.value;
+  const gradeClasses = asm
+    ? teacherStore.classes.filter((c) => c.grade === asm.grade)
+    : teacherStore.classes;
+  const gradeClassIds = new Set(gradeClasses.map((c) => c.id));
+  const gradeClassMap = new Map(gradeClasses.map((c) => [c.id, c.name]));
+
+  const targetStudents = teacherStore.roster.filter((s) => {
+    if (asm && gradeClassIds.size > 0 && !gradeClassIds.has(s.classGroupId)) {
+      return false;
+    }
+    if (asm && gradeClassIds.size === 0) {
+      return false;
+    }
+    if (selectedGroup.value === 'ALL') return true;
+    return (s.group || '1-guruh') === selectedGroup.value;
   });
 
-  const candidatesToUse = groupFiltered.length > 0 ? groupFiltered : effectiveResults;
+  const targetIds = new Set(targetStudents.map((s) => s.id));
+  const groupFilteredResults =
+    targetStudents.length > 0
+      ? matchingResults.filter((r) => targetIds.has(r.rosterRecordId))
+      : matchingResults;
 
-  if (candidatesToUse.length > 0) {
-    const realCandidates: AssessmentCandidate[] = candidatesToUse.map((r) => ({
-      candidateId: r.attemptId,
-      fullName: r.studentName,
-      normalizedName: r.studentName.toLowerCase().replace(/['`ʻ’]/g, ''),
-      score: r.score,
-      maxScore: r.maxScore,
-      percentage: r.percentage,
-      status: 'submitted',
-    }));
+  const realCandidates: AssessmentCandidate[] = groupFilteredResults.map((r) => ({
+    candidateId: r.attemptId,
+    fullName: r.studentName,
+    normalizedName: r.studentName.toLowerCase().replace(/['`ʻ’]/g, ''),
+    score: r.score,
+    maxScore: r.maxScore,
+    percentage: r.percentage,
+    status: 'submitted',
+  }));
 
-    const activeClassName = asm ? `${asm.grade}-sinf (${selectedGroup.value})` : `11-A sinf (${selectedGroup.value})`;
-    const activeSubject = asm ? asm.subject : 'Informatika va AT';
-    const activeQuarter = asm ? asm.quarter : 2;
+  const activeClassName = asm
+    ? `${asm.grade}-sinf (${groupLabel})`
+    : gradeClasses[0]?.name
+      ? `${gradeClasses[0].name} (${groupLabel})`
+      : `Sinf (${groupLabel})`;
+  const activeSubject = asm ? asm.subject : 'Fan';
+  const activeQuarter = asm ? asm.quarter : 1;
 
-    store.setAssessmentContext({
-      assessmentId,
-      className: activeClassName,
-      subjectName: activeSubject,
-      quarter: activeQuarter,
-      initialCandidates: realCandidates,
+  store.setAssessmentContext({
+    assessmentId,
+    className: activeClassName,
+    subjectName: activeSubject,
+    quarter: activeQuarter,
+    initialCandidates: realCandidates,
+  });
+
+  if (targetStudents.length > 0) {
+    const csvLines = ["T/r,eMaktab ID,O'quvchi F.I.SH,Jinsi"];
+    targetStudents.forEach((s, idx) => {
+      const fullName = `${s.lastName} ${s.firstName}`.trim();
+      const emkId = s.emaktabId || s.rosterCode;
+      csvLines.push(`${idx + 1},${emkId},${fullName},M`);
     });
+    const firstClass = gradeClassMap.get(targetStudents[0]!.classGroupId) || activeClassName;
+    store.importRosterFromText(csvLines.join('\n'), firstClass);
+  } else {
+    store.emaktabStudents = [];
+    store.runReconciliation();
   }
 }
 
-function selectGroup(grp: '1-guruh' | '2-guruh') {
+function selectGroup(grp: 'ALL' | '1-guruh' | '2-guruh') {
   selectedGroup.value = grp;
   loadGroupCandidates();
 }
 
 onMounted(async () => {
   const initialAsmId = (route?.params?.assessmentId as string) || 'asm-algebra-01';
-  // Boshlang'ich shablonni o'rnatish
-  if (store.emaktabStudents.length === 0) {
+  if (initialAsmId === 'asm-algebra-01' && store.emaktabStudents.length === 0) {
     store.setAssessmentContext({
       assessmentId: initialAsmId,
-      className: initialAsmId === 'asm-algebra-01' ? '9-A' : '11-A (1-guruh)',
-      subjectName: initialAsmId === 'asm-algebra-01' ? 'Matematika' : 'Informatika va AT',
+      className: '9-A',
+      subjectName: 'Matematika',
       quarter: 2,
     });
     const defaultRoster = `T/r,eMaktab ID,O'quvchi F.I.SH,Jinsi
@@ -79,7 +115,7 @@ onMounted(async () => {
 3,EMK-1003,Boboyev Sardor,M
 4,EMK-1004,G'aniyeva Dilnoza,F
 5,EMK-1005,Yo'ldoshev Bekzod,M`;
-    store.importRosterFromText(defaultRoster, initialAsmId === 'asm-algebra-01' ? '9-A' : '11-A');
+    store.importRosterFromText(defaultRoster, '9-A');
   }
 
   const tenantSlug = (route?.params?.tenantSlug as string) || 'al-xorazmiy';
@@ -91,10 +127,16 @@ onMounted(async () => {
 
     await teacherStore.loadTeacherData(tenantId);
     if (initialAsmId !== 'asm-algebra-01') {
+      const asm = teacherStore.assessments.find((a) => a.id === initialAsmId || a.title.includes(initialAsmId));
+      if (asm?.targetGroup === '1-guruh' || asm?.targetGroup === '2-guruh') {
+        selectedGroup.value = asm.targetGroup;
+      } else {
+        selectedGroup.value = 'ALL';
+      }
       loadGroupCandidates();
     }
   } catch {
-    // Keep initialized fallback
+    // Keep current state
   }
 });
 
@@ -157,6 +199,18 @@ function goBack() {
 
           <!-- Guruh tanlash tugmalari -->
           <div class="inline-flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              @click="selectGroup('ALL')"
+              :class="[
+                'px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer',
+                selectedGroup === 'ALL'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              ]"
+            >
+              Butun sinf
+            </button>
             <button
               type="button"
               @click="selectGroup('1-guruh')"

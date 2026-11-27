@@ -79,6 +79,8 @@ export interface BackendAssessmentItem {
   title: string;
   subject: string;
   gradeLevel: number;
+  quarter?: number;
+  assessmentType?: string;
   durationMinutes: number;
   totalQuestions: number;
   maxScore: number;
