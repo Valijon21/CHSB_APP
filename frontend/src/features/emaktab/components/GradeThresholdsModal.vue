@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import type { GradeScaleThresholds } from '../../../entities/emaktab/model';
-import { DEFAULT_GRADE_THRESHOLDS } from '../../../entities/emaktab/model';
+import type { GradeScaleThresholds, GradingPresetKey } from '../../../entities/emaktab/model';
+import { DEFAULT_GRADE_THRESHOLDS, GRADING_SCALE_PRESETS } from '../../../entities/emaktab/model';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -45,6 +45,11 @@ function handleReset() {
   form.value = { ...DEFAULT_GRADE_THRESHOLDS };
   errorMessage.value = null;
 }
+
+function applyPreset(presetKey: GradingPresetKey) {
+  form.value = { ...GRADING_SCALE_PRESETS[presetKey].thresholds };
+  errorMessage.value = null;
+}
 </script>
 
 <template>
@@ -76,6 +81,24 @@ function handleReset() {
       <p class="text-xs text-slate-500 dark:text-slate-400">
         Vazirlik mezonlari bo'yicha foiz chegaralari (CHSB natijasi ushbu shkala asosida 5, 4, 3, 2 ga aylanadi).
       </p>
+
+      <!-- Official Presets -->
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          @click="applyPreset('MMTV_STANDARD')"
+          class="px-2.5 py-1.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50/70 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 text-[11px] font-semibold hover:bg-teal-100 dark:hover:bg-teal-900/50 transition cursor-pointer"
+        >
+          MMTV Umumta'lim (86/66/30)
+        </button>
+        <button
+          type="button"
+          @click="applyPreset('SPECIALIZED')"
+          class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+        >
+          Ixtisoslashtirilgan (86/71/56)
+        </button>
+      </div>
 
       <div v-if="errorMessage" class="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs rounded-xl">
         {{ errorMessage }}

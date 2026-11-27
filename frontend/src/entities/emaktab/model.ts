@@ -53,12 +53,34 @@ export const GradeScaleThresholdsSchema = z
 
 export type GradeScaleThresholds = z.infer<typeof GradeScaleThresholdsSchema>;
 
-export const DEFAULT_GRADE_THRESHOLDS: GradeScaleThresholds = {
+export const SPECIALIZED_GRADE_THRESHOLDS: GradeScaleThresholds = {
   grade5Min: 86,
   grade4Min: 71,
   grade3Min: 56,
   grade2Max: 55,
 };
+
+export const MMTV_STANDARD_THRESHOLDS: GradeScaleThresholds = {
+  grade5Min: 86,
+  grade4Min: 66,
+  grade3Min: 30,
+  grade2Max: 29,
+};
+
+export type GradingPresetKey = 'MMTV_STANDARD' | 'SPECIALIZED';
+
+export const GRADING_SCALE_PRESETS: Record<GradingPresetKey, { label: string; thresholds: GradeScaleThresholds }> = {
+  MMTV_STANDARD: {
+    label: "MMTV Umumta'lim (86 / 66 / 30)",
+    thresholds: MMTV_STANDARD_THRESHOLDS,
+  },
+  SPECIALIZED: {
+    label: 'Ixtisoslashtirilgan / PIIMA (86 / 71 / 56)',
+    thresholds: SPECIALIZED_GRADE_THRESHOLDS,
+  },
+};
+
+export const DEFAULT_GRADE_THRESHOLDS: GradeScaleThresholds = SPECIALIZED_GRADE_THRESHOLDS;
 
 export const AbsenceReasonSchema = z.enum(['sababli', 'sababsiz', 'none']);
 export type AbsenceReason = z.infer<typeof AbsenceReasonSchema>;

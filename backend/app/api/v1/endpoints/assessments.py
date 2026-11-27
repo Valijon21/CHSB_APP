@@ -11,6 +11,7 @@ from backend.app.core.dependencies import (
     resolve_tenant_for_actor,
 )
 from backend.app.db.prisma import get_prisma
+from backend.app.services.grading import calculate_grade5
 from prisma import Prisma
 
 router = APIRouter(tags=["Assessments"])
@@ -451,7 +452,10 @@ async def submit_attempt(
 ):
     attempt = await db.assessmentattempt.find_unique(
         where={"id": attempt_id},
-        include={"assessment": {"include": {"questions": True}}, "student": True},
+        include={
+            "assessment": {"include": {"questions": True}},
+            "student": {"include": {"school": True}},
+        },
     )
     if not attempt:
         raise HTTPException(status_code=404, detail="Test urinishi topilmadi.")
@@ -488,7 +492,12 @@ async def submit_attempt(
 
     max_score = attempt.assessment.maxScore
     pct = round((total_score / max_score) * 100, 1) if max_score > 0 else 0
-    grade = "5" if pct >= 86 else ("4" if pct >= 71 else ("3" if pct >= 56 else "2"))
+    school_preset = (
+        getattr(attempt.student.school, "gradingPreset", None)
+        if attempt.student and attempt.student.school
+        else None
+    ) or "MMTV_STANDARD"
+    grade = calculate_grade5(pct, preset=school_preset)
 
     now = datetime.now(timezone.utc)
     elapsed_seconds = int((now - _as_utc(attempt.startedAt)).total_seconds())

@@ -86,7 +86,7 @@ CHSB_APP/
     - `AssessmentAttempt`: `absenceReason` (`"none"` | `"sababli"` | `"sababsiz"`), `reopenedBy` va indekslar.
   - **VERIFY:** `prisma generate` va `prisma db push` (SQLite va PostgreSQL sxema sinovi) muvaffaqiyatli o'tadi.
 
-- [ ] **TASK-2.2: Baholash Dvigateli (10 + 50 + 40 = 100) va Ikki Shkala Konvertatsiyasi**
+- [x] **TASK-2.2: Baholash Dvigateli (10 + 50 + 40 = 100) va Ikki Shkala Konvertatsiyasi**
   - **Agent:** `backend-specialist` + `test-engineer` | **Skills:** `clean-code`, `tdd-workflow`
   - **INPUT:** `backend/app/services/grading.py` (yangi), `frontend/src/entities/emaktab/model.ts`, `frontend/src/features/teacher/results/BsbRubricGradingModal.vue`
   - **OUTPUT:** Formativ o'rtacha (max 10) + BSB/Loyihalar yig'indisi (max 50) + CHSB (max 40) = 100 ball; yillik 4 chorak o'rtachasi; maktab `gradingPreset` ga mos 5 ballik konvertatsiya (`86/66/30` va `86/71/56`).
