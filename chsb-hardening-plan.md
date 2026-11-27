@@ -58,7 +58,7 @@ CHSB_APP/
   - **OUTPUT:** Staff endpointlarida `Depends(require_role(...))` va `current_user.tenantId` tekshiruvi; student imtihon endpointlarida `STUDENT` JWT tekshiruvi; `REGIONAL_INSPECTOR` va `SUPER_ADMIN` rollarini frontend/router da birxillashtirish; `authStore.ts` dan production fallback parollarni olib tashlash.
   - **VERIFY:** Tokensiz yoki noto'g'ri rol/tenant bilan yuborilgan so'rovlar `401`/`403` qaytarishi Pytest da tekshiriladi.
 
-- [ ] **TASK-1.3: Answer Key Yashirish, Draft Merge va Timer/Idempotency Himoyasi**
+- [x] **TASK-1.3: Answer Key Yashirish, Draft Merge va Timer/Idempotency Himoyasi**
   - **Agent:** `backend-specialist` + `frontend-specialist` | **Skills:** `api-patterns`, `clean-code`
   - **INPUT:** `backend/app/api/v1/endpoints/assessments.py`, `frontend/src/features/assessment/assessmentStore.ts`, `frontend/src/shared/api/realApi.ts`
   - **OUTPUT:** `GET /assessments/{id}` student uchun `correctOptionId` ni qaytarmaydi (alohida teacher endpointi bo'ladi); `save_draft` mavjud `answersJson` bilan merge qiladi; `submit_attempt` `submitted` urinishni qayta hisoblamaydi, `startedAt + durationMinutes` deadline va offline-queue dan kelgan `answers` ni tekshiradi; frontend `deadlineAt` ni real `startedAt` + `durationMinutes` dan hisoblaydi va `assessmentId` hardcoded `'chsb-inf-11-q1'` ni olib tashlaydi.

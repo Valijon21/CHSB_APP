@@ -1,7 +1,7 @@
 from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 from backend.app.core.dependencies import (
     Actor,
@@ -15,6 +15,33 @@ from prisma import Prisma
 
 router = APIRouter(tags=["Assessments"])
 STAFF_ACCESS = require_role(["TEACHER", "SCHOOL_ADMIN", "REGIONAL_INSPECTOR", "SUPER_ADMIN"])
+DRAFT_GRACE_SECONDS = 60
+
+
+def _as_utc(dt: datetime) -> datetime:
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
+def _parse_answers_json(raw: object) -> dict:
+    if isinstance(raw, dict):
+        return dict(raw)
+    try:
+        parsed = json.loads(str(raw or "{}"))
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def _build_timing_fields(started_at: datetime, duration_minutes: int) -> dict:
+    started_utc = _as_utc(started_at)
+    deadline_utc = started_utc + timedelta(minutes=max(1, duration_minutes))
+    remaining = max(0, int((deadline_utc - datetime.now(timezone.utc)).total_seconds()))
+    return {
+        "durationMinutes": duration_minutes,
+        "deadlineAt": deadline_utc.isoformat(),
+        "remainingSeconds": remaining,
+    }
+
 
 class CreateAttemptPayload(BaseModel):
     tenantId: str
@@ -26,6 +53,7 @@ class SaveDraftPayload(BaseModel):
 
 class SubmitAttemptPayload(BaseModel):
     idempotencyKey: str | None = None
+    answers: dict | None = None
 
 class AssessmentCreate(BaseModel):
     title: str = Field(..., min_length=3)
@@ -217,7 +245,7 @@ async def update_question(
 @router.get("/assessments/{assessment_id}")
 async def get_assessment_by_id(
     assessment_id: str,
-    _actor: Actor = Depends(get_current_actor),
+    actor: Actor = Depends(get_current_actor),
     db: Prisma = Depends(get_prisma),
 ):
     assessment = await db.assessment.find_first(
@@ -238,15 +266,18 @@ async def get_assessment_by_id(
     formatted_questions = []
     for q in questions:
         options = q.optionsJson if isinstance(q.optionsJson, list) else json.loads(str(q.optionsJson or "[]"))
-        formatted_questions.append({
+        item = {
             "id": q.id,
             "order": q.questionNumber,
             "text": q.prompt,
             "options": options,
             "points": q.points,
             "cognitiveLevel": q.bloomLevel,
-            "correctOptionId": q.correctOptionId,
-        })
+        }
+        # Zero Answer Key Invariant: never expose correctOptionId to students
+        if not actor.is_student:
+            item["correctOptionId"] = q.correctOptionId
+        formatted_questions.append(item)
 
     return {
         "id": assessment.id,
@@ -314,13 +345,15 @@ async def create_attempt(
         }
     )
     if existing:
+        timing = _build_timing_fields(existing.startedAt, assessment.durationMinutes)
         return {
             "id": existing.id,
             "assessmentId": assessment.id,
             "rosterRecordId": student.id,
-            "startedAt": existing.startedAt.isoformat(),
+            "startedAt": _as_utc(existing.startedAt).isoformat(),
             "status": existing.status,
-            "answers": existing.answersJson if isinstance(existing.answersJson, dict) else json.loads(str(existing.answersJson or "{}")),
+            "answers": _parse_answers_json(existing.answersJson),
+            **timing,
         }
 
     attempt = await db.assessmentattempt.create(
@@ -331,14 +364,16 @@ async def create_attempt(
             "status": "in_progress",
         }
     )
+    timing = _build_timing_fields(attempt.startedAt, assessment.durationMinutes)
 
     return {
         "id": attempt.id,
         "assessmentId": assessment.id,
         "rosterRecordId": student.id,
-        "startedAt": attempt.startedAt.isoformat(),
+        "startedAt": _as_utc(attempt.startedAt).isoformat(),
         "status": attempt.status,
         "answers": {},
+        **timing,
     }
 
 @router.get("/attempts/{attempt_id}")
@@ -349,7 +384,7 @@ async def get_attempt(
 ):
     attempt = await db.assessmentattempt.find_unique(
         where={"id": attempt_id},
-        include={"student": True},
+        include={"student": True, "assessment": True},
     )
     if not attempt:
         raise HTTPException(status_code=404, detail="Test urinishi topilmadi.")
@@ -358,16 +393,19 @@ async def get_attempt(
     if attempt.student:
         assert_tenant_ownership(attempt.student.tenantId, actor)
 
-    answers = attempt.answersJson if isinstance(attempt.answersJson, dict) else json.loads(str(attempt.answersJson or "{}"))
+    answers = _parse_answers_json(attempt.answersJson)
+    duration_mins = attempt.assessment.durationMinutes if attempt.assessment else 40
+    timing = _build_timing_fields(attempt.startedAt, duration_mins)
 
     return {
         "id": attempt.id,
         "assessmentId": attempt.assessmentId,
         "rosterRecordId": attempt.studentId,
-        "startedAt": attempt.startedAt.isoformat(),
-        "submittedAt": attempt.submittedAt.isoformat() if attempt.submittedAt else None,
+        "startedAt": _as_utc(attempt.startedAt).isoformat(),
+        "submittedAt": _as_utc(attempt.submittedAt).isoformat() if attempt.submittedAt else None,
         "status": attempt.status,
         "answers": answers,
+        **timing,
     }
 
 @router.post("/attempts/{attempt_id}/draft")
@@ -379,7 +417,7 @@ async def save_draft(
 ):
     attempt = await db.assessmentattempt.find_unique(
         where={"id": attempt_id},
-        include={"student": True},
+        include={"student": True, "assessment": True},
     )
     if not attempt:
         raise HTTPException(status_code=404, detail="Test urinishi topilmadi.")
@@ -387,12 +425,22 @@ async def save_draft(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Boshqa o'quvchi javoblarini o'zgartirish taqiqlangan.")
     if attempt.student:
         assert_tenant_ownership(attempt.student.tenantId, actor)
+    if attempt.status == "submitted":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Imtihon allaqachon topshirilgan.")
+
+    duration_mins = attempt.assessment.durationMinutes if attempt.assessment else 40
+    deadline_with_grace = _as_utc(attempt.startedAt) + timedelta(minutes=duration_mins, seconds=DRAFT_GRACE_SECONDS)
+    if datetime.now(timezone.utc) > deadline_with_grace:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Imtihon vaqti tugagan. Qoralama saqlash yopildi.")
+
+    existing_answers = _parse_answers_json(attempt.answersJson)
+    merged_answers = {**existing_answers, **payload.answers}
 
     await db.assessmentattempt.update(
         where={"id": attempt_id},
-        data={"answersJson": json.dumps(payload.answers)},
+        data={"answersJson": json.dumps(merged_answers)},
     )
-    return {"success": True, "savedAt": datetime.now().isoformat()}
+    return {"success": True, "savedAt": datetime.now(timezone.utc).isoformat(), "answersCount": len(merged_answers)}
 
 @router.post("/attempts/{attempt_id}/submit")
 async def submit_attempt(
@@ -412,8 +460,26 @@ async def submit_attempt(
     if attempt.student:
         assert_tenant_ownership(attempt.student.tenantId, actor)
 
-    # Calculate score
-    answers = attempt.answersJson if isinstance(attempt.answersJson, dict) else json.loads(str(attempt.answersJson or "{}"))
+    existing_result = await db.assessmentresult.find_unique(where={"attemptId": attempt_id})
+    if attempt.status == "submitted" and existing_result:
+        return {
+            "attemptId": attempt_id,
+            "assessmentId": attempt.assessmentId,
+            "studentId": attempt.studentId,
+            "receiptNumber": f"RCP-{attempt_id[:8].upper()}",
+            "submittedAt": _as_utc(existing_result.submittedAt).isoformat(),
+            "score": existing_result.score,
+            "maxScore": existing_result.maxScore,
+            "percentage": existing_result.percentage,
+            "grade": existing_result.grade,
+            "alreadySubmitted": True,
+        }
+
+    # Merge any offline-queued answers provided on submit with persisted draft answers
+    answers = _parse_answers_json(attempt.answersJson)
+    if payload and payload.answers:
+        answers = {**answers, **payload.answers}
+
     total_score = 0.0
     for q in attempt.assessment.questions:
         selected_id = answers.get(q.id) or answers.get(str(q.questionNumber))
@@ -424,15 +490,21 @@ async def submit_attempt(
     pct = round((total_score / max_score) * 100, 1) if max_score > 0 else 0
     grade = "5" if pct >= 86 else ("4" if pct >= 71 else ("3" if pct >= 56 else "2"))
 
-    # Update attempt
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
+    elapsed_seconds = int((now - _as_utc(attempt.startedAt)).total_seconds())
+    max_duration_seconds = max(60, attempt.assessment.durationMinutes * 60)
+    time_spent = max(0, min(elapsed_seconds, max_duration_seconds))
+
     await db.assessmentattempt.update(
         where={"id": attempt_id},
-        data={"status": "submitted", "submittedAt": now},
+        data={
+            "answersJson": json.dumps(answers),
+            "status": "submitted",
+            "submittedAt": now,
+            "timeSpentSeconds": time_spent,
+        },
     )
 
-    # Upsert result
-    existing_result = await db.assessmentresult.find_unique(where={"attemptId": attempt_id})
     if not existing_result:
         await db.assessmentresult.create(
             data={
@@ -449,12 +521,15 @@ async def submit_attempt(
 
     return {
         "attemptId": attempt_id,
+        "assessmentId": attempt.assessmentId,
+        "studentId": attempt.studentId,
         "receiptNumber": f"RCP-{attempt_id[:8].upper()}",
         "submittedAt": now.isoformat(),
         "score": total_score,
         "maxScore": max_score,
         "percentage": pct,
         "grade": grade,
+        "alreadySubmitted": False,
     }
 
 @router.get("/results/attempt/{attempt_id}")

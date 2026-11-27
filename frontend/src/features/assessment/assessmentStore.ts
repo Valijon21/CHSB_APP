@@ -104,21 +104,21 @@ export const useAssessmentStore = defineStore('assessment', () => {
       const newAttempt = await api.attempt.createAttempt(tenantId, assessmentId, rosterRecordId);
       attempt.value = newAttempt;
 
-      // Recover draft from localStorage if present
+      // Recover draft from server + localStorage (localStorage overrides if newer offline edits exist)
       const draftKey = `${DRAFT_STORAGE_PREFIX}${tenantId}_${assessmentId}_${rosterRecordId}`;
       try {
         const saved = localStorage.getItem(draftKey);
-        if (saved) {
-          answers.value = JSON.parse(saved);
-        } else {
-          answers.value = {};
-        }
+        const localAnswers = saved ? JSON.parse(saved) : {};
+        answers.value = { ...(newAttempt.answers || {}), ...localAnswers };
       } catch {
-        answers.value = {};
+        answers.value = { ...(newAttempt.answers || {}) };
       }
 
       currentQuestionIndex.value = 0;
-      remainingSeconds.value = data.durationSeconds;
+      remainingSeconds.value =
+        typeof newAttempt.remainingSeconds === 'number' && newAttempt.remainingSeconds > 0
+          ? Math.min(data.durationSeconds, newAttempt.remainingSeconds)
+          : data.durationSeconds;
       startTimer();
       return true;
     } catch {
@@ -172,7 +172,8 @@ export const useAssessmentStore = defineStore('assessment', () => {
       const submission = await api.attempt.submitAttempt(
         tenantId,
         attempt.value.id,
-        `idem-${attempt.value.id}`
+        `idem-${attempt.value.id}`,
+        { ...answers.value }
       );
       receipt.value = submission;
       attempt.value.status = 'submitted_demo';
@@ -242,7 +243,7 @@ export const useAssessmentStore = defineStore('assessment', () => {
     for (const item of queued) {
       if (item.tenantId === tenantId && !item.synced) {
         try {
-          await api.attempt.submitAttempt(tenantId, item.attemptId, `sync-${item.id}`);
+          await api.attempt.submitAttempt(tenantId, item.attemptId, `sync-${item.id}`, item.answers);
           await offlineStorage.dequeueSubmission(item.id);
           syncedCount++;
         } catch {
