@@ -19,44 +19,41 @@ describe('Excel Parser & AI RAG Integration', () => {
       expect(res.error).toContain("bo'sh");
     });
 
-    it('successfully extracts students and normalizes fields via Gemini JSON response', async () => {
-      const mockGeminiJson = [
-        {
-          orderIndex: 1,
-          fullName: 'Abduraximova Zuxra Farxod qizi',
-          lastName: 'Abduraximova',
-          firstName: 'Zuxra',
-          middleName: 'Farxod qizi',
-          emaktabId: '1000001990090',
-          gender: 'F',
-          group: '1-guruh',
-        },
-        {
-          orderIndex: 2,
-          fullName: 'Ergashev Jasur Akram o\'g\'li',
-          lastName: 'Ergashev',
-          firstName: 'Jasur',
-          middleName: 'Akram o\'g\'li',
-          emaktabId: '1000002155432',
-          gender: 'M',
-          group: '1-guruh',
-        },
-      ];
+    it('successfully extracts students and normalizes fields via backend AI proxy', async () => {
+      const mockProxyRoster = {
+        success: true,
+        modelUsed: 'gemini-2.0-flash',
+        detectedGroup: '1-guruh',
+        students: [
+          {
+            orderIndex: 1,
+            fullName: 'Abduraximova Zuxra Farxod qizi',
+            lastName: 'Abduraximova',
+            firstName: 'Zuxra',
+            middleName: 'Farxod qizi',
+            emaktabId: '1000001990090',
+            gender: 'F',
+            group: '1-guruh',
+          },
+          {
+            orderIndex: 2,
+            fullName: 'Ergashev Jasur Akram o\'g\'li',
+            lastName: 'Ergashev',
+            firstName: 'Jasur',
+            middleName: 'Akram o\'g\'li',
+            emaktabId: '1000002155432',
+            gender: 'M',
+            group: '1-guruh',
+          },
+        ],
+      };
 
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: JSON.stringify(mockGeminiJson) }],
-              },
-            },
-          ],
-        }),
+        json: async () => mockProxyRoster,
       } as any);
 
-      const res = await extractStudentsRosterWithAi('Sample eMaktab snippet', { apiKey: 'test-key' });
+      const res = await extractStudentsRosterWithAi('Sample eMaktab snippet');
       expect(res.success).toBe(true);
       expect(res.students).toHaveLength(2);
 

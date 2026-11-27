@@ -9,7 +9,6 @@ import { parseExamQuestionsFromText, type ParsedQuestionItem } from '../../../sh
 import { getBsbStandardByGrade } from '../../../entities/assessment/officialBsbData';
 import {
   extractGroundedQuestionsWithAi,
-  getStoredGeminiApiKey,
   type GroundedQuestionItem,
 } from '../../../shared/utils/groundedAiExtractor';
 import AiQuestionReviewCard from './components/AiQuestionReviewCard.vue';
@@ -114,23 +113,17 @@ async function handlePdfFile(file: File) {
     const rawText = await extractTextFromPdf(file);
     let extracted: GroundedQuestionItem[] = [];
 
-    // Mode 1: Sun'iy intellekt (Gemini 3.5 Flash Lite) with Strict Grounding
-    // Uses profile key if provided by user, otherwise project built-in key
+    // Mode 1: Sun'iy intellekt (Backend AI Proxy) with Strict Grounding
     if (aiExtractionMode.value === 'gemini') {
-      const activeKey = getStoredGeminiApiKey();
-      if (activeKey) {
-        const aiRes = await extractGroundedQuestionsWithAi(rawText, {
-          apiKey: activeKey,
-          model: 'gemini-3.5-flash-lite',
-          maxScore: Number(maxScore.value),
-        });
+      const aiRes = await extractGroundedQuestionsWithAi(rawText, {
+        maxScore: Number(maxScore.value),
+      });
 
-        if (aiRes.success && aiRes.questions.length > 0) {
-          extracted = aiRes.questions;
-          lastExtractionSource.value = 'ai';
-        } else if (aiRes.error) {
-          pdfWarnings.value.push(`Sun'iy intellekt: ${aiRes.error}. Standart BSB algoritmi orqali savollar ajratildi.`);
-        }
+      if (aiRes.success && aiRes.questions.length > 0) {
+        extracted = aiRes.questions;
+        lastExtractionSource.value = 'ai';
+      } else if (aiRes.error) {
+        pdfWarnings.value.push(`Sun'iy intellekt: ${aiRes.error}. Standart BSB algoritmi orqali savollar ajratildi.`);
       }
     }
 

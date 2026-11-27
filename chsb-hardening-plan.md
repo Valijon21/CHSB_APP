@@ -46,7 +46,7 @@ CHSB_APP/
 
 ### 1-To'lqin: Xavfsizlik va Kritik Buglarni Tuzatish (P0 — Blockerlar)
 
-- [ ] **TASK-1.1: API Kalitni Frontenddan Olib Tashlash va Backend AI Proxy**
+- [x] **TASK-1.1: API Kalitni Frontenddan Olib Tashlash va Backend AI Proxy**
   - **Agent:** `security-auditor` + `backend-specialist` | **Skills:** `vulnerability-scanner`, `api-patterns`
   - **INPUT:** `frontend/src/shared/utils/groundedAiExtractor.ts` (`ENCODED_BUILTIN_KEY`), `backend/app/api/v1/endpoints/ai.py`
   - **OUTPUT:** Frontenddan kalit to'liq o'chiriladi; `POST /api/v1/ai/extract-questions` endpointi `settings.GEMINI_API_KEY` orqali ishlaydi (foydalanuvchi UI dan yubormasdan).

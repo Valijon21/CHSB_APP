@@ -1,15 +1,12 @@
 /**
- * Grounded RAG AI Extractor for Uzbek EdTech Assessments
- * Uses Google Gemini (gemini-3.5-flash-lite) with STRICT GROUNDING to prevent hallucinations.
- * Guarantees zero fabricated questions by requiring exact source quotes (sourceExcerpt)
- * and human-in-the-loop review.
+ * Grounded RAG AI Extractor for Uzbek EdTech Assessments.
+ * Routes all AI calls through the backend `/api/v1/ai/*` proxy so no API keys
+ * are ever bundled or exposed in client-side JavaScript.
  */
-
-import { cleanBsbFillLines } from './pdfQuestionParser';
 
 export interface GroundedSubQuestion {
   id: string;
-  label: string; // 'a)', 'b)', 'c)', etc.
+  label: string;
   prompt: string;
   points: number;
   rubric?: string;
@@ -39,17 +36,31 @@ export interface GroundedExtractionResult {
   error?: string;
 }
 
-const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
+const DEFAULT_MODEL = 'gemini-2.0-flash';
 const STORAGE_KEY = 'chsb_gemini_api_key';
-// Encoded built-in fallback to ensure zero-config functionality without triggering push protection
-const ENCODED_BUILTIN_KEY = 'QVEuQWI4Uk42SmZxVTJOeXZfSFlybXpJeE1laEJ4SGtWQXZsVU5hd0xjOFZXT1BZYzRBWHc=';
 
-function decodeBuiltinKey(): string {
+function getAuthToken(): string | null {
   try {
-    return atob(ENCODED_BUILTIN_KEY);
+    const raw = sessionStorage.getItem('chsb_auth_session') || localStorage.getItem('chsb_auth_session');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed?.token || parsed?.user?.token || null;
+    }
   } catch {
-    return '';
+    // Ignore storage access errors
   }
+  return null;
+}
+
+function getApiBaseUrl(): string {
+  const isLocal =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.port === '5173');
+  if (isLocal) return '/api/v1';
+  const envBase = (import.meta as unknown as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL;
+  return envBase || '/api/v1';
 }
 
 export function hasCustomApiKey(): boolean {
@@ -61,12 +72,7 @@ export function getCustomApiKey(): string {
 }
 
 export function getStoredGeminiApiKey(): string {
-  const customKey = localStorage.getItem(STORAGE_KEY)?.trim() || '';
-  if (customKey) {
-    return customKey;
-  }
-  const envKey = (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } }).env?.VITE_GEMINI_API_KEY?.trim() || '';
-  return envKey || decodeBuiltinKey();
+  return getCustomApiKey();
 }
 
 export function saveStoredGeminiApiKey(key: string): void {
@@ -75,71 +81,6 @@ export function saveStoredGeminiApiKey(key: string): void {
   } else {
     localStorage.removeItem(STORAGE_KEY);
   }
-}
-
-/**
- * Strict Grounding RAG prompt instructing Gemini to ONLY extract factual content
- * from the provided document without hallucinations.
- */
-function buildStrictGroundingPrompt(rawText: string, maxScore = 50): string {
-  return `SEN O'ZBEKISTON RESPUBLIKASI MAKTAB TA'LIMI STANDARTLARI (BSB/ChSB) BO'YICHA QAT'IY NAZORAT OSTIDAGI METODIST-EKSPERT VA HUJJAT TAHLILCHISISAN.
-
-SENING VAZIFANG:
-Quyida keltirilgan PDF hujjat matnidan barcha imtihon topshiriqlarini (savollar, sub-topshiriqlar a, b, c, d, jadvallar, keyslar va baholash mezonlarini) to'liq va aniq JSON formatida ajratib berish.
-
-⛔ QAT'IY GROUNDING QOIDALARI (GALLYUTSINATSIYA VA TO'QIMALAR MUTLAQO TAQIQLANADI):
-1. FAQAT VA FAQAT BERILGAN MATNDA MAVJUD BO'LGAN TOPSHIRIQLARNI CHIQAR. Matnda bo'lmagan birorta ham yangi savol to'qima!
-2. Har bir topshiriq uchun uning hujjatdagi aniq asl matnini "sourceExcerpt" maydoniga aynan ko'chirib yoz.
-3. Agar topshiriq 4 ta variantli oddiy test bo'lsa (A, B, C, D): "taskType": "multiple_choice" deb belgilab, variantlarni "options" ga yoz.
-4. Agar topshiriq rasmiy BSB topshirig'i (ochiq savollar, bandlar: a, b, c, d) bo'lsa: "taskType": "subquestions" deb belgilab, "subQuestions" ga har bir bandning nomi, savoli va ballini yoz.
-5. Agar matnda jadval to'ldirish yoki amaliy vaziyat/keys (masalan, kiberxavfsizlik, Sezar shifri, Wi-Fi) bo'lsa: "taskType": "case_study" yoki "table_completion" deb ko'rsat.
-6. Hujjatdagi "Baholash mezoni" (Rubrics) ko'rsatilgan bo'lsa, uni har bir savolning "rubric" maydoniga aniq yoz.
-7. Qog'oz blankalaridagi o'quvchi qo'lda yozishi uchun qo'yilgan pastki chiziqlar (____), nuqtalar (....) yoki oxiridagi tirelarni savol va band matnlariga qo'shma, ularni tozalab ravon savol matnini yoz.
-8. Maksimal umumiy ball me'yori: ${maxScore} ball.
-
-HUJJAT MATNI:
-"""
-${rawText}
-"""
-
-JAVOBNI FAQAT QUYIDAGI JSON FORMATIDA QAYTAR (boshqa hech qanday so'z yoki tushuntirish qo'shma):
-[
-  {
-    "number": 1,
-    "title": "1-topshiriq",
-    "prompt": "Savolning umumiy matni",
-    "taskType": "subquestions" | "multiple_choice" | "case_study" | "table_completion" | "open_text",
-    "points": 10,
-    "options": [
-      { "id": "opt-a", "label": "A", "text": "Variant A matni" }
-    ],
-    "correctOptionId": "opt-a",
-    "subQuestions": [
-      {
-        "id": "1-a",
-        "label": "a)",
-        "prompt": "Band savoli matni",
-        "points": 2.5,
-        "rubric": "Baholash mezoni ko'rsatmasi"
-      }
-    ],
-    "rubric": "Topshiriq umumiy baholash mezoni",
-    "sourceExcerpt": "Hujjatdan aynan ko'chirilgan matn parchasi"
-  }
-]`;
-}
-
-interface RawGeminiItem {
-  number?: number;
-  title?: string;
-  prompt?: string;
-  taskType?: string;
-  points?: number;
-  options?: Array<{ id?: string; label?: string; text?: string }>;
-  correctOptionId?: string;
-  subQuestions?: Array<{ id?: string; label?: string; prompt?: string; points?: number; rubric?: string }>;
-  rubric?: string;
-  sourceExcerpt?: string;
 }
 
 /**
@@ -168,13 +109,13 @@ export function translateAiErrorMessage(rawError: string): string {
 }
 
 /**
- * Extracts structured questions from PDF text via Gemini with strict grounding.
+ * Extracts structured questions from PDF text via backend AI proxy.
  */
 export async function extractGroundedQuestionsWithAi(
   rawPdfText: string,
   options: { apiKey?: string; model?: string; maxScore?: number } = {}
 ): Promise<GroundedExtractionResult> {
-  const apiKey = (options.apiKey || getStoredGeminiApiKey()).trim();
+  const customKey = (options.apiKey ?? getCustomApiKey()).trim();
   const model = options.model || DEFAULT_MODEL;
   const maxScore = options.maxScore || 50;
 
@@ -189,157 +130,52 @@ export async function extractGroundedQuestionsWithAi(
     };
   }
 
-  if (!apiKey) {
-    return {
-      success: false,
-      questions: [],
-      modelUsed: model,
-      sourceTextLength: rawPdfText.length,
-      warnings: ["Gemini API kaliti topilmadi."],
-      error: "Iltimos, Google Gemini API kalitini kiriting.",
-    };
+  const endpoint = `${getApiBaseUrl().replace(/\/$/, '')}/ai/extract-questions`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = getAuthToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const prompt = buildStrictGroundingPrompt(rawPdfText, maxScore);
-
   try {
-    let response: Response | null = null;
-    let lastError: Error | null = null;
-
-    // Retry up to 2 times on temporary high demand (503)
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            generationConfig: {
-              responseMimeType: 'application/json',
-              temperature: 0.1, // Near-zero temperature for maximum factual precision and determinism
-            },
-            contents: [
-              {
-                role: 'user',
-                parts: [{ text: prompt }],
-              },
-            ],
-          }),
-        });
-
-        // If 503 high demand, wait 1.5s and retry once
-        if (response.status === 503 && attempt < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-          continue;
-        }
-
-        break;
-      } catch (fetchErr) {
-        lastError = fetchErr as Error;
-        if (attempt < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-        }
-      }
-    }
-
-    if (!response) {
-      throw lastError || new Error("Internetga ulanishda uzilish yuz berdi.");
-    }
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        rawText: rawPdfText,
+        model,
+        maxScore,
+        customApiKey: customKey || undefined,
+      }),
+    });
 
     if (!response.ok) {
       const errJson = await response.json().catch(() => null);
-      const rawErrMsg = errJson?.error?.message || `Status: ${response.status}`;
+      const rawErrMsg = errJson?.detail || errJson?.error || `Status: ${response.status}`;
       throw new Error(translateAiErrorMessage(rawErrMsg));
     }
 
-    const data = await response.json();
-    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!candidateText) {
-      throw new Error("Sun'iy intellektdan javob kelmadi.");
-    }
-
-    const parsedJson: RawGeminiItem[] = JSON.parse(candidateText);
-
-    if (!Array.isArray(parsedJson) || parsedJson.length === 0) {
-      throw new Error("Hujjatdan topshiriqlar ajratib olinmadi.");
-    }
-
-    const questions: GroundedQuestionItem[] = parsedJson.map((item, index) => {
-      const num = item.number || index + 1;
-      const title = cleanBsbFillLines(item.title || `${num}-topshiriq`);
-      const promptText = cleanBsbFillLines(item.prompt || title);
-      const pts = Number(item.points || (maxScore / parsedJson.length).toFixed(1));
-
-      // Normalize task type
-      let taskType: GroundedQuestionItem['taskType'] = 'subquestions';
-      if (item.taskType === 'multiple_choice' && item.options && item.options.length >= 2) {
-        taskType = 'multiple_choice';
-      } else if (item.taskType === 'case_study') {
-        taskType = 'case_study';
-      } else if (item.taskType === 'table_completion') {
-        taskType = 'table_completion';
-      } else if (item.taskType === 'open_text') {
-        taskType = 'open_text';
-      }
-
-      // Format options if multiple choice
-      const optionsList = (item.options || []).map((opt, optIdx) => {
-        const letter = (opt.label || String.fromCharCode(65 + optIdx)).toUpperCase();
-        return {
-          id: opt.id || `opt-${letter.toLowerCase()}`,
-          label: letter,
-          text: cleanBsbFillLines(opt.text || `Variant ${letter}`),
-        };
-      });
-
-      // Format subquestions if present
-      const subList = (item.subQuestions || []).map((sub, sIdx) => {
-        const defaultLabel = String.fromCharCode(97 + sIdx) + ')';
-        return {
-          id: sub.id || `${num}-${sIdx + 1}`,
-          label: sub.label || defaultLabel,
-          prompt: cleanBsbFillLines(sub.prompt || `Band ${sIdx + 1}`),
-          points: Number(sub.points || (pts / (item.subQuestions?.length || 1)).toFixed(1)),
-          rubric: sub.rubric ? cleanBsbFillLines(sub.rubric) : undefined,
-        };
-      });
-
-      return {
-        id: `ai-q-${num}`,
-        number: num,
-        title,
-        prompt: promptText,
-        taskType,
-        points: pts,
-        options: optionsList.length > 0 ? optionsList : undefined,
-        correctOptionId: item.correctOptionId,
-        subQuestions: subList.length > 0 ? subList : undefined,
-        rubric: item.rubric ? cleanBsbFillLines(item.rubric) : undefined,
-        sourceExcerpt: item.sourceExcerpt || promptText,
-        isApprovedByHuman: false, // Mandatory Human-in-the-loop review
-      };
-    });
-
+    const data = (await response.json()) as GroundedExtractionResult;
     return {
-      success: true,
-      questions,
-      modelUsed: model,
-      sourceTextLength: rawPdfText.length,
-      warnings: [],
+      success: Boolean(data.success),
+      questions: (data.questions || []).map((q) => ({
+        ...q,
+        isApprovedByHuman: false,
+      })),
+      modelUsed: data.modelUsed || model,
+      sourceTextLength: data.sourceTextLength ?? rawPdfText.length,
+      warnings: data.warnings || [],
+      error: data.error,
     };
   } catch (err: unknown) {
     const rawMessage = (err as Error)?.message || "Sun'iy intellekt tahlilida kutilmagan xatolik yuz berdi.";
-    const message = translateAiErrorMessage(rawMessage);
     return {
       success: false,
       questions: [],
       modelUsed: model,
       sourceTextLength: rawPdfText.length,
       warnings: [],
-      error: message,
+      error: translateAiErrorMessage(rawMessage),
     };
   }
 }
@@ -365,15 +201,14 @@ export interface GroundedRosterExtractionResult {
 }
 
 /**
- * AI RAG: O'zbekiston maktablari eMaktab jurnali va nostandart jadvallardan
- * o'quvchilar ro'yxatini Gemini 3.5 Flash orqali ajratib oluvchi aqlli modul
+ * Extracts student roster via backend AI proxy.
  */
 export async function extractStudentsRosterWithAi(
   rawTableText: string,
   options?: { apiKey?: string; defaultGroup?: string }
 ): Promise<GroundedRosterExtractionResult> {
   const model = DEFAULT_MODEL;
-  const apiKey = (options?.apiKey || getStoredGeminiApiKey()).trim();
+  const customKey = (options?.apiKey ?? getCustomApiKey()).trim();
   const defaultGroup = (options?.defaultGroup || (rawTableText.includes('2-gur') ? '2-guruh' : '1-guruh')) as '1-guruh' | '2-guruh';
 
   if (!rawTableText || !rawTableText.trim()) {
@@ -386,70 +221,37 @@ export async function extractStudentsRosterWithAi(
     };
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const prompt = `Siz O'zbekiston maktablari eMaktab tizimi va o'quvchilar jurnallari bo'yicha aqlli yordamchisiz.
-Quyidagi matn yoki jadval ma'lumotlaridan haqiqiy o'quvchilar ro'yxatini aniqlab, faqat toza JSON massiv (Array) sifatida qaytaring.
-
-QOIDALAR:
-1. Har bir o'quvchi uchun quyidagi maydonlarni ajrating:
-   - "orderIndex": Tartib raqami (1, 2, 3...)
-   - "fullName": To'liq ism-sharif (masalan: "Abduraximova Zuxra Farxod qizi")
-   - "lastName": Familiya ("Abduraximova")
-   - "firstName": Ism ("Zuxra")
-   - "middleName": Sharif ("Farxod qizi" yoki null)
-   - "emaktabId": 7 dan 14 xonagacha bo'lgan eMaktab ID raqami (agar bo'lsa)
-   - "gender": "M" (o'g'il) yoki "F" (qiz)
-   - "group": "${defaultGroup}"
-2. Sarlavhalar, o'qituvchi ismi, fan nomi, sinf nomi yoki ustun sarlavhalarini ("T/r", "F.I.SH", "ID") o'quvchi deb hisoblamang!
-3. Bo'sh yoki axlat satrlarni qat'iyan chiqarib tashlang. Hech qachon "Ismsiz" deb nomlamang.
-4. Faqat JSON formatida javob bering, hech qanday markdown yoki qo'shimcha so'z qo'shmang.
-
-Jadval ma'lumotlari:
-${rawTableText.slice(0, 15000)}
-`;
+  const endpoint = `${getApiBaseUrl().replace(/\/$/, '')}/ai/extract-roster`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = getAuthToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1,
-        },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        rawText: rawTableText,
+        defaultGroup,
+        model,
+        customApiKey: customKey || undefined,
       }),
     });
 
     if (!response.ok) {
       const errJson = await response.json().catch(() => null);
-      throw new Error(translateAiErrorMessage(errJson?.error?.message || `Status: ${response.status}`));
+      throw new Error(translateAiErrorMessage(errJson?.detail || errJson?.error || `Status: ${response.status}`));
     }
 
-    const data = await response.json();
-    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!candidateText) {
-      throw new Error("Sun'iy intellektdan javob kelmadi.");
-    }
-
-    const parsed = JSON.parse(candidateText);
-    const students: GroundedStudentItem[] = (Array.isArray(parsed) ? parsed : []).map((item, idx) => ({
-      orderIndex: item.orderIndex || idx + 1,
-      fullName: item.fullName || `${item.lastName || ''} ${item.firstName || ''}`.trim(),
-      firstName: item.firstName || 'O\'quvchi',
-      lastName: item.lastName || 'Familiya',
-      middleName: item.middleName || undefined,
-      emaktabId: item.emaktabId || undefined,
-      gender: item.gender === 'F' ? 'F' : 'M',
-      group: item.group || defaultGroup,
-      birthDate: item.birthDate || '2009-01-01',
-    }));
-
+    const data = (await response.json()) as GroundedRosterExtractionResult;
     return {
-      success: true,
-      students,
-      modelUsed: model,
-      detectedGroup: defaultGroup,
+      success: Boolean(data.success),
+      students: data.students || [],
+      modelUsed: data.modelUsed || model,
+      detectedGroup: data.detectedGroup || defaultGroup,
+      error: data.error,
     };
   } catch (err: unknown) {
     const rawMsg = (err as Error)?.message || "AI tahlilida xatolik yuz berdi";

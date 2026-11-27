@@ -30,9 +30,8 @@ describe('Grounded AI Extractor & Human-in-the-Loop Validation', () => {
       saveStoredGeminiApiKey('');
       expect(hasCustomApiKey()).toBe(false);
       expect(getCustomApiKey()).toBe('');
-      // Seamlessly falls back to built-in project key
-      expect(typeof getStoredGeminiApiKey()).toBe('string');
-      expect(getStoredGeminiApiKey().length).toBeGreaterThan(10);
+      // Zero secret policy: no built-in key is shipped in frontend code
+      expect(getStoredGeminiApiKey()).toBe('');
     });
   });
 
@@ -52,55 +51,56 @@ describe('Grounded AI Extractor & Human-in-the-Loop Validation', () => {
       expect(result).toBeDefined();
     });
 
-    it('successfully extracts grounded questions and initializes isApprovedByHuman to false', async () => {
-      const mockGeminiJson = [
-        {
-          number: 1,
-          title: '1-topshiriq',
-          prompt: 'Kompyuterning apparat vositalarini moslashtiring.',
-          taskType: 'subquestions',
-          points: 10,
-          subQuestions: [
-            { id: '1-a', label: 'a)', prompt: 'Kiritish qurilmalari', points: 2.5, rubric: 'Har biriga 2.5 ball' },
-            { id: '1-b', label: 'b)', prompt: 'Chiqarish qurilmalari', points: 2.5, rubric: 'Har biriga 2.5 ball' },
-            { id: '1-c', label: 'c)', prompt: 'Saqlash qurilmalari', points: 2.5, rubric: 'Har biriga 2.5 ball' },
-            { id: '1-d', label: 'd)', prompt: 'Boshqaruv qurilmalari', points: 2.5, rubric: 'Har biriga 2.5 ball' },
-          ],
-          rubric: 'Barcha bandlar to\'liq bajarilsa 10 ball',
-          sourceExcerpt: '1-topshiriq. Kompyuterning apparat vositalarini moslashtiring: a) ... b) ... c) ... d) ...',
-        },
-        {
-          number: 2,
-          title: '2-topshiriq',
-          prompt: 'Qaysi biri operatsion tizim hisoblanadi?',
-          taskType: 'multiple_choice',
-          points: 10,
-          options: [
-            { id: 'opt-a', label: 'A', text: 'Linux' },
-            { id: 'opt-b', label: 'B', text: 'Python' },
-            { id: 'opt-c', label: 'C', text: 'Chrome' },
-          ],
-          correctOptionId: 'opt-a',
-          sourceExcerpt: '2-topshiriq. Qaysi biri operatsion tizim hisoblanadi? A) Linux B) Python C) Chrome',
-        },
-      ];
+    it('successfully extracts grounded questions via backend AI proxy and initializes isApprovedByHuman to false', async () => {
+      const mockProxyResponse = {
+        success: true,
+        modelUsed: 'gemini-2.0-flash',
+        sourceTextLength: 18,
+        warnings: [],
+        questions: [
+          {
+            id: 'ai-q-1',
+            number: 1,
+            title: '1-topshiriq',
+            prompt: 'Kompyuterning apparat vositalarini moslashtiring.',
+            taskType: 'subquestions',
+            points: 10,
+            subQuestions: [
+              { id: '1-a', label: 'a)', prompt: 'Kiritish qurilmalari', points: 2.5, rubric: 'Har biriga 2.5 ball' },
+              { id: '1-b', label: 'b)', prompt: 'Chiqarish qurilmalari', points: 2.5, rubric: 'Har biriga 2.5 ball' },
+              { id: '1-c', label: 'c)', prompt: 'Saqlash qurilmalari', points: 2.5, rubric: 'Har biriga 2.5 ball' },
+              { id: '1-d', label: 'd)', prompt: 'Boshqaruv qurilmalari', points: 2.5, rubric: 'Har biriga 2.5 ball' },
+            ],
+            rubric: 'Barcha bandlar to\'liq bajarilsa 10 ball',
+            sourceExcerpt: '1-topshiriq. Kompyuterning apparat vositalarini moslashtiring: a) ... b) ... c) ... d) ...',
+            isApprovedByHuman: true, // Even if true from API, client must force false for human review
+          },
+          {
+            id: 'ai-q-2',
+            number: 2,
+            title: '2-topshiriq',
+            prompt: 'Qaysi biri operatsion tizim hisoblanadi?',
+            taskType: 'multiple_choice',
+            points: 10,
+            options: [
+              { id: 'opt-a', label: 'A', text: 'Linux' },
+              { id: 'opt-b', label: 'B', text: 'Python' },
+              { id: 'opt-c', label: 'C', text: 'Chrome' },
+            ],
+            correctOptionId: 'opt-a',
+            sourceExcerpt: '2-topshiriq. Qaysi biri operatsion tizim hisoblanadi? A) Linux B) Python C) Chrome',
+            isApprovedByHuman: false,
+          },
+        ],
+      };
 
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: JSON.stringify(mockGeminiJson) }],
-              },
-            },
-          ],
-        }),
+        json: async () => mockProxyResponse,
       } as Response);
 
       const result = await extractGroundedQuestionsWithAi('Mock document text', {
-        apiKey: 'dummy-api-key',
-        model: 'gemini-3.5-flash-lite',
+        model: 'gemini-2.0-flash',
         maxScore: 50,
       });
 
