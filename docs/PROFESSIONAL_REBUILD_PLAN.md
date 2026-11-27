@@ -7,7 +7,7 @@
 | Bosqich | Holat | Qolgan ish |
 |---|---|---|
 | 0 | Kod tayyor | S0-1: serverni to'xtatish, zaxira, kalitlarni almashtirish (egasi) |
-| 1 | Kod tayyor | CI va Docker build GitHub'da hali ishga tushirilmagan; F1-10 o'chirishlari tasdiq kutmoqda; haqiqiy baza nusxasida migratsiya sinalmagan |
+| 1 | Kod tayyor | CI'da backend va frontend o'tdi, Docker build natijasi tekshirilsin; F1-10 o'chirishlari tasdiq kutmoqda; haqiqiy baza nusxasida migratsiya sinalmagan |
 | 2 | Boshlanmagan | E2-1 va E2-5 1-bosqichda tuzatildi |
 | 3–5 | Boshlanmagan | — |
 
