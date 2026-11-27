@@ -12,6 +12,8 @@ import type {
   GradeResultInput,
   FormativeScoreInput,
   QuarterGradebookResponse,
+  StudentsMasteryResponse,
+  StudentMasteryDetail,
 } from '../../../entities/teacher/model';
 
 export interface TeacherRepository {
@@ -26,6 +28,11 @@ export interface TeacherRepository {
     options?: { classGroupId?: string; subjectCode?: string; quarter?: number; academicYear?: string }
   ): Promise<QuarterGradebookResponse>;
   saveFormativeScore?(input: FormativeScoreInput): Promise<{ totalScore: number }>;
+  getStudentsMastery?(
+    tenantId: string,
+    options?: { classGroupId?: string; quarter?: number }
+  ): Promise<StudentsMasteryResponse>;
+  getStudentMastery?(tenantId: string, studentId: string, quarter?: number): Promise<StudentMasteryDetail | null>;
   getProfile(tenantId: string): Promise<TeacherProfile>;
   getClassDetail(tenantId: string, classId: string): Promise<ClassDetail | null>;
   getStudentDetail(tenantId: string, studentId: string): Promise<StudentDetail | null>;

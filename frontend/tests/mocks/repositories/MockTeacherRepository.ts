@@ -13,6 +13,9 @@ import type {
   GradeResultInput,
   FormativeScoreInput,
   QuarterGradebookResponse,
+  StudentsMasteryResponse,
+  StudentMasteryDetail,
+  StudentMasteryItem,
 } from '@/entities/teacher/model';
 import {
   mockClassGroups,
@@ -878,5 +881,81 @@ export class MockTeacherRepository implements TeacherRepository {
   async saveFormativeScore(input: FormativeScoreInput): Promise<{ totalScore: number }> {
     await this.delay();
     return { totalScore: Number(Math.min(10, input.classwork + input.homework).toFixed(1)) };
+  }
+
+  async getStudentsMastery(
+    tenantId: string,
+    options?: { classGroupId?: string; quarter?: number }
+  ): Promise<StudentsMasteryResponse> {
+    await this.delay();
+    const roster = await this.getRoster(tenantId, options?.classGroupId);
+    const students: StudentMasteryItem[] = roster.map((s, idx) => {
+      const pct = idx % 4 === 0 ? 92 : idx % 4 === 1 ? 76 : idx % 4 === 2 ? 58 : 41;
+      const tier = pct >= 86 ? 'excellent' : pct >= 66 ? 'proficient' : pct >= 30 ? 'developing' : 'at_risk';
+      return {
+        studentId: s.id,
+        rosterCode: s.rosterCode,
+        studentName: `${s.firstName} ${s.lastName}`,
+        classGroupId: s.classGroupId,
+        className: '11-A',
+        testsTaken: 2,
+        averageScore: Number(((pct / 100) * 40).toFixed(1)),
+        averagePercentage: pct,
+        quarterTotal100: pct,
+        grade5: pct >= 86 ? '5' : pct >= 66 ? '4' : pct >= 30 ? '3' : '2',
+        tier,
+        tierLabel: tier === 'excellent' ? "A'lochi (5)" : tier === 'proficient' ? 'Barqaror (4)' : tier === 'developing' ? 'Nazoratda (3)' : 'Xavf guruhida (2)',
+        trend: idx % 2 === 0 ? 'improving' : 'stable',
+        bloomMastery: { knowledge: pct + 4, comprehension: pct, application: pct - 5, analysis: Math.max(20, pct - 10) },
+        weakestArea: 'Mulohaza (tahlil va sintez)',
+        weakestBloom: 'ANALYSIS',
+      };
+    });
+    return {
+      tenantSlug: tenantId,
+      quarter: options?.quarter ?? 1,
+      academicYear: '2026-2027',
+      totalStudents: students.length,
+      summary: {
+        excellentCount: students.filter((s) => s.tier === 'excellent').length,
+        proficientCount: students.filter((s) => s.tier === 'proficient').length,
+        developingCount: students.filter((s) => s.tier === 'developing').length,
+        atRiskCount: students.filter((s) => s.tier === 'at_risk').length,
+        engine: 'deterministic-pedagogical-engine',
+      },
+      students,
+    };
+  }
+
+  async getStudentMastery(
+    tenantId: string,
+    studentId: string,
+    quarter = 1
+  ): Promise<StudentMasteryDetail | null> {
+    const list = await this.getStudentsMastery(tenantId, { quarter });
+    const found = list.students.find((s) => s.studentId === studentId || s.rosterCode === studentId);
+    if (!found) return null;
+    return {
+      ...found,
+      preset: 'MMTV_STANDARD',
+      quarterBreakdown: {
+        formativeScore: 8.5,
+        bsbScore: 42,
+        chsbScore: 34,
+        totalScore100: 84.5,
+        grade5: '4',
+      },
+      history: [],
+      missedQuestions: [],
+      remediationPlan: {
+        weakestArea: found.weakestArea,
+        weakestBloom: found.weakestBloom,
+        trajectory: [
+          { day: 1, topic: 'Xatolar tahlili', duration: '30 daqiqa', task: 'Noto‘g‘ri savollarni tekshirish' },
+        ],
+        pedagogicalAdvice: `${found.studentName} uchun maqsadli mashg'ulotlar tavsiya etiladi.`,
+        engine: 'deterministic-pedagogical-engine',
+      },
+    };
   }
 }

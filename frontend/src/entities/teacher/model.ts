@@ -136,3 +136,87 @@ export interface QuarterGradebookResponse {
   rows: QuarterGradebookRow[];
 }
 
+export type MasteryTier = 'excellent' | 'proficient' | 'developing' | 'at_risk';
+
+export interface BloomMasteryMap {
+  knowledge: number | null;
+  comprehension: number | null;
+  application: number | null;
+  analysis: number | null;
+}
+
+export interface StudentMasteryItem {
+  studentId: string;
+  rosterCode: string;
+  studentName: string;
+  classGroupId: string;
+  className: string;
+  testsTaken: number;
+  averageScore: number;
+  averagePercentage: number;
+  quarterTotal100: number;
+  grade5: string;
+  tier: MasteryTier;
+  tierLabel: string;
+  trend: 'improving' | 'declining' | 'stable';
+  bloomMastery: BloomMasteryMap;
+  weakestArea: string;
+  weakestBloom: string;
+}
+
+export interface StudentsMasteryResponse {
+  tenantSlug: string;
+  quarter: number;
+  academicYear: string;
+  totalStudents: number;
+  summary: {
+    excellentCount: number;
+    proficientCount: number;
+    developingCount: number;
+    atRiskCount: number;
+    engine: string;
+  };
+  students: StudentMasteryItem[];
+}
+
+export interface StudentMasteryDetail extends StudentMasteryItem {
+  preset: 'MMTV_STANDARD' | 'SPECIALIZED';
+  quarterBreakdown: {
+    formativeScore: number;
+    bsbScore: number;
+    chsbScore: number;
+    totalScore100: number;
+    grade5: string;
+  };
+  history: Array<{
+    attemptId: string;
+    assessmentId: string;
+    assessmentTitle: string;
+    assessmentType: string;
+    subject: string;
+    quarter: number;
+    score: number;
+    maxScore: number;
+    percentage: number;
+    grade: string;
+    status: string;
+    verifiedByTeacher: boolean;
+    teacherFeedback: string;
+    submittedAt: string;
+  }>;
+  missedQuestions: Array<{
+    assessmentTitle: string;
+    questionNumber: number;
+    prompt: string;
+    bloomLevel: string;
+    points: number;
+  }>;
+  remediationPlan: {
+    weakestArea: string;
+    weakestBloom: string;
+    trajectory: Array<{ day: number; topic: string; duration: string; task: string }>;
+    pedagogicalAdvice: string;
+    engine: string;
+  };
+}
+

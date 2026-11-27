@@ -66,8 +66,8 @@ const pdfGroundedQuestions = ref<GroundedQuestionItem[]>([]);
 const pdfWarnings = ref<string[]>([]);
 const pdfDropzoneActive = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const aiExtractionMode = ref<'gemini' | 'local'>('gemini');
-const lastExtractionSource = ref<'ai' | 'local'>('ai');
+const aiExtractionMode = ref<'gemini' | 'local'>('local');
+const lastExtractionSource = ref<'ai' | 'local'>('local');
 
 const approvedCount = computed(() => pdfGroundedQuestions.value.filter((q) => q.isApprovedByHuman).length);
 const allApproved = computed(
@@ -741,21 +741,9 @@ function resetForm() {
               class="hidden"
             />
 
-            <!-- Top AI Mode Selector -->
+            <!-- Top Extraction Mode Selector (Local Deterministic First, AI Optional) -->
             <div class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 flex-wrap">
               <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Tahlil usuli:</span>
-              <button
-                type="button"
-                @click="aiExtractionMode = 'gemini'"
-                :class="[
-                  'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
-                  aiExtractionMode === 'gemini'
-                    ? 'bg-teal-700 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
-                ]"
-              >
-                <span>🤖 Sun'iy intellekt</span>
-              </button>
               <button
                 type="button"
                 @click="aiExtractionMode = 'local'"
@@ -766,7 +754,19 @@ function resetForm() {
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
                 ]"
               >
-                <span>🧠 BSB algoritmi (Oflayn)</span>
+                <span>⚡ Lokal algoritm (AI siz, tezkor)</span>
+              </button>
+              <button
+                type="button"
+                @click="aiExtractionMode = 'gemini'"
+                :class="[
+                  'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
+                  aiExtractionMode === 'gemini'
+                    ? 'bg-teal-700 text-white shadow-xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
+                ]"
+              >
+                <span>🤖 Gemini (Ixtiyoriy)</span>
               </button>
             </div>
 

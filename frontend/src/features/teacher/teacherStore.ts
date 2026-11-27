@@ -14,6 +14,8 @@ import type {
   QuarterGradebookRow,
   GradeResultInput,
   FormativeScoreInput,
+  StudentsMasteryResponse,
+  StudentMasteryDetail,
 } from '../../entities/teacher/model';
 import { GRADING_SCALE_PRESETS, type GradingPresetKey } from '../../entities/emaktab/model';
 import { api } from '../../shared/api';
@@ -35,6 +37,8 @@ export const useTeacherStore = defineStore('teacher', () => {
   const reportData = ref<ReportItem[]>([]);
   const quarterGradebookRows = ref<QuarterGradebookRow[]>([]);
   const gradebookPreset = ref<GradingPresetKey>('MMTV_STANDARD');
+  const studentsMastery = ref<StudentsMasteryResponse | null>(null);
+  const studentMasteryDetail = ref<StudentMasteryDetail | null>(null);
   const isLoading = ref(false);
   const isGradebookLoading = ref(false);
   const errorMessage = ref<string | null>(null);
@@ -343,6 +347,31 @@ export const useTeacherStore = defineStore('teacher', () => {
     }
   }
 
+  async function loadStudentsMastery(
+    tenantId: string,
+    options?: { classGroupId?: string; quarter?: number }
+  ): Promise<void> {
+    if (!api.teacher.getStudentsMastery) return;
+    try {
+      studentsMastery.value = await api.teacher.getStudentsMastery(tenantId, options);
+    } catch {
+      studentsMastery.value = null;
+    }
+  }
+
+  async function loadStudentMastery(
+    tenantId: string,
+    studentId: string,
+    quarter = 1
+  ): Promise<void> {
+    if (!api.teacher.getStudentMastery) return;
+    try {
+      studentMasteryDetail.value = await api.teacher.getStudentMastery(tenantId, studentId, quarter);
+    } catch {
+      studentMasteryDetail.value = null;
+    }
+  }
+
   return {
     currentTenantId,
     classes,
@@ -351,9 +380,13 @@ export const useTeacherStore = defineStore('teacher', () => {
     gradeStudentResult,
     quarterGradebookRows,
     gradebookPreset,
+    studentsMastery,
+    studentMasteryDetail,
     isGradebookLoading,
     loadQuarterGradebook,
     saveFormativeScore,
+    loadStudentsMastery,
+    loadStudentMastery,
     roster,
     addRosterRecord,
     addRosterRecords,

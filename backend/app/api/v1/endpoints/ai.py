@@ -9,6 +9,10 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from backend.app.core.config import settings
 from backend.app.core.dependencies import Actor, require_role
+from backend.app.services.mastery import (
+    build_deterministic_remediation_plan,
+    compute_class_diagnosis_deterministic,
+)
 
 router = APIRouter(
     prefix="/ai",
@@ -26,6 +30,7 @@ class ClassDiagnosisRequest(BaseModel):
     qualityRate: int
     participationRate: int
     totalStudents: int
+    useAi: bool = False
 
 
 class StudentRemediationRequest(BaseModel):
@@ -34,7 +39,8 @@ class StudentRemediationRequest(BaseModel):
     score: float
     maxScore: float = 40.0
     percentage: float
-    weakTopics: list[str] = ["Dasturlash asoslari", "Mantiqiy ifodalar"]
+    weakTopics: list[str] = ["Asosiy tushunchalar"]
+    weakestBloom: str = "KNOWLEDGE"
 
 
 class ExtractQuestionsRequest(BaseModel):
@@ -334,65 +340,53 @@ Jadval ma'lumotlari:
 
 @router.post("/class-diagnosis")
 async def generate_class_diagnosis(payload: ClassDiagnosisRequest):
-    api_key = _resolve_gemini_key()
+    if payload.useAi:
+        api_key = _resolve_gemini_key()
+        if api_key:
+            prompt = (
+                f"Quyidagi natijalar bo'yicha {payload.className} sinfiga qisqa xulosa va 3 tavsiya bering: "
+                f"o'rtacha {payload.averageScore}/{payload.maxScore}, sifat {payload.qualityRate}%, "
+                f"qamrov {payload.participationRate}% ({payload.totalStudents} o'quvchi)."
+            )
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{DEFAULT_GEMINI_MODEL}:generateContent?key={api_key}"
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    res = await client.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
+                    if res.status_code == 200:
+                        data = res.json()
+                        ai_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                        return {
+                            "source": DEFAULT_GEMINI_MODEL,
+                            "insights": ai_text,
+                            "className": payload.className,
+                        }
+            except Exception:
+                pass
 
-    prompt = f"""
-    Siz O'zbekiston xalq ta'limi tizimining tajribali metodist-pedagog ekspertisiz.
-    Quyidagi CHSB imtihon ko'rsatkichlari bo'yicha {payload.className} sinfiga professional pedagogik xulosa va 3 ta aniq amaliy tavsiya bering:
-    - O'rtacha ball: {payload.averageScore} / {payload.maxScore}
-    - Sifat foizi (5 va 4 baholar): {payload.qualityRate}%
-    - Imtihon ishtiroki: {payload.participationRate}% ({payload.totalStudents} nafar o'quvchi)
-
-    Javobni o'zbek tilida, qat'iy, aniq va ruhlantiruvchi professional uslubda yozing.
-    """
-
-    if api_key:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{DEFAULT_GEMINI_MODEL}:generateContent?key={api_key}"
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.post(
-                    url,
-                    json={"contents": [{"parts": [{"text": prompt}]}]},
-                )
-                if res.status_code == 200:
-                    data = res.json()
-                    ai_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    return {
-                        "source": DEFAULT_GEMINI_MODEL,
-                        "insights": ai_text,
-                        "className": payload.className,
-                    }
-        except Exception:
-            pass
-
-    return {
-        "source": "heuristic-pedagogical-engine",
-        "className": payload.className,
-        "summary": f"{payload.className} sinfida CHSB imtihoni o'zlashtirish darajasi yuqori ({payload.qualityRate}% sifat ko'rsatkichi). O'rtacha ball {payload.averageScore} / {payload.maxScore} ni tashkil etdi.",
-        "keyStrengths": [
-            "Bilish va tushunish (Bloom 1-2) darajasidagi savollarda 92% to'g'ri javob berilgan.",
-            f"O'quvchilar qamrovi {payload.participationRate}% ni tashkil etib, sinf davomati barqaror.",
-        ],
-        "recommendations": [
-            "Amaliy masalalar va mantiqiy algoritmlar bo'yicha juftlikda ishlash mashg'ulotlarini ko'paytirish tavsiya etiladi.",
-            "Attestatsiya mezonlariga asosan, sifat ko'rsatkichini 85% ga yetkazish uchun 4 baho olgan o'quvchilar bilan chuqurlashtirilgan tahlil o'tkazish maqsadga muvofiq.",
-            "Qoloq o'quvchilar uchun individual 5 kunlik 'Mantiqiy ifodalar' moduli yuklatilsin.",
-        ],
-    }
+    return compute_class_diagnosis_deterministic(
+        class_name=payload.className,
+        average_score=payload.averageScore,
+        max_score=payload.maxScore,
+        quality_rate=payload.qualityRate,
+        participation_rate=payload.participationRate,
+        total_students=payload.totalStudents,
+    )
 
 
 @router.post("/student-remediation")
 async def generate_student_remediation(payload: StudentRemediationRequest):
+    plan = build_deterministic_remediation_plan(
+        student_name=payload.studentName,
+        pct=payload.percentage,
+        weakest_bloom=payload.weakestBloom,
+        weak_topics=payload.weakTopics,
+    )
     return {
         "studentName": payload.studentName,
         "rosterCode": payload.rosterCode,
         "currentLevel": f"{payload.score} ball ({payload.percentage}%)",
-        "trajectory": [
-            {"day": 1, "topic": "Mantiqiy amallar va rostlik jadvallari", "duration": "45 daqiqa", "task": "10 ta sodda test yechish"},
-            {"day": 2, "topic": "Shart operatorlari (if/else) tahlili", "duration": "45 daqiqa", "task": "Darslikdagi 3 ta amaliy kodni tahlil qilish"},
-            {"day": 3, "topic": "Takrorlanuvchi algoritmlar (for/while)", "duration": "50 daqiqa", "task": "Sikllar bo'yicha mashqlar"},
-            {"day": 4, "topic": "CHSB xatolar tahlili ustida ishlash", "duration": "40 daqiqa", "task": "Adashilgan 4 ta savolni qayta ishlash"},
-            {"day": 5, "topic": "Diagnostik nazorat testi", "duration": "30 daqiqa", "task": "15 savollik mini-test topshirish"},
-        ],
-        "pedagogicalAdvice": f"{payload.studentName} uchun nazariy bilimlarni amaliy dasturlash muhiti bilan bog'lash tavsiya etiladi.",
+        "weakestArea": plan["weakestArea"],
+        "trajectory": plan["trajectory"],
+        "pedagogicalAdvice": plan["pedagogicalAdvice"],
+        "engine": plan["engine"],
     }

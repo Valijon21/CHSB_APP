@@ -16,7 +16,10 @@ onMounted(async () => {
   const tenantId =
     tenantStore.currentTenant?.tenantId ||
     (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
-  await teacherStore.loadStudentDetail(tenantId, studentId);
+  await Promise.all([
+    teacherStore.loadStudentDetail(tenantId, studentId),
+    teacherStore.loadStudentMastery(tenantId, studentId),
+  ]);
 });
 </script>
 
@@ -130,6 +133,85 @@ onMounted(async () => {
 
         <div v-else class="text-center py-10 text-xs text-slate-500 dark:text-slate-400">
           Ushbu o'quvchi hali birorta ham test topshirmagan.
+        </div>
+      </div>
+
+      <!-- Deterministic Mastery & Remediation Plan (AI-Free) -->
+      <div v-if="teacherStore.studentMasteryDetail" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              10+50+40 Chorak va Bloom Analizi
+            </h2>
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+              {{ teacherStore.studentMasteryDetail.tierLabel }}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2 text-center">
+            <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+              <span class="text-[10px] text-slate-500 block">FB (10)</span>
+              <span class="font-mono font-bold text-slate-900 dark:text-white">{{ teacherStore.studentMasteryDetail.quarterBreakdown.formativeScore }}</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+              <span class="text-[10px] text-slate-500 block">BSB (50)</span>
+              <span class="font-mono font-bold text-slate-900 dark:text-white">{{ teacherStore.studentMasteryDetail.quarterBreakdown.bsbScore }}</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+              <span class="text-[10px] text-slate-500 block">CHSB (40)</span>
+              <span class="font-mono font-bold text-slate-900 dark:text-white">{{ teacherStore.studentMasteryDetail.quarterBreakdown.chsbScore }}</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-teal-50 dark:bg-teal-950/50 border border-teal-200 dark:border-teal-800">
+              <span class="text-[10px] text-teal-700 dark:text-teal-300 block">Jami (100)</span>
+              <span class="font-mono font-bold text-teal-900 dark:text-teal-200">{{ teacherStore.studentMasteryDetail.quarterBreakdown.totalScore100 }}</span>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-2">
+            <div class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Zaif yo'nalish: <span class="text-rose-700 dark:text-rose-400">{{ teacherStore.studentMasteryDetail.weakestArea }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="p-2 rounded bg-slate-50 dark:bg-slate-900/40 flex justify-between">
+                <span>Bilish (B):</span>
+                <span class="font-mono font-bold">{{ teacherStore.studentMasteryDetail.bloomMastery.knowledge ?? '—' }}%</span>
+              </div>
+              <div class="p-2 rounded bg-slate-50 dark:bg-slate-900/40 flex justify-between">
+                <span>Tushunish:</span>
+                <span class="font-mono font-bold">{{ teacherStore.studentMasteryDetail.bloomMastery.comprehension ?? '—' }}%</span>
+              </div>
+              <div class="p-2 rounded bg-slate-50 dark:bg-slate-900/40 flex justify-between">
+                <span>Qo'llash (Q):</span>
+                <span class="font-mono font-bold">{{ teacherStore.studentMasteryDetail.bloomMastery.application ?? '—' }}%</span>
+              </div>
+              <div class="p-2 rounded bg-slate-50 dark:bg-slate-900/40 flex justify-between">
+                <span>Mulohaza (M):</span>
+                <span class="font-mono font-bold">{{ teacherStore.studentMasteryDetail.bloomMastery.analysis ?? '—' }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+          <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+            Individual Rivojlantirish Rejasi (5 kun)
+          </h2>
+          <p class="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+            {{ teacherStore.studentMasteryDetail.remediationPlan.pedagogicalAdvice }}
+          </p>
+          <ul class="space-y-2 text-xs">
+            <li
+              v-for="step in teacherStore.studentMasteryDetail.remediationPlan.trajectory"
+              :key="step.day"
+              class="p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/80 flex items-start justify-between gap-2"
+            >
+              <div>
+                <span class="font-bold text-teal-800 dark:text-teal-400">{{ step.day }}-kun: {{ step.topic }}</span>
+                <p class="text-slate-500 dark:text-slate-400 mt-0.5">{{ step.task }}</p>
+              </div>
+              <span class="text-[11px] font-mono text-slate-400 shrink-0">{{ step.duration }}</span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>

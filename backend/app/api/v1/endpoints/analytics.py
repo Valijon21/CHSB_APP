@@ -1,7 +1,14 @@
 import json
-from fastapi import APIRouter, Depends
-from backend.app.core.dependencies import Actor, STAFF_ROLES, require_role, resolve_tenant_for_actor
+from fastapi import APIRouter, Depends, HTTPException, Query
+from backend.app.core.dependencies import (
+    Actor,
+    STAFF_ROLES,
+    assert_tenant_ownership,
+    require_role,
+    resolve_tenant_for_actor,
+)
 from backend.app.db.prisma import get_prisma
+from backend.app.services.mastery import analyze_student_mastery
 from prisma import Prisma
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -157,3 +164,84 @@ async def get_tenant_analytics(
         },
         "questionStats": question_stats,
     }
+
+
+@router.get("/{tenant_slug}/students-mastery")
+async def get_students_mastery(
+    tenant_slug: str,
+    classGroupId: str | None = None,
+    quarter: int = Query(default=1, ge=1, le=4),
+    academicYear: str = Query(default="2026-2027"),
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    tenant = await resolve_tenant_for_actor(tenant_slug, actor, db)
+    where_clause: dict = {"tenantId": tenant.id}
+    if classGroupId and classGroupId != "all":
+        where_clause["classGroupId"] = classGroupId
+
+    students = await db.student.find_many(
+        where=where_clause,
+        include={
+            "school": True,
+            "classGroup": True,
+            "formativeScores": True,
+            "results": {"include": {"attempt": {"include": {"assessment": True}}}},
+            "attempts": {"include": {"assessment": {"include": {"questions": True}}}},
+        },
+        order=[{"lastName": "asc"}, {"firstName": "asc"}],
+    )
+
+    rows = []
+    tier_counts = {"excellent": 0, "proficient": 0, "developing": 0, "at_risk": 0}
+    for stu in students:
+        row, _ = analyze_student_mastery(stu, quarter=quarter, academic_year=academicYear)
+        tier_counts[row["tier"]] = tier_counts.get(row["tier"], 0) + 1
+        rows.append(row)
+
+    rows.sort(key=lambda r: (r["averagePercentage"], r["quarterTotal100"]), reverse=True)
+    return {
+        "tenantSlug": tenant.slug,
+        "quarter": quarter,
+        "academicYear": academicYear,
+        "totalStudents": len(rows),
+        "summary": {
+            "excellentCount": tier_counts["excellent"],
+            "proficientCount": tier_counts["proficient"],
+            "developingCount": tier_counts["developing"],
+            "atRiskCount": tier_counts["at_risk"],
+            "engine": "deterministic-pedagogical-engine",
+        },
+        "students": rows,
+    }
+
+
+@router.get("/{tenant_slug}/students/{student_id}/mastery")
+async def get_single_student_mastery(
+    tenant_slug: str,
+    student_id: str,
+    quarter: int = Query(default=1, ge=1, le=4),
+    academicYear: str = Query(default="2026-2027"),
+    actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    tenant = await resolve_tenant_for_actor(tenant_slug, actor, db)
+    stu = await db.student.find_first(
+        where={
+            "tenantId": tenant.id,
+            "OR": [{"id": student_id}, {"rosterCode": student_id}],
+        },
+        include={
+            "school": True,
+            "classGroup": True,
+            "formativeScores": True,
+            "results": {"include": {"attempt": {"include": {"assessment": True}}}},
+            "attempts": {"include": {"assessment": {"include": {"questions": True}}}},
+        },
+    )
+    if not stu:
+        raise HTTPException(status_code=404, detail="O'quvchi topilmadi.")
+    assert_tenant_ownership(stu.tenantId, actor)
+
+    _, detail = analyze_student_mastery(stu, quarter=quarter, academic_year=academicYear)
+    return detail

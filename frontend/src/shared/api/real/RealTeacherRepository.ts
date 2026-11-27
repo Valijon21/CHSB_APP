@@ -14,6 +14,8 @@ import type {
   GradeResultInput,
   FormativeScoreInput,
   QuarterGradebookResponse,
+  StudentsMasteryResponse,
+  StudentMasteryDetail,
 } from '../../../entities/teacher/model';
 import type {
   BackendAnalyticsResponse,
@@ -142,6 +144,32 @@ export class RealTeacherRepository implements TeacherRepository {
 
   async saveFormativeScore(input: FormativeScoreInput): Promise<{ totalScore: number }> {
     return await httpClient.post<{ totalScore: number }>('/gradebook/formative', input);
+  }
+
+  async getStudentsMastery(
+    tenantId: string,
+    options?: { classGroupId?: string; quarter?: number }
+  ): Promise<StudentsMasteryResponse> {
+    return await httpClient.get<StudentsMasteryResponse>(`/analytics/${tenantId}/students-mastery`, {
+      params: {
+        classGroupId: options?.classGroupId,
+        quarter: options?.quarter ?? 1,
+      },
+    });
+  }
+
+  async getStudentMastery(
+    tenantId: string,
+    studentId: string,
+    quarter = 1
+  ): Promise<StudentMasteryDetail | null> {
+    try {
+      return await httpClient.get<StudentMasteryDetail>(`/analytics/${tenantId}/students/${studentId}/mastery`, {
+        params: { quarter },
+      });
+    } catch {
+      return null;
+    }
   }
 
   async getProfile(tenantId: string): Promise<TeacherProfile> {
