@@ -101,3 +101,4 @@ def calculate_annual_grade(
         "quartersCount": len(valid),
         "preset": preset,
     }
+

@@ -244,8 +244,8 @@ async function handleFinish() {
           <div v-if="isBsbTask(assessmentStore.currentQuestion)" class="mt-4">
             <BsbTaskRenderer
               :question="assessmentStore.currentQuestion"
-              :modelValue="assessmentStore.answers[assessmentStore.currentQuestion.id] || ''"
-              @update:modelValue="handleBsbAnswerUpdate"
+              :model-value="assessmentStore.answers[assessmentStore.currentQuestion.id] || ''"
+              @update:model-value="handleBsbAnswerUpdate"
             />
           </div>
 

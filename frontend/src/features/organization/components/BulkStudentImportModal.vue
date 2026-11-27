@@ -29,6 +29,8 @@ useModalA11y(toRef(props, 'isOpen'), () => {
 });
 
 const selectedClassId = ref(props.availableClasses[0]?.id || '');
+const localCreatedClasses = ref<ClassGroupRecord[]>([]);
+const allClasses = computed(() => [...props.availableClasses, ...localCreatedClasses.value]);
 const selectedGroup = ref<'1-guruh' | '2-guruh' | null>(null);
 const autoDetectedGroup = ref<string | null>(null);
 const autoDetectedClass = ref<string | null>(null);
@@ -122,12 +124,12 @@ const evaluatedStudents = computed<AnnotatedStudent[]>(() => {
       seenNames.add(`${ln} ${fn}`.trim());
       seenNames.add(`${fn} ${ln}`.trim());
     }
-    const anyEx = ex as any;
-    if (anyEx.name) {
-      seenNames.add(normalizeName(anyEx.name));
+    const exWithName = ex as unknown as { name?: string; fullName?: string };
+    if (exWithName.name) {
+      seenNames.add(normalizeName(exWithName.name));
     }
-    if (anyEx.fullName) {
-      seenNames.add(normalizeName(anyEx.fullName));
+    if (exWithName.fullName) {
+      seenNames.add(normalizeName(exWithName.fullName));
     }
   }
 
@@ -139,7 +141,8 @@ const evaluatedStudents = computed<AnnotatedStudent[]>(() => {
     const normFirst = normalizeName(s.firstName);
     const fullName1 = `${normLast} ${normFirst}`.trim();
     const fullName2 = `${normFirst} ${normLast}`.trim();
-    const directName = normalizeName((s as any).name || (s as any).fullName);
+    const sWithName = s as unknown as { name?: string; fullName?: string };
+    const directName = normalizeName(sWithName.name || sWithName.fullName);
     const emaktab = s.emaktabId?.trim();
 
     if (emaktab && seenEmaktab.has(emaktab)) {
@@ -262,8 +265,8 @@ async function readFile(file: File) {
                 academicYear: '2026-2027',
               });
               matched = created;
-              if (!props.availableClasses.some((c) => c.id === created.id)) {
-                props.availableClasses.push(created);
+              if (!allClasses.value.some((c) => c.id === created.id)) {
+                localCreatedClasses.value.push(created);
               }
             } catch (err) {
               console.warn("Failed to auto-create class group:", err);
@@ -275,7 +278,7 @@ async function readFile(file: File) {
           }
         }
 
-        const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+        const cls = allClasses.value.find((c) => c.id === selectedClassId.value);
         const className = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
 
         parsedStudents.value = clientRes.students.map((s) => ({
@@ -390,8 +393,8 @@ async function readFile(file: File) {
                 academicYear: '2026-2027',
               });
               matched = created;
-              if (!props.availableClasses.some((c) => c.id === created.id)) {
-                props.availableClasses.push(created);
+              if (!allClasses.value.some((c) => c.id === created.id)) {
+                localCreatedClasses.value.push(created);
               }
             } catch (err) {
               console.warn("Failed to auto-create class group:", err);
@@ -403,10 +406,19 @@ async function readFile(file: File) {
           }
         }
 
-        const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+        const cls = allClasses.value.find((c) => c.id === selectedClassId.value);
         const className = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
 
-        parsedStudents.value = data.students.map((s: any) => ({
+        interface ParsedApiStudent {
+          firstName: string;
+          lastName: string;
+          middleName?: string;
+          gender?: string;
+          birthDate?: string;
+          group?: string | null;
+          emaktabId?: string;
+        }
+        parsedStudents.value = (data.students as ParsedApiStudent[]).map((s) => ({
           tenantSlug: props.tenantSlug,
           schoolId: props.schoolId,
           classGroupId: selectedClassId.value,
@@ -618,12 +630,12 @@ function removeStudent(index: number) {
 
 function handleConfirm() {
   if (newStudentsToImport.value.length > 0 && !props.isSubmitting) {
-    const cls = props.availableClasses.find((c) => c.id === selectedClassId.value);
+    const cls = allClasses.value.find((c) => c.id === selectedClassId.value);
     const finalClassName = cls?.name || (autoDetectedClass.value ? `${autoDetectedClass.value} sinf` : 'Sinf');
     emit(
       'bulk-import',
       newStudentsToImport.value.map((s) => {
-        const { isDuplicate, duplicateReason, ...clean } = s;
+        const { isDuplicate: _isDuplicate, duplicateReason: _duplicateReason, ...clean } = s;
         return {
           ...clean,
           classGroupId: selectedClassId.value,

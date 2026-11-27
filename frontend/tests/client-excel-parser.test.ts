@@ -163,8 +163,8 @@ describe('clientExcelParser', () => {
         expect(res.students[0]?.fullName).toBe('Абдурасулов Мухаммаджон');
         expect(res.students[0]?.emaktabId).toBe('1000004921908');
         expect(res.students[0]?.gender).toBe('M');
-      } catch (err: any) {
-        if (err.code === 'EPERM' || err.code === 'ENOENT') return;
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException).code === 'EPERM' || (err as NodeJS.ErrnoException).code === 'ENOENT') return;
         throw err;
       }
     });
@@ -187,8 +187,8 @@ describe('clientExcelParser', () => {
         expect(res.students[0]?.fullName).toBe('Abbosova Bahora');
         expect(res.students[0]?.emaktabId).toBe('1000005839035');
         expect(res.students[0]?.gender).toBe('F');
-      } catch (err: any) {
-        if (err.code === 'EPERM' || err.code === 'ENOENT') return;
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException).code === 'EPERM' || (err as NodeJS.ErrnoException).code === 'ENOENT') return;
         throw err;
       }
     });

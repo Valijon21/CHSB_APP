@@ -405,7 +405,7 @@ function handleExportCSV() {
 
     <!-- Rubric Grading Modal -->
     <BsbRubricGradingModal
-      :isOpen="isGradingModalOpen"
+      :is-open="isGradingModalOpen"
       :result="gradingResult"
       @close="isGradingModalOpen = false"
       @save="handleSaveGrading"

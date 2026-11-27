@@ -42,3 +42,4 @@ describe('Proctor Backend Telemetry Integration (TASK-3.3)', () => {
     expect(target.status).toBe('warning');
   });
 });
+

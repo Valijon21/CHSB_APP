@@ -156,3 +156,4 @@ async def update_school(
 
     updated = await db.school.update(where={"id": school_id}, data=update_data, include={"tenant": True})
     return _format_school_record(updated, updated.tenant, 0)
+

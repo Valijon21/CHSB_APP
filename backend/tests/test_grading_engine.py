@@ -51,3 +51,4 @@ def test_quarter_total_and_annual_calculation():
     assert annual["annualScore100"] == 71.0
     assert annual["annualGrade5"] == "4"
     assert annual["quartersCount"] == 2
+

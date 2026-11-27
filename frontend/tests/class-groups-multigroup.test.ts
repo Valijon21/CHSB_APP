@@ -131,7 +131,7 @@ T/r	eMaktab ID	O'quvchi F.I.SH	Jinsi
           group: '2-guruh',
           status: 'eligible',
         },
-      ] as any;
+      ] as unknown as typeof teacherStore.roster;
 
       // 1. Filter by 1-guruh
       teacherStore.filterByGroup('1-guruh');
@@ -168,7 +168,7 @@ T/r	eMaktab ID	O'quvchi F.I.SH	Jinsi
         tenantSlug: 'al-xorazmiy',
         status: 'eligible',
         availableAssessmentIds: ['asm-11-inf-01'],
-      } as any;
+      } as unknown as typeof admissionStore.currentMatch;
 
       const wrapper = mount(StudentVerifyView, {
         global: {

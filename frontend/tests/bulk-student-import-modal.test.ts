@@ -106,8 +106,9 @@ describe('BulkStudentImportModal.vue', () => {
     const emitted = wrapper.emitted('bulk-import');
     expect(emitted).toBeTruthy();
     expect(emitted![0]![0]).toHaveLength(2);
-    expect((emitted![0]![0] as any[])[0].classGroupId).toBe('cls-10-v');
-    expect((emitted![0]![0] as any[])[0].group).toBe('1-guruh');
+    const firstBatch = emitted![0]![0] as Array<{ classGroupId: string; group: string | null }>;
+    expect(firstBatch[0]!.classGroupId).toBe('cls-10-v');
+    expect(firstBatch[0]!.group).toBe('1-guruh');
   });
 
   it('detects existing duplicates in class and only imports new students', async () => {
@@ -179,11 +180,11 @@ describe('BulkStudentImportModal.vue', () => {
 
     const emitted = wrapper.emitted('bulk-import');
     expect(emitted).toBeTruthy();
-    const importedList = emitted![0]![0] as any[];
+    const importedList = emitted![0]![0] as Array<{ firstName: string; group: string | null; classGroupId: string }>;
     // Only the new student must be emitted!
     expect(importedList).toHaveLength(1);
-    expect(importedList[0].firstName).toBe('Oquvchi');
-    expect(importedList[0].group).toBe(null);
-    expect(importedList[0].classGroupId).toBe('cls-10-v');
+    expect(importedList[0]!.firstName).toBe('Oquvchi');
+    expect(importedList[0]!.group).toBe(null);
+    expect(importedList[0]!.classGroupId).toBe('cls-10-v');
   });
 });

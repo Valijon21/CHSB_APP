@@ -38,3 +38,4 @@ def setup_logging(log_dir: Path | None = None) -> logging.Logger:
     logger.addHandler(stream_handler)
 
     return logger
+

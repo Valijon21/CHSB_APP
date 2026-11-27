@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useTeacherStore } from '@/features/teacher/teacherStore';
 import { api } from '@/shared/api';
@@ -8,13 +8,18 @@ describe('Quarter 100-Point Gradebook & Rubric Persistence (TASK-2.3)', () => {
     setActivePinia(createPinia());
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('loads quarter gradebook rows and recalculates total100 + grade5 on formative score save', async () => {
     const store = useTeacherStore();
     await store.loadQuarterGradebook('tenant-al-xorazmiy', { quarter: 1, subjectCode: 'INF' });
 
     expect(store.quarterGradebookRows.length).toBeGreaterThan(0);
     const first = store.quarterGradebookRows[0]!;
-    const spySave = vi.spyOn(api.teacher, 'saveFormativeScore');
+    const teacherRepo = api.teacher as Required<typeof api.teacher>;
+    const spySave = vi.spyOn(teacherRepo, 'saveFormativeScore');
 
     await store.saveFormativeScore({
       studentId: first.studentId,
@@ -28,7 +33,6 @@ describe('Quarter 100-Point Gradebook & Rubric Persistence (TASK-2.3)', () => {
     const updated = store.quarterGradebookRows.find((r) => r.studentId === first.studentId)!;
     expect(updated.formativeScore).toBe(10);
     expect(updated.totalScore100).toBe(Number((10 + first.bsbScore + first.chsbScore).toFixed(1)));
-    spySave.mockRestore();
   });
 
   it('persists rubric grading via teacherStore.gradeStudentResult', async () => {
@@ -37,7 +41,8 @@ describe('Quarter 100-Point Gradebook & Rubric Persistence (TASK-2.3)', () => {
     expect(store.results.length).toBeGreaterThan(0);
 
     const target = store.results[0]!;
-    const spyGrade = vi.spyOn(api.teacher, 'gradeResult');
+    const teacherRepo = api.teacher as Required<typeof api.teacher>;
+    const spyGrade = vi.spyOn(teacherRepo, 'gradeResult');
 
     await store.gradeStudentResult(target.attemptId, {
       score: 38,
@@ -50,6 +55,5 @@ describe('Quarter 100-Point Gradebook & Rubric Persistence (TASK-2.3)', () => {
     const updated = store.results.find((r) => r.attemptId === target.attemptId)!;
     expect(updated.score).toBe(38);
     expect(updated.verifiedByTeacher).toBe(true);
-    spyGrade.mockRestore();
   });
 });

@@ -167,3 +167,4 @@ async def delete_teacher(
     assert_tenant_ownership(user.tenantId, actor)
     await db.user.delete(where={"id": teacher_id})
     return {"success": True, "message": "O'qituvchi o'chirildi."}
+

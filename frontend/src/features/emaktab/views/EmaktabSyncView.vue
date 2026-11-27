@@ -27,7 +27,7 @@ function loadGroupCandidates() {
   const effectiveResults = matchingResults.length > 0 ? matchingResults : teacherStore.results;
 
   const groupFiltered = effectiveResults.filter((r) => {
-    const stu = teacherStore.roster.find((s) => s.id === r.rosterRecordId || s.rosterCode === (r as any).rosterCode);
+    const stu = teacherStore.roster.find((s) => s.id === r.rosterRecordId);
     return (stu?.group || '1-guruh') === selectedGroup.value;
   });
 

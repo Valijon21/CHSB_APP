@@ -125,3 +125,4 @@ def test_student_token_scoped_to_own_attempts_and_blocked_from_staff_routes(
 
     # Cleanup
     client.delete(f"/api/v1/classes/{cls_id}", headers=teacher_headers)
+

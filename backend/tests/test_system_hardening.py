@@ -35,3 +35,4 @@ def test_rotating_file_logger_writes_log_file(tmp_path: Path):
     log_file = tmp_path / "backend.log"
     assert log_file.exists()
     assert "Rotating log verification entry" in log_file.read_text(encoding="utf-8")
+

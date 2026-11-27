@@ -139,7 +139,7 @@ const processedRecords = computed(() => {
   // Filter by Group
   if (selectedGroup.value !== 'ALL') {
     list = list.filter((r) => {
-      const stu = teacherStore.roster.find((s) => s.id === (r as any).studentId || s.rosterCode === r.rosterCode);
+      const stu = teacherStore.roster.find((s) => s.rosterCode === r.rosterCode);
       const grp = stu?.group || (r.className?.includes('2-guruh') ? '2-guruh' : '1-guruh');
       return grp === selectedGroup.value;
     });

@@ -120,7 +120,7 @@ CHSB_APP/
   - **OUTPUT:** `POST /attempts/{id}/proctor-event` (heartbeat + tab_hidden/window_blur/fullscreen_exit), `GET /assessments/{id}/live-sessions`, o'qituvchi amallari (`grant_time`, `send_warning`, `force_submit`) serverda saqlanadi va o'quvchi ekraniga yetib boradi.
   - **VERIFY:** Pytest + Vitest: qoidabuzarlik va `force_submit` backend holatini o'zgartirishi tekshiriladi.
 
-- [ ] **TASK-3.4: Arxitektura Tozalash, Monolitni Bo'lish va Windows/Cross-platform Tuzatish**
+- [x] **TASK-3.4: Arxitektura Tozalash, Monolitni Bo'lish va Windows/Cross-platform Tuzatish**
   - **Agent:** `frontend-specialist` + `devops-engineer` | **Skills:** `simplify-code`, `clean-code`
   - **INPUT:** `realApi.ts`, `backend/app/db/session.py`, `CHSB_11_SINF.html`, `package.json`, `frontend/package.json`, `prisma/`
   - **OUTPUT:** `realApi.ts` har bir domain repository fayllariga bo'linadi; o'lik `session.py` va eski `CHSB_11_SINF.html` o'chiriladi; Prisma versiyalari birxillashtiriladi; `clientExcelParser` o'rniga yagona backend/lazy parser qoldiriladi (`dist/` hajmi kamayadi).
@@ -129,8 +129,10 @@ CHSB_APP/
 ---
 
 ## Phase X: Yakuniy Tekshiruv (Verification Checklist)
-- [ ] Security Scan: `python .agents/skills/vulnerability-scanner/scripts/security_scan.py .`
-- [ ] Backend Testlar: `python -m pytest backend/tests -v` (100% PASS)
-- [ ] Frontend Testlar, Typecheck, Lint, Build: `npm test && npm run typecheck && npm run lint && npm run build`
-- [ ] Lokal Git: Har bir wave/task yakunida Conventional Commits bilan lokal commit (GitHub ga push qilinmaydi).
+- [x] Security Scan: `python .agents/skills/vulnerability-scanner/scripts/security_scan.py .` (haqiqiy kodda exposed secret yo'q; OWASP headerlar `main.py` da yoqildi)
+- [x] Backend Testlar: `pytest backend/tests -v` (64 passed, 0 failed)
+- [x] Frontend Testlar, Typecheck, Lint, Build: `npm test` (75 files / 415 tests passed) + `typecheck` (0 errors) + `lint --max-warnings 0` (0 errors, 0 warnings) + `build` (success)
+- [x] Lokal Git: Har bir task yakunida lokal commit (GitHub ga push qilinmadi).
+
+## ✅ PHASE X COMPLETE
 

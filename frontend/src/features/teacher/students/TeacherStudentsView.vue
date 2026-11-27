@@ -95,8 +95,8 @@ async function handleCreateStudent(input: StudentInput) {
       tenantStore.currentTenant?.tenantId ||
       (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
     await teacherStore.loadTeacherData(tenantId, true);
-  } catch (err: any) {
-    toast.error(err?.message || "O'quvchi qo'shishda xatolik yuz berdi", 'Xatolik');
+  } catch (err: unknown) {
+    toast.error(err instanceof Error ? err.message : "O'quvchi qo'shishda xatolik yuz berdi", 'Xatolik');
   }
 }
 
@@ -115,8 +115,8 @@ async function handleBulkImport(inputs: StudentInput[]) {
     searchInput.value = '';
     currentPage.value = 1;
     isBulkModalOpen.value = false;
-  } catch (err: any) {
-    toast.error(err?.message || "O'quvchilarni import qilishda xatolik yuz berdi", 'Import xatosi');
+  } catch (err: unknown) {
+    toast.error(err instanceof Error ? err.message : "O'quvchilarni import qilishda xatolik yuz berdi", 'Import xatosi');
   } finally {
     isBulkImporting.value = false;
   }
@@ -205,8 +205,8 @@ async function handleConfirmDelete() {
       (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
     await teacherStore.loadTeacherData(tenantId, true);
     isDeleteModalOpen.value = false;
-  } catch (err: any) {
-    toast.error(err?.message || "O'chirishda xatolik yuz berdi", "Xatolik");
+  } catch (err: unknown) {
+    toast.error(err instanceof Error ? err.message : "O'chirishda xatolik yuz berdi", "Xatolik");
   } finally {
     isDeleting.value = false;
   }

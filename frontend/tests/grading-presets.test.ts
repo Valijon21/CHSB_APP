@@ -29,3 +29,4 @@ describe('TASK-2.2: Uzbekistan MMTV & Specialized Grading Presets', () => {
     expect(GRADING_SCALE_PRESETS.SPECIALIZED.thresholds.grade3Min).toBe(56);
   });
 });
+

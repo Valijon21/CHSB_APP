@@ -158,3 +158,4 @@ def test_regional_real_aggregations(
     anomalies = client.get("/api/v1/regional/anomalies", headers=inspector_headers)
     assert anomalies.status_code == 200
     assert isinstance(anomalies.json(), list)
+

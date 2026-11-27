@@ -146,8 +146,9 @@ export function isHeaderOrMetadataCell(text: string): boolean {
 }
 
 function readFileAsArrayBuffer(file: File | Blob): Promise<ArrayBuffer> {
-  if (typeof (file as any).arrayBuffer === 'function') {
-    return (file as any).arrayBuffer();
+  const maybeModern = file as Blob & { arrayBuffer?: () => Promise<ArrayBuffer> };
+  if (typeof maybeModern.arrayBuffer === 'function') {
+    return maybeModern.arrayBuffer();
   }
   if (typeof FileReader !== 'undefined') {
     return new Promise((resolve, reject) => {

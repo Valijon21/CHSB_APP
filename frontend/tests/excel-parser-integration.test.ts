@@ -51,7 +51,7 @@ describe('Excel Parser & AI RAG Integration', () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: true,
         json: async () => mockProxyRoster,
-      } as any);
+      } as unknown as Response);
 
       const res = await extractStudentsRosterWithAi('Sample eMaktab snippet');
       expect(res.success).toBe(true);
@@ -162,7 +162,7 @@ describe('Excel Parser & AI RAG Integration', () => {
             },
           ],
         }),
-      } as any);
+      } as unknown as Response);
 
       const wrapper = mount(BulkStudentImportModal, {
         props: {

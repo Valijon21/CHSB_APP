@@ -110,3 +110,4 @@ def test_proctor_events_live_sessions_and_actions(
     res_resp = client.get(f"/api/v1/results/attempt/{att_id}", headers=teacher_headers)
     assert res_resp.status_code == 200
     assert res_resp.json()["status"] == "verified"
+

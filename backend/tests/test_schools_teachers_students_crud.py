@@ -121,3 +121,4 @@ def test_teachers_and_student_patch_crud(
     assert updated_stu["firstName"] == f"Azizbek{uid}"
     assert updated_stu["group"] == "2-guruh"
     assert updated_stu["status"] == "inactive"
+
