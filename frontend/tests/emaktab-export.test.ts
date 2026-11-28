@@ -127,4 +127,25 @@ describe('TASK-EM.3: eMaktab Grade Converter & Export Generator', () => {
     expect(payload.grades[2]?.isAbsent).toBe(true);
     expect(payload.grades[2]?.absenceReason).toBe('sababli');
   });
+
+  it('generates UTF-8 BOM semicolon-delimited 10+50+40 quarter journal CSV matching production exports', async () => {
+    const { generateQuarterJournalCsv } = await import('../src/features/emaktab/services/emaktabExportService');
+    const csv = generateQuarterJournalCsv([
+      {
+        orderIndex: 1,
+        studentName: 'Abdullayeva Dilafro‘z',
+        emaktabId: '1000003546584',
+        formativeScore: null,
+        bsbScore: null,
+        chsbScore: 34,
+        totalScore100: null,
+        grade5: null,
+        note: "kundalik baho yo'q, BSB-1 baholanmagan",
+      },
+    ]);
+    expect(csv.startsWith('\uFEFF')).toBe(true);
+    const lines = csv.slice(1).split('\r\n');
+    expect(lines[0]).toBe('№;F.I.Sh.;eMaktab ID;FB (10);BSB (50);ChSB (40);Jami (100);Baho;Izoh');
+    expect(lines[1]).toBe("1;Abdullayeva Dilafro‘z;1000003546584;;;34;;;kundalik baho yo'q, BSB-1 baholanmagan");
+  });
 });

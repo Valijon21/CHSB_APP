@@ -105,3 +105,35 @@ def test_parse_excel_or_csv_file_with_xlsx():
     assert res.totalParsed == 1
     assert res.detectedGroup == "2-guruh"
     assert res.students[0].fullName == "Abduraximova Zuxra Farxod qizi"
+
+
+def test_parse_real_semicolon_quarter_csv_and_baholab_pin_rows():
+    # Semicolon UTF-8 BOM Quarter CSV containing commas inside the Izoh column
+    quarter_csv = (
+        "\ufeff№;F.I.Sh.;eMaktab ID;FB (10);BSB (50);ChSB (40);Jami (100);Baho;Izoh\n"
+        "1;Abdullayeva Dilafro‘z;1000003546584;;;34;;;kundalik baho yo'q, BSB-1 baholanmagan\n"
+        "2;Иброхимова Азиза;1000001984711;;;;;;kundalik baho yo'q, BSB-1 baholanmagan, ChSB yo'q\n"
+    ).encode("utf-8-sig")
+
+    res = parse_excel_or_csv_file("10-A_1-gurux_1-chorak.csv", quarter_csv)
+    assert res.success is True
+    assert res.detectedClass == "10-A"
+    assert res.detectedGroup == "1-guruh"
+    assert res.totalParsed == 2
+    assert res.students[0].fullName == "Abdullayeva Dilafro‘z"
+    assert res.students[0].emaktabId == "1000003546584"
+    assert res.students[1].fullName == "Иброхимова Азиза"
+    assert res.students[1].emaktabId == "1000001984711"
+
+    # BahoLab PIN export rows (must skip metadata/URL rows and keep only students)
+    rows_pin = [
+        ["BahoLab · 10-A (1-gurux) · Informatika", "", ""],
+        ["Imtihon sahifasi: https://example.trycloudflare.com/t", "", ""],
+        ["№", "O'quvchi", "PIN"],
+        ["1", "Abdullayeva Dilafro‘z", "8663"],
+        ["2", "Akbaraliyeva Shahlo", "6731"],
+    ]
+    parsed_pin = parse_rows_to_students(rows_pin, default_group="1-guruh")
+    assert len(parsed_pin) == 2
+    assert parsed_pin[0].fullName == "Abdullayeva Dilafro‘z"
+    assert parsed_pin[0].emaktabId is None

@@ -13,12 +13,14 @@ export interface ParsedSubQuestion {
 }
 
 export interface ParsedQuestionItem {
+  id: string;
   number: number;
   prompt: string;
   options: ParsedOption[];
   correctOptionId: string;
   points: number;
-  taskType?: 'multiple_choice' | 'subquestions' | 'case_study' | 'table_completion' | 'open_text';
+  bloomLevel: string;
+  taskType?: 'multiple_choice' | 'subquestions' | 'table_completion' | 'case_study' | 'open_text';
   subQuestions?: ParsedSubQuestion[];
   rubric?: string;
   sourceExcerpt?: string;
@@ -28,69 +30,219 @@ export interface ParseQuestionsResult {
   success: boolean;
   totalFound: number;
   questions: ParsedQuestionItem[];
-  rawTextLength: number;
   warnings: string[];
 }
 
-/**
- * Extracts a trailing answer key map if present (e.g., "Javoblar: 1-A, 2-B, 3-C" or "Kalitlar: 1.A 2.B")
- */
-function extractAnswerKeysMap(text: string): Map<number, string> {
-  const map = new Map<number, string>();
-  const keySectionRegex = /(?:Javoblar|Kalitlar|Test\s+javoblari|Answers|Answer\s+keys)[:\s]+([\s\S]+)$/i;
-  const match = text.match(keySectionRegex);
+const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
 
-  if (match && match[1]) {
-    const keyText = match[1];
-    const pairRegex = /(\d+)[.\-):\s]+([A-Da-d])/g;
-    let pair;
-    while ((pair = pairRegex.exec(keyText)) !== null) {
-      const qNum = parseInt(pair[1] || '0', 10);
-      const optLetter = (pair[2] || '').toUpperCase();
-      if (qNum > 0 && optLetter) {
-        map.set(qNum, `opt-${optLetter.toLowerCase()}`);
-      }
+/**
+ * Normalizes Unicode Mathematical Italic/Bold/Sans characters (e.g. 𝑎 -> a, 𝑏 -> b)
+ * often emitted by PDF equation/italic font encodings in official BSB PDFs.
+ */
+export function normalizeMathUnicodeLetters(text: string): string {
+  let out = '';
+  for (const ch of text) {
+    const cp = ch.codePointAt(0);
+    if (cp === undefined) continue;
+    // Mathematical Italic Small: 𝑎 (0x1D44E) .. 𝑧 (0x1D467)
+    if (cp >= 0x1d44e && cp <= 0x1d467) {
+      out += String.fromCharCode(97 + (cp - 0x1d44e));
+    } else if (cp === 0x210e) {
+      // Planck constant ℎ
+      out += 'h';
+    } else if (cp >= 0x1d434 && cp <= 0x1d44d) {
+      // Mathematical Italic Capital: 𝐴 .. 𝑍
+      out += String.fromCharCode(65 + (cp - 0x1d434));
+    } else {
+      out += ch;
     }
   }
+  return out;
+}
 
-  return map;
+function normalizePdfArtifacts(text: string): string {
+  return normalizeMathUnicodeLetters(text)
+    .replace(/\r\n/g, '\n')
+    // Collapse broken spaces inside bracketed or inline scores like "[ 1 0   ball ]" or "1 2   ball"
+    .replace(/\[\s*(\d)\s+(\d)\s*(ball|b\.?)\s*\]/gi, '[$1$2 ball]')
+    .replace(/\b(\d)\s+(\d)\s+(ball)\b/gi, '$1$2 $3')
+    .replace(/(\d)\s*-\s*topshiriq\b/gi, '$1-topshiriq')
+    .replace(/T\s+opshiriq\s*:/g, 'Topshiriq:');
+}
+
+function isWatermarkLine(line: string): boolean {
+  const t = line.trim();
+  if (!t) return false;
+  // Repeating eMaktab diagonal watermark fragments: "1000011303702 eMaktab", "1000011303702 e", "10000113"
+  if (/^\d{6,16}(?:\s+(?:e|em|ema|emak|emakta|emaktab))?$/i.test(t)) return true;
+  if (/^eMaktab(?:\s+\d{6,16})?$/i.test(t)) return true;
+  return false;
 }
 
 /**
- * Cleans fill-in-the-blank printed paper lines (underscores, dots, dashes),
- * score annotations, and trailing/leading punctuation from question prompts and options.
+ * Cleans handwriting fill lines ("____", "- ____", "....", leading ": [10 ball]") from BSB prompts.
  */
 export function cleanBsbFillLines(text: string): string {
   if (!text) return '';
-  return text
-    // 1. Remove underscores and underscore-dash combos e.g. "– __ __ ______", "___", "____"
-    .replace(/[\s–—-]*_{2,}[\s_–—-]*/g, ' ')
-    // 2. Remove dotted fill-in lines e.g. "....." or ". . . . ."
-    .replace(/(?:\.\s*){4,}/g, ' ')
-    // 3. Remove bracketed score tags e.g. ": [ 10 ball ]", "[10 ball]", "(2.5 ball)", or standalone ": 10 ball"
-    .replace(/(?:[:\s]*[[(]\s*\d+(?:\.\d+)?\s*ball\s*[\])]|:\s*\d+(?:\.\d+)?\s*ball\b)/gi, ' ')
-    // 4. Remove lingering trailing dashes, colons, hyphens, or dots: "Kiritish qurilmasi –" -> "Kiritish qurilmasi"
-    .replace(/[\s–—\-:.]+$/, '')
-    // 5. Remove lingering leading dashes or colons
-    .replace(/^[\s–—\-:]+/, '')
-    // 6. Normalize multiple spaces/tabs
-    .replace(/[ \t]+/g, ' ')
+  let cleaned = normalizeMathUnicodeLetters(text)
+    // Leading ": [10 ball]" or "[ 10 ball ]" score prefixes attached to prompt/subquestion
+    .replace(/^[:\s]*\[\s*\d+(?:[.,]\d+)?\s*(?:ball|b\.?)?\s*\]\s*/i, '')
+    // Repeating handwriting underscores / dots
+    .replace(/[_\u2014\u2013-]*_{2,}[_\s\u2014\u2013.-]*/g, ' ')
+    .replace(/(?:\s*\.\s*){3,}/g, ' ')
+    // Trailing dash / arrow left after stripping fill lines: "Kiritish qurilmasi –"
+    .replace(/\s*[–—\->→]+\s*$/g, '')
+    // Leading lone dash left when line started with "– __ __"
+    .replace(/^\s*[–—\-:]+\s*$/g, '')
+    .replace(/\s{2,}/g, ' ')
     .trim();
+
+  if (/^[\s_.\-–—:]+$/.test(cleaned)) {
+    cleaned = '';
+  }
+  return cleaned;
 }
 
 /**
- * Checks if a line is purely a student handwriting blank line (e.g. "______________________________")
+ * Returns true when a line is purely blank lines/underscores meant for paper handwriting.
  */
 export function isPureBlankLine(line: string): boolean {
   const trimmed = line.trim();
   if (!trimmed) return true;
-  return /^[\s_–—\-.:]+$/.test(trimmed);
+  if (isWatermarkLine(trimmed)) return true;
+  const cleaned = cleanBsbFillLines(trimmed);
+  return cleaned.length === 0;
+}
+
+interface RubricTableEntry {
+  points?: number;
+  rubric: string;
 }
 
 /**
- * Parses raw text extracted from PDF into structured exam questions and options.
- * Handles both multiple-choice tests and Uzbekistan official BSB/ChSB open tasks,
- * sub-questions (a, b, c, d), practical case studies, and rubrics.
+ * Extracts the trailing official PMM "Baholash mezoni" rubric table if present,
+ * returning both the truncated body text (without rubric table / Izoh footer)
+ * and per-task points + criteria.
+ */
+function extractTrailingRubricTable(normalizedText: string): {
+  bodyText: string;
+  rubricByTask: Map<number, RubricTableEntry>;
+} {
+  const rubricByTask = new Map<number, RubricTableEntry>();
+  const lines = normalizedText.split('\n');
+
+  // Trailing rubric table starts with a standalone "Baholash mezoni" heading (no inline colon)
+  // followed closely by table columns ("Bob", "Mavzu", "Namunaviy", "Ajratilgan ball") or multiple N-topshiriq rows.
+  let tableStartIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const line = (lines[i] || '').trim();
+    if (/^Baholash\s+mezoni\s*$/i.test(line)) {
+      const lookahead = lines.slice(i, i + 12).join(' ');
+      if (/Bob|Mavzu|Namunaviy|Ajratilgan\s+ball/i.test(lookahead)) {
+        tableStartIdx = i;
+        break;
+      }
+    }
+  }
+
+  if (tableStartIdx === -1) {
+    return { bodyText: normalizedText, rubricByTask };
+  }
+
+  const bodyText = lines.slice(0, tableStartIdx).join('\n');
+  const tableLines = lines.slice(tableStartIdx);
+
+  let currentTaskNum: number | null = null;
+  let currentPoints: number | undefined = undefined;
+  let currentCriteria: string[] = [];
+
+  const flushTask = () => {
+    if (currentTaskNum !== null) {
+      const rubric = currentCriteria.join(' ').replace(/\s{2,}/g, ' ').trim();
+      rubricByTask.set(currentTaskNum, {
+        points: currentPoints,
+        rubric,
+      });
+    }
+  };
+
+  for (const rawLine of tableLines) {
+    const line = rawLine.trim();
+    if (!line || isWatermarkLine(line)) continue;
+    if (/^Jami\s+\d+\s*ball\b/i.test(line) || /^Izoh\s*:/i.test(line)) {
+      flushTask();
+      currentTaskNum = null;
+      break;
+    }
+
+    // Match task reference inside rubric row: "1-topshiriq 4 ball" or "5-topshiriq 5 ball"
+    const rowTaskMatch = line.match(/\b(\d{1,2})\s*-\s*topshiriq\b(?:\s+(\d+(?:[.,]\d+)?)\s*ball\b)?/i);
+    if (rowTaskMatch && rowTaskMatch[1]) {
+      flushTask();
+      currentTaskNum = Number(rowTaskMatch[1]);
+      currentPoints = rowTaskMatch[2] ? Number(rowTaskMatch[2].replace(',', '.')) : undefined;
+      currentCriteria = [];
+      const after = line.slice((rowTaskMatch.index ?? 0) + rowTaskMatch[0].length).trim();
+      if (after) currentCriteria.push(after);
+      continue;
+    }
+
+    if (currentTaskNum !== null) {
+      // Only collect rubric criteria lines once inside a task's criteria column (skip next row's Bob/Mavzu lines if recognizable)
+      if (/^(?:[IVX]+\s+bob\.|Jami\b)/i.test(line)) {
+        flushTask();
+        currentTaskNum = null;
+        continue;
+      }
+      // Collapse broken digit spaces like "1 - 4 ball" -> "1-4 ball"
+      const normCrit = line.replace(/(\d)\s*-\s*(\d)\s*ball/gi, '$1-$2 ball');
+      if (/^\d+\)/.test(normCrit) || currentCriteria.length > 0) {
+        currentCriteria.push(normCrit);
+      }
+    }
+  }
+  flushTask();
+
+  return { bodyText, rubricByTask };
+}
+
+function distributeSubQuestionPoints(subs: ParsedSubQuestion[], totalPoints: number): void {
+  if (subs.length === 0) return;
+  const explicitlyScored = subs.filter((s) => s.points > 0);
+  const explicitSum = explicitlyScored.reduce((acc, s) => acc + s.points, 0);
+
+  if (explicitlyScored.length === subs.length && explicitSum > 0) {
+    return;
+  }
+
+  const perSub = Number((totalPoints / subs.length).toFixed(2));
+  subs.forEach((s) => {
+    if (s.points <= 0) {
+      s.points = perSub;
+    }
+  });
+}
+
+function stripHeaderPreamble(text: string): string {
+  const lines = text.split('\n');
+  const firstTaskIdx = lines.findIndex((ln) => {
+    const t = ln.trim();
+    return /^\d{1,2}\s*-\s*topshiriq\b/i.test(t) || /^\d{1,2}\.\s+\S+/.test(t);
+  });
+  if (firstTaskIdx > 0) {
+    // Only strip obvious BSB document cover header lines ("o'quv yilida", "I chorak", "Jami: [25 ball]")
+    const preamble = lines.slice(0, firstTaskIdx).join(' ');
+    if (/o[‘'‛]quv\s+yilida|savol\s+va\s+topshiriqlar|I+\s+chorak|Jami:\s*\[\s*\d+/i.test(preamble)) {
+      return lines.slice(firstTaskIdx).join('\n');
+    }
+  }
+  return text;
+}
+
+/**
+ * Deterministic parser supporting both:
+ * 1) Standard CHSB multiple-choice tests (1. Prompt / A) B) C) D) / Javob: A)
+ * 2) Official PMM BSB structured tasks (1-topshiriq. / [10 ball] / a) b) c) d) / 1) 2) / Jadval / Baholash mezoni)
  */
 export function parseExamQuestionsFromText(
   rawText: string,
@@ -98,278 +250,313 @@ export function parseExamQuestionsFromText(
 ): ParseQuestionsResult {
   const warnings: string[] = [];
   if (!rawText || !rawText.trim()) {
-    return {
-      success: false,
-      totalFound: 0,
-      questions: [],
-      rawTextLength: 0,
-      warnings: ["Fayl matni bo'sh yoki o'qib bo'lmadi."],
-    };
+    return { success: false, totalFound: 0, questions: [], warnings: ["Matn bo'sh."] };
   }
 
-  const cleanText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  const trailingKeys = extractAnswerKeysMap(cleanText);
+  const normalized = normalizePdfArtifacts(rawText);
+  const { bodyText: withoutRubricTable, rubricByTask } = extractTrailingRubricTable(normalized);
+  const cleanedBody = stripHeaderPreamble(withoutRubricTable);
 
-  // Split into question blocks: lines starting with "1.", "1)", "1-topshiriq", "Topshiriq 1:", "1-savol"
-  const questionDelimiter = /\n\s*(?=(?:(?:(?:Savol|Topshiriq|Vazifa)\s+\d+)|(?:\d+\s*[.-]\s*(?:topshiriq|savol|vazifa))|(?:\d+[.)]\s+)))/i;
-  const rawBlocks = cleanText.split(questionDelimiter).map((b) => b.trim()).filter(Boolean);
-
-  const parsedList: ParsedQuestionItem[] = [];
-
-  for (let blockIdx = 0; blockIdx < rawBlocks.length; blockIdx++) {
-    const block = rawBlocks[blockIdx];
-    if (!block) continue;
-
-    const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
-    if (lines.length === 0) continue;
-
-    const firstLine = lines[0] || '';
-
-    // Ignore preamble / header lines (e.g. "9-sinf Informatika", "1-BSB 1-chorak", "Jami: 50 ball")
-    if (/^\s*(?:\d+[\s-]*sinf|bsb|chsb|jami|umumiy)/i.test(firstLine) && !/(?:topshiriq|savol|vazifa)/i.test(firstLine)) {
-      continue;
-    }
-
-    // Match question number and prompt start (e.g. "1-topshiriq [10 ball].", "Topshiriq 1:", "1. Savol")
-    const isTaskHeader = /^(?:(?:Savol|Topshiriq|Vazifa)\s+(\d+)|(\d+)\s*[.-]\s*(?:topshiriq|savol|vazifa)|(\d+)[.)])/i.test(firstLine);
-    if (!isTaskHeader) {
-      continue;
-    }
-
-    const numMatch = firstLine.match(
-      /^(?:(?:Savol|Topshiriq|Vazifa)\s+(\d+)|(\d+)\s*[.-]\s*(?:topshiriq|savol|vazifa)|(\d+)[.)])(?:\s*[:\s]*[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?)?[.: \s-]*(.*)$/i
-    );
-
-    if (!numMatch) {
-      continue;
-    }
-
-    const matchedNumStr = numMatch[1] || numMatch[2] || numMatch[3];
-    const qNum = matchedNumStr ? parseInt(matchedNumStr, 10) : parsedList.length + 1;
-    let explicitPoints = numMatch[4] ? parseFloat(numMatch[4]) : undefined;
-    let initialPrompt = (numMatch[5] || '').trim();
-
-    // If explicitPoints wasn't in the task header, check if initialPrompt begins with score tag
-    if (!explicitPoints) {
-      const ptsInPrompt = initialPrompt.match(/^[:\s]*[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?/i);
-      if (ptsInPrompt && ptsInPrompt[1]) {
-        explicitPoints = parseFloat(ptsInPrompt[1]);
-        initialPrompt = initialPrompt.replace(ptsInPrompt[0], ' ').trim();
+  // Extract trailing answer key table for MCQs if present ("Javoblar: 1-A, 2-B, ...")
+  const answerKeyMap = new Map<number, string>();
+  const keySectionMatch = cleanedBody.match(/(?:Javoblar|To'g'ri javoblar|Kalit|Answers)\s*[:\-]\s*([\s\S]+)$/i);
+  let bodyText = cleanedBody;
+  if (keySectionMatch && keySectionMatch[1]) {
+    const pairs = Array.from(keySectionMatch[1].matchAll(/(\d+)\s*[-–:.]\s*([A-Ea-e])/g));
+    if (pairs.length >= 2) {
+      for (const m of pairs) {
+        const qNum = Number(m[1]);
+        const letter = (m[2] ?? 'A').toUpperCase();
+        answerKeyMap.set(qNum, `opt-${letter.toLowerCase()}`);
       }
+      bodyText = cleanedBody.slice(0, keySectionMatch.index).trim();
     }
+  }
 
+  const lines = bodyText
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => !isWatermarkLine(l) && !isPureBlankLine(l));
+
+  const questions: ParsedQuestionItem[] = [];
+  const hasTopshiriqKeyword = /\b\d{1,2}\s*-\s*topshiriq\b/i.test(bodyText);
+
+  // Split by question blocks ("1-topshiriq." or "1. ")
+  const blocks: { num: number; isBsbTopshiriq: boolean; lines: string[] }[] = [];
+  let currentBlock: { num: number; isBsbTopshiriq: boolean; lines: string[] } | null = null;
+
+  for (const line of lines) {
+    const topshiriqStart = line.match(/^(\d{1,2})\s*-\s*topshiriq[.:)\s]*(.*)$/i);
+    // Avoid treating "10-sinf..." or table row "2 Portativ" as a new question
+    const numberedStart = !hasTopshiriqKeyword ? line.match(/^(\d{1,2})\.\s+(.+)$/) : null;
+
+    if (topshiriqStart) {
+      if (currentBlock) blocks.push(currentBlock);
+      currentBlock = {
+        num: Number(topshiriqStart[1]),
+        isBsbTopshiriq: true,
+        lines: topshiriqStart[2] ? [topshiriqStart[2].trim()] : [],
+      };
+    } else if (numberedStart && !/^\d+\.\d+/.test(line)) {
+      if (currentBlock) blocks.push(currentBlock);
+      currentBlock = {
+        num: Number(numberedStart[1]),
+        isBsbTopshiriq: false,
+        lines: [numberedStart[2]!.trim()],
+      };
+    } else if (currentBlock) {
+      currentBlock.lines.push(line);
+    }
+  }
+  if (currentBlock) blocks.push(currentBlock);
+
+  for (const blk of blocks) {
+    const qNum = blk.num;
     const promptLines: string[] = [];
-    const extractedOptions: ParsedOption[] = [];
-    const extractedSubs: ParsedSubQuestion[] = [];
-    let rubricHint: string | undefined;
-    let inlineCorrectId: string | null = null;
-    let readingOptions = false;
-    let readingSubs = false;
+    const parsedOptions: ParsedOption[] = [];
+    const subQuestions: ParsedSubQuestion[] = [];
+    let inlineAnswer: string | undefined = undefined;
+    let extractedPoints: number | undefined = undefined;
+    let rubricHint = '';
+    let isTableTask = false;
+    let inTableWordBank = false;
 
-    // Check if initialPrompt contains an inline subquestion (e.g. "a) Kiritish qurilmasi")
-    const inlineSubMatch = initialPrompt.match(/^(.*?)(?:^|[:\s]+)([a-e])\s*[.)]\s*(.*)$/i);
-    if (inlineSubMatch && inlineSubMatch[2]) {
-      const promptPrefix = cleanBsbFillLines(inlineSubMatch[1] || '');
-      if (promptPrefix) {
-        promptLines.push(promptPrefix);
-      }
-      const firstSubLabel = inlineSubMatch[2].toLowerCase() + ')';
-      const firstSubRaw = inlineSubMatch[3] || '';
-      const subPtsMatch = firstSubRaw.match(/[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?/i);
-      const subPts = subPtsMatch && subPtsMatch[1] ? parseFloat(subPtsMatch[1]) : 2.5;
-      const cleanSub = cleanBsbFillLines(firstSubRaw);
-      extractedSubs.push({
-        id: `${qNum}-${inlineSubMatch[2].toLowerCase()}`,
-        label: firstSubLabel,
-        prompt: cleanSub || `Band ${inlineSubMatch[2].toLowerCase()}`,
-        points: subPts,
-      });
-      readingSubs = true;
-    } else {
-      const cleanedInitial = cleanBsbFillLines(initialPrompt);
-      if (cleanedInitial) {
-        promptLines.push(cleanedInitial);
-      }
-    }
+    for (const rawLine of blk.lines) {
+      let line = rawLine;
 
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
+      // 1. Check inline points tag like "[10 ball]" or trailing "– 5 ball." on task header
+      const ptsMatch = line.match(/[:\s]*\[\s*(\d+(?:[.,]\d+)?)\s*(?:ball|b\.?)?\s*\]/i);
+      if (ptsMatch && ptsMatch[1]) {
+        extractedPoints = Number(ptsMatch[1].replace(',', '.'));
+        line = line.replace(ptsMatch[0], ' ').trim();
+      } else if (blk.isBsbTopshiriq && extractedPoints === undefined) {
+        const dashPtsMatch = line.match(/\s+[–—-]\s*(\d+(?:[.,]\d+)?)\s*ball\.?\s*$/i);
+        if (dashPtsMatch && dashPtsMatch[1]) {
+          extractedPoints = Number(dashPtsMatch[1].replace(',', '.'));
+          line = line.replace(dashPtsMatch[0], '').trim();
+        }
+      }
+
+      // Check standalone line that only had points (now empty)
       if (!line) continue;
 
-      // Skip lines that are purely blank answer fill lines for paper exams
-      if (isPureBlankLine(line)) {
-        continue;
-      }
-
-      // Check if line is a standalone points tag like ": [ 10 ball ]"
-      const standalonePtsMatch = line.match(/^[:\s]*[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?[:\s]*$/i);
-      if (standalonePtsMatch && standalonePtsMatch[1]) {
-        if (!explicitPoints) {
-          explicitPoints = parseFloat(standalonePtsMatch[1]);
+      // Check inline subquestion right after prompt/score tag on the SAME line:
+      // e.g. ": [ 10 ball ] a ) Kiritish qurilmasi" or "izohlang a) Kiritish qurilmasi"
+      const inlineSubMatch = line.match(/^(\S.*?)\s+\b([a-e])\s*\)\s+(.+)$/i);
+      if (
+        blk.isBsbTopshiriq &&
+        inlineSubMatch &&
+        parsedOptions.length === 0 &&
+        !/\([a-e]\)\s*$/i.test(line)
+      ) {
+        const prefixClean = cleanBsbFillLines(inlineSubMatch[1] || '');
+        if (prefixClean && !/^\([a-e]\)$/i.test(prefixClean)) {
+          promptLines.push(prefixClean);
+        }
+        const subLetter = (inlineSubMatch[2] || 'a').toLowerCase();
+        const rawSub = inlineSubMatch[3] || '';
+        const subPtsMatch = rawSub.match(/\((\d+(?:[.,]\d+)?)\s*ball\)/i);
+        const subPts = subPtsMatch && subPtsMatch[1] ? Number(subPtsMatch[1].replace(',', '.')) : 0;
+        const cleanSub = cleanBsbFillLines(subPtsMatch ? rawSub.replace(subPtsMatch[0], '') : rawSub);
+        if (cleanSub) {
+          subQuestions.push({
+            id: `${qNum}-${subQuestions.length + 1}`,
+            label: `${subLetter})`,
+            prompt: cleanSub,
+            points: subPts,
+          });
         }
         continue;
       }
 
-      // Check inline answer key (e.g. "Javob: B")
-      const ansMatch = line.match(/^(?:Javob|Javobi|To['’`]?g['’`]?ri\s+javob|Correct|Ans|Kalit)[:\s]*([A-Da-d])/i);
+      // 2. Check inline answer hint: "Javob: B", "To'g'ri javob: A", "Ans: C"
+      const ansMatch = line.match(/^(?:To'g'ri javob|Javob|Kalit|Ans|Answer)\s*[:\-]\s*([A-Ea-e])\b/i);
       if (ansMatch && ansMatch[1]) {
-        inlineCorrectId = `opt-${ansMatch[1].toLowerCase()}`;
+        inlineAnswer = `opt-${ansMatch[1].toLowerCase()}`;
         continue;
       }
 
-      // Check rubric line
-      const rubricMatch = line.match(/^(?:Baholash\s+mezoni|Mezon|Rubric|Mezoni)[:\s]*(.*)$/i);
+      // 3. Check inline rubric hint: "Baholash mezoni: ..."
+      const rubricMatch = line.match(/^Baholash mezoni\s*[:\-]\s*(.+)$/i);
       if (rubricMatch) {
         rubricHint = cleanBsbFillLines(rubricMatch[1] || line);
         continue;
       }
 
-      // Check option pattern: UPPERCASE A) text, A. text
-      const optMatch = line.match(/^([A-D])\s*[.)\-\]]\s*(.*)$/);
-      if (optMatch && optMatch[1]) {
-        readingOptions = true;
-        readingSubs = false;
-        const letter = optMatch[1].toUpperCase();
-        extractedOptions.push({
-          id: `opt-${letter.toLowerCase()}`,
-          label: letter,
+      // 4. Detect table completion tasks ("Jadvaldagi bo'sh o'rinlarni...", "Bo'sh joylarga...")
+      if (/jadvaldagi\s+bo[’']sh|bo[’']sh\s+o[’']rinlar|bo[’']sh\s+joylarga/i.test(line)) {
+        isTableTask = true;
+        if (/bo[’']sh\s+joylarga/i.test(line)) {
+          inTableWordBank = true;
+        }
+        promptLines.push(cleanBsbFillLines(line));
+        continue;
+      }
+
+      // 5. Check MCQ option "A) text" or "A. text"
+      const optMatch = line.match(/^([A-E])\s*[\).]\s+(.+)$/);
+      if (optMatch && optMatch[1] && OPTION_LETTERS.includes(optMatch[1] as typeof OPTION_LETTERS[number])) {
+        parsedOptions.push({
+          id: `opt-${optMatch[1].toLowerCase()}`,
+          label: optMatch[1],
           text: cleanBsbFillLines(optMatch[2] || ''),
         });
         continue;
       }
 
-      // Check sub-question pattern: LOWERCASE a) text, b) text, with optional score prefix like ": [ 10 ball ] a ) ..."
-      const subMatch = line.match(/^(?:[:\s]*[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?[:\s]*)?([a-e])\s*[.)]\s*(.*)$/i);
-      if (subMatch && subMatch[2]) {
-        readingSubs = true;
-        readingOptions = false;
-        if (subMatch[1] && !explicitPoints) {
-          explicitPoints = parseFloat(subMatch[1]);
-        }
-        const subLabel = subMatch[2].toLowerCase() + ')';
-        const subTextRaw = subMatch[3] || '';
-        const subPtsMatch = subTextRaw.match(/[[(]?\s*(\d+(?:\.\d+)?)\s*ball\s*[\])]?/i);
-        const subPts = subPtsMatch && subPtsMatch[1] ? parseFloat(subPtsMatch[1]) : 2.5;
-        const cleanSub = cleanBsbFillLines(subTextRaw);
-
-        extractedSubs.push({
-          id: `${qNum}-${subMatch[2].toLowerCase()}`,
-          label: subLabel,
-          prompt: cleanSub || `Band ${subMatch[2].toLowerCase()}`,
+      // 6. Check BSB lettered subquestion: "a) ..." or "b) ____" (lowercase only so MCQ "A)" doesn't collide)
+      const subMatch = line.match(/^([a-e])\s*\)\s*(.*)$/);
+      if (subMatch && parsedOptions.length === 0) {
+        const subLetter = (subMatch[1] || 'a').toLowerCase();
+        const rawSub = subMatch[2] || '';
+        const subPtsMatch = rawSub.match(/\((\d+(?:[.,]\d+)?)\s*ball\)/i);
+        const subPts = subPtsMatch && subPtsMatch[1] ? Number(subPtsMatch[1].replace(',', '.')) : 0;
+        const cleanSub = cleanBsbFillLines(subPtsMatch ? rawSub.replace(subPtsMatch[0], '') : rawSub);
+        subQuestions.push({
+          id: `${qNum}-${subQuestions.length + 1}`,
+          label: `${subLetter})`,
+          prompt: cleanSub || `${subLetter}) band bo'yicha javob`,
           points: subPts,
         });
         continue;
       }
 
-      // Continuation of sub-question
-      if (readingSubs && extractedSubs.length > 0) {
-        const lastSub = extractedSubs[extractedSubs.length - 1];
-        if (lastSub) {
-          const cleanedPart = cleanBsbFillLines(line);
-          if (cleanedPart) {
-            lastSub.prompt = cleanBsbFillLines(`${lastSub.prompt} ${cleanedPart}`);
-          }
+      // 7. Check BSB numbered subquestion inside a "-topshiriq" block: "1) Sarlavhani..."
+      // (Only if it contains meaningful prompt words, NOT empty "1) ____")
+      const numSubMatch = blk.isBsbTopshiriq ? line.match(/^(\d+)\s*\)\s*(.+)$/) : null;
+      if (numSubMatch && parsedOptions.length === 0) {
+        const rawSub = numSubMatch[2] || '';
+        const subPtsMatch = rawSub.match(/\((\d+(?:[.,]\d+)?)\s*ball\)/i);
+        const subPts = subPtsMatch && subPtsMatch[1] ? Number(subPtsMatch[1].replace(',', '.')) : 0;
+        const cleanSub = cleanBsbFillLines(subPtsMatch ? rawSub.replace(subPtsMatch[0], '') : rawSub);
+        if (cleanSub.length >= 4 && subQuestions.length > 0 && /^1\)/.test(line) && subQuestions[subQuestions.length - 1]!.label.endsWith(')')) {
+          // e.g. 7-sinf 1-topshiriq: a) has nested 1) 2) 3) lines -> ignore if empty, keep if text
+          const lastSub = subQuestions[subQuestions.length - 1]!;
+          lastSub.prompt = cleanBsbFillLines(`${lastSub.prompt} (${line})`);
+        } else if (cleanSub.length >= 4) {
+          subQuestions.push({
+            id: `${qNum}-${subQuestions.length + 1}`,
+            label: `${numSubMatch[1]})`,
+            prompt: cleanSub,
+            points: subPts,
+          });
         }
         continue;
       }
 
-      // Continuation of option
-      if (readingOptions && extractedOptions.length > 0) {
-        const lastOpt = extractedOptions[extractedOptions.length - 1];
-        if (lastOpt) {
-          const cleanedPart = cleanBsbFillLines(line);
-          if (cleanedPart) {
-            lastOpt.text = cleanBsbFillLines(`${lastOpt.text} ${cleanedPart}`);
-          }
+      // 8. Handle Afzalligi / Kamchiligi sub-prompts attached to previous subquestion (e.g. 9-sinf 2-topshiriq)
+      if (/^(?:Afzalligi|Kamchiligi)\s*[–—-]/i.test(line) && subQuestions.length > 0) {
+        const lastSub = subQuestions[subQuestions.length - 1]!;
+        const aspect = /^Afzalligi/i.test(line) ? 'Afzalligi' : 'Kamchiligi';
+        if (!lastSub.prompt.includes(aspect)) {
+          lastSub.prompt = `${lastSub.prompt} (${aspect})`.trim();
         }
         continue;
       }
 
-      // Main question prompt continuation
-      const cleanedPromptLine = cleanBsbFillLines(line);
-      if (cleanedPromptLine) {
-        promptLines.push(cleanedPromptLine);
+      // Skip bare "Topshiriq:" divider line in 6-sinf Task 2
+      if (/^Topshiriq\s*:?$/i.test(line)) {
+        continue;
+      }
+
+      // 9. Continuation lines
+      if (parsedOptions.length > 0 && !rubricHint) {
+        const lastOpt = parsedOptions[parsedOptions.length - 1]!;
+        const cleanedPart = cleanBsbFillLines(line);
+        if (cleanedPart) {
+          lastOpt.text = cleanBsbFillLines(`${lastOpt.text} ${cleanedPart}`);
+        }
+      } else if (subQuestions.length > 0 && !inTableWordBank && !rubricHint) {
+        const lastSub = subQuestions[subQuestions.length - 1]!;
+        const cleanedPart = cleanBsbFillLines(line);
+        if (cleanedPart) {
+          lastSub.prompt = cleanBsbFillLines(`${lastSub.prompt} ${cleanedPart}`);
+        }
+      } else {
+        const cleanedPromptLine = cleanBsbFillLines(line);
+        if (cleanedPromptLine) {
+          promptLines.push(cleanedPromptLine);
+        }
       }
     }
 
     const fullPrompt = cleanBsbFillLines(promptLines.join(' ').trim()) || `${qNum}-topshiriq`;
+    const tableRubric = rubricByTask.get(qNum);
+    const resolvedPoints = extractedPoints ?? tableRubric?.points ?? 0;
+    const resolvedRubric = rubricHint || tableRubric?.rubric || undefined;
+    const sourceExcerpt = cleanBsbFillLines(blk.lines.join(' ')).slice(0, 300) || fullPrompt;
 
-    // Case 1: Multiple choice test (has A, B, C, D)
-    if (extractedOptions.length >= 2) {
-      const correctId = inlineCorrectId || trailingKeys.get(qNum) || 'opt-a';
-      if (!inlineCorrectId && !trailingKeys.has(qNum)) {
-        warnings.push(`${qNum}-savol uchun to'g'ri javob ko'rsatilmagan (standart A varianti belgilandi).`);
-      }
+    if (parsedOptions.length >= 2) {
+      const resolvedCorrect =
+        inlineAnswer && parsedOptions.some((o) => o.id === inlineAnswer)
+          ? inlineAnswer
+          : answerKeyMap.get(qNum) || parsedOptions[0]!.id;
 
-      parsedList.push({
+      questions.push({
+        id: `parsed-q-${qNum}`,
         number: qNum,
         prompt: fullPrompt,
-        options: extractedOptions,
-        correctOptionId: correctId,
-        points: explicitPoints || 1,
+        options: parsedOptions,
+        correctOptionId: resolvedCorrect,
+        points: resolvedPoints,
+        bloomLevel: '(B)',
         taskType: 'multiple_choice',
-        sourceExcerpt: block,
+        sourceExcerpt,
       });
-    }
-    // Case 2: Multi-part subquestions (a, b, c, d)
-    else if (extractedSubs.length > 0) {
-      if (explicitPoints && explicitPoints > 0) {
-        const hasExplicitSubPts = extractedSubs.some((s) => s.points !== 2.5);
-        if (!hasExplicitSubPts) {
-          const perSub = Math.round((explicitPoints / extractedSubs.length) * 10) / 10;
-          extractedSubs.forEach((s) => {
-            s.points = perSub;
-          });
-        }
-      }
+    } else if (blk.isBsbTopshiriq || subQuestions.length > 0 || Boolean(resolvedRubric) || isTableTask) {
+      const taskType = isTableTask
+        ? 'table_completion'
+        : subQuestions.length > 0
+          ? 'subquestions'
+          : 'open_text';
 
-      const totalSubPts = extractedSubs.reduce((acc, s) => acc + s.points, 0);
-      parsedList.push({
+      questions.push({
+        id: `parsed-q-${qNum}`,
         number: qNum,
         prompt: fullPrompt,
         options: [],
         correctOptionId: '',
-        points: explicitPoints || totalSubPts || 10,
-        taskType: 'subquestions',
-        subQuestions: extractedSubs,
-        rubric: rubricHint,
-        sourceExcerpt: block,
+        points: resolvedPoints,
+        bloomLevel: taskType === 'table_completion' ? '(M)' : '(Q)',
+        taskType,
+        subQuestions: subQuestions.length > 0 ? subQuestions : undefined,
+        rubric: resolvedRubric,
+        sourceExcerpt,
       });
-    }
-    // Case 3: Open BSB task / Practical problem (only if no incomplete option list, and has task keyword, rubric, or explicit points)
-    else if (extractedOptions.length === 0 && fullPrompt.length > 8 && (rubricHint || /(?:topshiriq|vazifa|keys|amaliy)/i.test(firstLine) || explicitPoints)) {
-      parsedList.push({
-        number: qNum,
-        prompt: fullPrompt,
-        options: [],
-        correctOptionId: '',
-        points: explicitPoints || 5,
-        taskType: 'open_text',
-        rubric: rubricHint,
-        sourceExcerpt: block,
-      });
+    } else {
+      warnings.push(`#${qNum}-savolda yetarli variantlar (A, B...) topilmadi va o'tkazib yuborildi.`);
     }
   }
 
-  // Calculate points per question if not explicitly set
-  const maxScore = options.maxScore || (parsedList.length <= 5 ? 50 : 40);
-  const totalExplicit = parsedList.reduce((acc, q) => acc + (q.points || 0), 0);
+  // Distribute points for questions that still have points === 0
+  if (questions.length > 0) {
+    const missingPointsCount = questions.filter((q) => !q.points || q.points <= 0).length;
+    if (missingPointsCount > 0) {
+      const sumAssigned = questions.reduce((acc, q) => acc + (q.points || 0), 0);
+      const targetMax = options.maxScore || 40;
+      const remaining = Math.max(0, targetMax - sumAssigned);
+      const fallbackPts =
+        options.defaultPoints ??
+        (remaining > 0 ? Number((remaining / missingPointsCount).toFixed(1)) : Number((targetMax / questions.length).toFixed(1)));
+      questions.forEach((q) => {
+        if (!q.points || q.points <= 0) {
+          q.points = fallbackPts;
+        }
+      });
+    }
 
-  if (totalExplicit === 0 || totalExplicit === parsedList.length) {
-    const pts = parsedList.length > 0
-      ? Number((maxScore / parsedList.length).toFixed(1))
-      : (options.defaultPoints || 2.5);
-
-    parsedList.forEach((q) => {
-      q.points = pts;
+    // Ensure every question's subQuestions share its exact total points cleanly
+    questions.forEach((q) => {
+      if (q.subQuestions && q.subQuestions.length > 0) {
+        distributeSubQuestionPoints(q.subQuestions, q.points);
+      }
     });
   }
 
   return {
-    success: parsedList.length > 0,
-    totalFound: parsedList.length,
-    questions: parsedList,
-    rawTextLength: rawText.length,
+    success: questions.length > 0,
+    totalFound: questions.length,
+    questions,
     warnings,
   };
 }

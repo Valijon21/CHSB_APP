@@ -76,4 +76,27 @@ describe('TASK-EM.4: eMaktab Roster Parser Service', () => {
     expect(sample).toContain('EMK-1001');
     expect(sample).toContain("O'ktamov Jasurbek");
   });
+
+  it('parses real UTF-8 BOM semicolon Quarter Gradebook CSV and BahoLab PIN rows cleanly', () => {
+    const quarterCsv = `\uFEFF№;F.I.Sh.;eMaktab ID;FB (10);BSB (50);ChSB (40);Jami (100);Baho;Izoh
+1;Abdullayeva Dilafro‘z;1000003546584;;;34;;;kundalik baho yo'q, BSB-1 baholanmagan
+2;Иброхимова Азиза;1000001984711;;;;;;kundalik baho yo'q, BSB-1 baholanmagan, ChSB yo'q`;
+
+    const parsedQ = parseEmaktabRoster(quarterCsv, '10-A', '1-guruh');
+    expect(parsedQ).toHaveLength(2);
+    expect(parsedQ[0]?.fullName).toBe('Abdullayeva Dilafro‘z');
+    expect(parsedQ[0]?.emaktabId).toBe('1000003546584');
+    expect(parsedQ[1]?.fullName).toBe('Иброхимова Азиза');
+    expect(parsedQ[1]?.emaktabId).toBe('1000001984711');
+
+    const pinCsv = `BahoLab · 10-A (1-gurux) · Informatika
+№,O'quvchi,PIN
+1.0,Abdullayeva Dilafro‘z,8663
+2.0,Akbaraliyeva Shahlo,6731`;
+    const parsedPin = parseEmaktabRoster(pinCsv, '10-A');
+    expect(parsedPin).toHaveLength(2);
+    expect(parsedPin[0]?.fullName).toBe('Abdullayeva Dilafro‘z');
+    expect(parsedPin[0]?.emaktabId).toBe('8663');
+    expect(parsedPin[0]?.group).toBe('1-guruh');
+  });
 });

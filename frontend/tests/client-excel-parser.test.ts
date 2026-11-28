@@ -192,5 +192,34 @@ describe('clientExcelParser', () => {
         throw err;
       }
     });
+
+    it('parses BahoLab PIN export format without mistaking URL/header rows or PINs for names/IDs', async () => {
+      const wb = XLSX.utils.book_new();
+      const wsData = [
+        ['BahoLab · 10-A (1-gurux) · Informatika va axbarotlar texnologiyasi', '', ''],
+        ["Imtihon sahifasi: https://example.trycloudflare.com/t — kod o'qituvchi tomonidan beriladi", '', ''],
+        ['', '', ''],
+        ['№', "O'quvchi", 'PIN'],
+        [1.0, 'Abdullayeva Dilafro‘z', '8663'],
+        [2.0, 'Akbaraliyeva Shahlo', '6731'],
+        [3.0, 'Иброхимова Азиза', '4412'],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, 'PIN');
+      const u8 = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const file = new File([u8], '10-A_1-gurux_PIN.xlsx', {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      const res = await parseExcelFileClientSide(file);
+      expect(res.success).toBe(true);
+      expect(res.detectedClass).toBe('10-A');
+      expect(res.detectedGroup).toBe('1-guruh');
+      expect(res.totalParsed).toBe(3);
+      expect(res.students[0]?.fullName).toBe('Abdullayeva Dilafro‘z');
+      expect(res.students[0]?.emaktabId).toBeUndefined();
+      expect(res.students[2]?.fullName).toBe('Иброхимова Азиза');
+    });
   });
 });

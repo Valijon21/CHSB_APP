@@ -98,7 +98,12 @@ export function isHeaderOrMetadataCell(text: string): boolean {
     l.startsWith('o‘qituvchi') ||
     l.startsWith("o'qituvchi") ||
     l.startsWith('fio:') ||
-    l.startsWith('maktab:')
+    l.startsWith('maktab:') ||
+    l.startsWith('baholab') ||
+    l.startsWith('imtihon sahifasi') ||
+    l.includes('http://') ||
+    l.includes('https://') ||
+    l.includes('trycloudflare')
   ) {
     return true;
   }
@@ -109,7 +114,9 @@ export function isHeaderOrMetadataCell(text: string): boolean {
     l.includes('chorak') ||
     l.includes('ballar') ||
     l.includes('tavsiya') ||
-    l.includes('yillik')
+    l.includes('yillik') ||
+    l.includes('kundalik baho') ||
+    l.includes('baholanmagan')
   ) {
     return true;
   }
@@ -123,6 +130,12 @@ export function isHeaderOrMetadataCell(text: string): boolean {
       'oy',
       'son',
       'fb',
+      'pin',
+      'izoh',
+      'jami',
+      'baho',
+      "o'quvchi",
+      'o‘quvchi',
       'noyabr',
       'dekabr',
       'yanvar',
@@ -182,21 +195,17 @@ export async function parseExcelFileClientSide(
     };
   }
 
-  const sheet = wb.Sheets[sheetName];
-  if (!sheet) {
-    return {
-      success: false,
-      fileName,
-      detectedGroup: null,
-      totalParsed: 0,
-      students: [],
-      rawTextPreview: '',
-      error: "Varaq ma'lumotlarini o'qib bo'lmadi.",
-    };
+  const rows: unknown[][] = [];
+  for (const sName of wb.SheetNames) {
+    const sh = wb.Sheets[sName];
+    if (sh) {
+      const sheetRows: unknown[][] = XLSX.utils.sheet_to_json(sh, { header: 1 });
+      if (sheetRows && sheetRows.length > 0) {
+        rows.push(...sheetRows);
+      }
+    }
   }
-
-  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-  if (!rows || rows.length === 0) {
+  if (rows.length === 0) {
     return {
       success: false,
       fileName,

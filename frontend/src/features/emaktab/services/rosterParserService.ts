@@ -23,9 +23,16 @@ function isMetadataOrHeaderLine(line: string): boolean {
     lower.startsWith("o'qituvchi") ||
     lower.startsWith('maktab:') ||
     lower.startsWith('chorak:') ||
+    lower.startsWith('baholab') ||
+    lower.startsWith('imtihon sahifasi') ||
+    lower.includes('^next_part^') ||
     lower.includes('f.i.sh') ||
     lower.includes('fish') ||
     lower.includes('familiya') ||
+    lower.includes("o'quvchining ism") ||
+    lower.includes('o‘quvchining ism') ||
+    (lower.includes("o'quvchi") && lower.includes('pin')) ||
+    (lower.includes('x/x') && lower.includes('oy')) ||
     (lower.includes('t/r') && (lower.includes('id') || lower.includes('ism') || lower.includes('jinsi') || lower.includes('f.i.sh')))
   );
 }
@@ -125,12 +132,15 @@ function parseLineToStudent(
       let gender: 'M' | 'F' | undefined = undefined;
 
       // Agar birinchi ustun raqam bo'lsa (1, 2, 3... yoki 1.0, 2.0...)
-      if (/^\d+(\.0)?$/.test(part0) && parts.length >= 3) {
-        if (/^\d{7,}$/.test(part2)) {
-          // eMaktab jurnali: [1.0, Abduraximova Zuxra, 1000001990090]
-          id = part2;
+      if (/^\d+(\.0)?$/.test(part0) && parts.length >= 2) {
+        const part1LooksLikeName = /[a-zA-Zа-яА-ЯoʻgʻshchOʻGʻSHCH]{3,}/.test(part1) && !part1.toUpperCase().startsWith('EMK-') && !part1.toUpperCase().startsWith('ID-');
+        if (part1LooksLikeName) {
+          // eMaktab / BahoLab / Quarter CSV: [1.0, Abdullayeva Dilafro'z, 1000003546584 | 8663]
           name = part1;
-        } else {
+          if (/^\d{7,}$/.test(part2) || /^\d{4,6}$/.test(part2)) {
+            id = part2;
+          }
+        } else if (parts.length >= 3) {
           id = part1 || `emk-${orderIndex}`;
           name = part2;
           if (part3 && (part3 === 'M' || part3 === 'F')) {

@@ -46,6 +46,7 @@ const title = ref('');
 const subject = ref(availableSubjects.value[0] || 'Informatika va AT');
 const gradeLevel = ref<number>(9);
 const quarter = ref<number>(1);
+const assessmentType = ref<'CHSB' | 'BSB' | 'PROJECT'>('CHSB');
 const durationMinutes = ref<number>(40);
 const totalQuestions = ref<number>(15);
 const maxScore = ref<number>(40);
@@ -282,44 +283,54 @@ Javob: B`;
 }
 
 function applyBsbStandard(grade?: number) {
+  assessmentType.value = 'BSB';
   const g = grade ?? Number(gradeLevel.value);
   gradeLevel.value = g;
-  if (g <= 7) {
-    maxScore.value = 25;
-    totalQuestions.value = 5;
-    durationMinutes.value = 40;
-    title.value = `${subject.value}, ${g}-sinf. ${quarter.value}-BSB (Rasmiy 25 ball mezon)`;
+  const std = getBsbStandardByGrade(g);
+  maxScore.value = g <= 7 ? 25 : 50;
+  totalQuestions.value = std.sampleQuestions.length || 5;
+  durationMinutes.value = 40;
+  title.value = `${subject.value}, ${g}-sinf. ${quarter.value}-BSB (Rasmiy ${maxScore.value} ball mezon)`;
+}
+
+function onAssessmentTypeChange() {
+  if (assessmentType.value === 'BSB' || assessmentType.value === 'PROJECT') {
+    const g = Number(gradeLevel.value);
+    maxScore.value = g <= 7 ? 25 : 50;
+    const std = getBsbStandardByGrade(g);
+    totalQuestions.value = std.sampleQuestions.length || 5;
   } else {
-    maxScore.value = 50;
-    totalQuestions.value = 5;
-    durationMinutes.value = 40;
-    title.value = `${subject.value}, ${g}-sinf. ${quarter.value}-BSB (Pedagogik Mahorat Markazi 50 ball mezon)`;
+    maxScore.value = 40;
+    totalQuestions.value = 15;
   }
+  autoGenerateTitle();
 }
 
 function onGradeChange() {
-  applyBsbStandard();
+  if (assessmentType.value === 'BSB' || assessmentType.value === 'PROJECT') {
+    applyBsbStandard();
+  } else {
+    autoGenerateTitle();
+  }
 }
 
 function loadOfficialBsbQuestions() {
   applyBsbStandard();
   const std = getBsbStandardByGrade(gradeLevel.value);
-  let text = '';
-  std.sampleQuestions.forEach((q) => {
-    text += `${q.order}. ${q.blocks[0]?.type === 'paragraph' ? q.blocks[0].text : 'Topshiriq'} [${q.points} ball]\n`;
-    if (q.subQuestions && q.subQuestions.length > 0) {
-      q.subQuestions.forEach((sub) => {
-        text += `  ${sub.label} ${sub.prompt} (${sub.points} ball)\n`;
-      });
-    }
-    if (q.rubricCriteria && q.rubricCriteria.length > 0) {
-      text += `  Baholash mezoni: ${q.rubricCriteria[0]?.guideline || ''}\n`;
-    }
-    text += '\n';
-  });
-  customQuestionsText.value = text.trim();
+  pdfGroundedQuestions.value = std.sampleQuestions.map((q) => ({
+    id: q.id,
+    number: q.order,
+    title: `${q.order}-topshiriq`,
+    prompt: q.blocks[0]?.type === 'paragraph' ? q.blocks[0].text : `${q.order}-topshiriq`,
+    taskType: q.taskType || 'subquestions',
+    points: q.points,
+    subQuestions: q.subQuestions || [],
+    rubric: q.rubricCriteria?.[0]?.guideline || '',
+    sourceExcerpt: q.blocks[0]?.type === 'paragraph' ? q.blocks[0].text : '',
+    isApprovedByHuman: true,
+  }));
   totalQuestions.value = std.sampleQuestions.length;
-  questionMode.value = 'custom';
+  questionMode.value = 'pdf';
 }
 
 function handleClose() {
@@ -331,7 +342,13 @@ useModalA11y(toRef(props, 'isOpen'), handleClose);
 
 function autoGenerateTitle() {
   if (subject.value && gradeLevel.value && quarter.value) {
-    title.value = `${subject.value}, ${gradeLevel.value}-sinf. ${quarter.value}-ChSB`;
+    const label =
+      assessmentType.value === 'BSB'
+        ? `${quarter.value}-BSB`
+        : assessmentType.value === 'PROJECT'
+          ? `${quarter.value}-chorak Loyiha ishi`
+          : `${quarter.value}-ChSB`;
+    title.value = `${subject.value}, ${gradeLevel.value}-sinf. ${label}`;
   }
 }
 
@@ -400,6 +417,7 @@ function handleSubmit() {
   emit('create', {
     title: title.value.trim(),
     subject: subject.value.trim(),
+    assessmentType: assessmentType.value,
     gradeLevel: Number(gradeLevel.value),
     quarter: Number(quarter.value),
     durationMinutes: Number(durationMinutes.value),
@@ -418,6 +436,7 @@ function resetForm() {
   subject.value = availableSubjects.value[0] || 'Informatika va AT';
   gradeLevel.value = 9;
   quarter.value = 1;
+  assessmentType.value = 'CHSB';
   durationMinutes.value = 40;
   totalQuestions.value = 15;
   maxScore.value = 40;
@@ -556,8 +575,21 @@ function resetForm() {
             </div>
           </div>
 
-          <!-- Chorak va Imtihon Nomi -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- Baholash turi, Chorak va Imtihon Nomi -->
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Baholash turi *</label>
+              <select
+                v-model="assessmentType"
+                @change="onAssessmentTypeChange"
+                class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium"
+              >
+                <option value="CHSB">ChSB (40 ball)</option>
+                <option value="BSB">BSB (25/50 ball)</option>
+                <option value="PROJECT">Loyiha ishi</option>
+              </select>
+            </div>
+
             <div>
               <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Chorak *</label>
               <select

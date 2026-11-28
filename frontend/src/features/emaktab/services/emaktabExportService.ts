@@ -152,3 +152,49 @@ function escapeCsvValue(val: string): string {
   return val;
 }
 
+export interface QuarterJournalExportRow {
+  orderIndex: number;
+  studentName: string;
+  emaktabId?: string | null;
+  formativeScore?: number | null;
+  bsbScore?: number | null;
+  chsbScore?: number | null;
+  totalScore100?: number | null;
+  grade5?: string | number | null;
+  note?: string;
+}
+
+/**
+ * Maktab va eMaktab choraklik jurnali bilan to'liq mos UTF-8 BOM nuqtali vergul (;) CSV eksporti.
+ * Ustunlar: №;F.I.Sh.;eMaktab ID;FB (10);BSB (50);ChSB (40);Jami (100);Baho;Izoh
+ */
+export function generateQuarterJournalCsv(rows: QuarterJournalExportRow[]): string {
+  const BOM = '\uFEFF';
+  const lines: string[] = [
+    ['№', 'F.I.Sh.', 'eMaktab ID', 'FB (10)', 'BSB (50)', 'ChSB (40)', 'Jami (100)', 'Baho', 'Izoh'].join(';'),
+  ];
+
+  rows.forEach((r, idx) => {
+    const clean = (val: string | number | null | undefined): string => {
+      if (val === null || val === undefined || val === '') return '';
+      const s = String(val).replace(/;/g, ',').replace(/[\r\n]+/g, ' ').trim();
+      return s;
+    };
+    lines.push(
+      [
+        String(r.orderIndex || idx + 1),
+        clean(r.studentName),
+        clean(r.emaktabId),
+        clean(r.formativeScore),
+        clean(r.bsbScore),
+        clean(r.chsbScore),
+        clean(r.totalScore100),
+        clean(r.grade5),
+        clean(r.note),
+      ].join(';')
+    );
+  });
+
+  return BOM + lines.join('\r\n');
+}
+

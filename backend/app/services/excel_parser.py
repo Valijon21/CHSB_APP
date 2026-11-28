@@ -108,11 +108,24 @@ def is_metadata_or_header_cell(val: str) -> bool:
         or lower.startswith("o'qituvchi")
         or lower.startswith('maktab:')
         or lower.startswith('chorak:')
+        or lower.startswith('baholab')
+        or lower.startswith('imtihon sahifasi')
+        or 'http://' in lower
+        or 'https://' in lower
+        or '^next_part^' in lower
         or 'jurnal' in lower
         or 'elektron' in lower
         or 'o\'quv yili' in lower
         or 'o‘quv yili' in lower
-        or lower in ['t/r', '№', 'id', 'emaktab id', 'f.i.sh', 'fish', 'familiya', 'ism', 'jinsi', 'jins']
+        or 'o‘quvchining ism' in lower
+        or "o'quvchining ism" in lower
+        or 'kundalik baho' in lower
+        or 'baholanmagan' in lower
+        or lower in [
+            't/r', '№', 'x/x №', 'x/x', 'id', 'emaktab id', 'f.i.sh', 'f.i.sh.',
+            'fish', 'familiya', 'ism', "o'quvchi", 'o‘quvchi', 'pin', 'jinsi',
+            'jins', 'izoh', 'jami', 'baho', 'fb', 'oy', 'son',
+        ]
     )
 
 
@@ -135,23 +148,23 @@ def is_valid_student_name(val: str) -> bool:
 
 
 def read_xls_rows(file_bytes: bytes) -> List[List[str]]:
-    """XLRD orqali .xls faylini o'qish"""
+    """XLRD orqali .xls faylining barcha varaqlarini o'qish"""
     import xlrd
     book = xlrd.open_workbook(file_contents=file_bytes)
-    sheet = book.sheet_by_index(0)
     rows: List[List[str]] = []
-    for r in range(sheet.nrows):
-        row_vals: List[str] = []
-        for c in range(sheet.ncols):
-            val = sheet.cell_value(r, c)
-            if isinstance(val, float) and val.is_integer():
-                row_vals.append(str(int(val)))
-            elif val is not None:
-                row_vals.append(str(val).strip())
-            else:
-                row_vals.append('')
-        if any(v for v in row_vals):
-            rows.append(row_vals)
+    for sheet in book.sheets():
+        for r in range(sheet.nrows):
+            row_vals: List[str] = []
+            for c in range(sheet.ncols):
+                val = sheet.cell_value(r, c)
+                if isinstance(val, float) and val.is_integer():
+                    row_vals.append(str(int(val)))
+                elif val is not None:
+                    row_vals.append(str(val).strip())
+                else:
+                    row_vals.append('')
+            if any(v for v in row_vals):
+                rows.append(row_vals)
     return rows
 
 
@@ -202,16 +215,25 @@ def read_xlsx_rows(file_bytes: bytes) -> List[List[str]]:
 
 
 def read_csv_rows(file_bytes: bytes) -> List[List[str]]:
-    """CSV / TSV fayllarni turli kodlashlar bilan o'qish"""
+    """CSV / TSV fayllarni turli kodlashlar va ajratuvchilar bilan o'qish"""
     for encoding in ['utf-8-sig', 'utf-8', 'windows-1251', 'latin-1', 'cp1254']:
         try:
             text = file_bytes.decode(encoding)
-            # Sniff delimiter
-            dialect = csv.Sniffer().sniff(text[:2048])
-            delimiter = dialect.delimiter
         except Exception:
-            text = file_bytes.decode('utf-8', errors='ignore')
-            delimiter = ',' if ',' in text else (';' if ';' in text else '\t')
+            continue
+        sample_lines = [ln for ln in text.splitlines()[:10] if ln.strip()]
+        sample = "\n".join(sample_lines)
+        delimiter = None
+        if sample:
+            counts = {d: sum(ln.count(d) for ln in sample_lines[:5]) for d in ('\t', ';', ',')}
+            best_delim, best_count = max(counts.items(), key=lambda kv: kv[1])
+            if best_count > 0:
+                delimiter = best_delim
+        if not delimiter:
+            try:
+                delimiter = csv.Sniffer().sniff(text[:2048]).delimiter
+            except Exception:
+                delimiter = ','
 
         reader = csv.reader(text.splitlines(), delimiter=delimiter)
         rows = [[col.strip() for col in row] for row in reader if any(c.strip() for c in row)]
