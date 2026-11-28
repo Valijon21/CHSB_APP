@@ -59,7 +59,7 @@ async function handleCreateAssessment(input: CreateAssessmentInput) {
         </button>
 
         <span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-          I Chorak Baholashlari Faol
+          Faol nazorat ishlari: {{ teacherStore.assessments.length }} ta
         </span>
       </div>
     </div>
@@ -78,7 +78,10 @@ async function handleCreateAssessment(input: CreateAssessmentInput) {
         class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs p-6 hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
       >
         <div class="space-y-2">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-slate-900 dark:bg-slate-700 text-white">
+              {{ asm.assessmentType || 'CHSB' }}
+            </span>
             <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
               {{ asm.grade }}-sinf
             </span>
@@ -116,7 +119,7 @@ async function handleCreateAssessment(input: CreateAssessmentInput) {
           <div class="text-center">
             <span class="text-slate-400 dark:text-slate-400 block text-[11px]">Ishtirok</span>
             <span class="font-bold text-indigo-700 dark:text-indigo-400 text-sm">
-              {{ teacherStore.results.length }} ta topshirildi
+              {{ teacherStore.results.filter((r) => r.assessmentId === asm.id).length }} ta topshirildi
             </span>
           </div>
 

@@ -37,13 +37,17 @@ function handlePrint() {
           <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
             Viloyat Ta'lim Boshqarmasi
           </span>
-          <span class="text-xs text-slate-400 font-mono">11-Sinf ChSB Nazorati</span>
+          <span class="text-xs text-slate-400 font-mono">Hududiy BSB &amp; ChSB Nazorati</span>
         </div>
         <h1 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
           Viloyat va Tuman ChSB Super-Boshqaruv Paneli
         </h1>
         <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          Xorazm viloyati bo'yicha 13 ta tuman, 538 ta maktab va 184,500 nafar o'quvchi natijalari monitoringi
+          {{
+            store.overview
+              ? `${store.overview.totalDistricts} ta tuman, ${store.overview.totalSchools} ta maktab va ${store.overview.totalStudents.toLocaleString()} nafar o'quvchi natijalari monitoringi`
+              : "Hududiy tumanlar va maktablar kesimidagi BSB va ChSB natijalari monitoringi"
+          }}
         </p>
       </div>
 

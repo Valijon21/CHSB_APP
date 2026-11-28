@@ -4,12 +4,16 @@ import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
 import BsbRubricGradingModal from './BsbRubricGradingModal.vue';
+import { useOrganizationStore } from '../../organization/store/organizationStore';
+import { httpClient } from '../../../shared/api/httpClient';
+import { generateQuarterJournalCsv } from '../../emaktab/services/emaktabExportService';
 import type { AssessmentResult } from '../../../entities/result/model';
 import type { GradingPresetKey } from '../../../entities/emaktab/model';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
 const teacherStore = useTeacherStore();
+const orgStore = useOrganizationStore();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const activeTab = ref<'submissions' | 'quarter'>('submissions');
@@ -22,6 +26,20 @@ const gradingResult = ref<AssessmentResult | null>(null);
 const isGradingModalOpen = ref(false);
 const savingStudentId = ref<string | null>(null);
 const draftFormative = ref<Record<string, { classwork: number; homework: number }>>({});
+
+const subjectOptions = computed(() => {
+  if (orgStore.subjects.length > 0) {
+    return orgStore.subjects.map((s) => ({
+      code: (s.code || s.name.slice(0, 3)).toUpperCase(),
+      name: s.name,
+    }));
+  }
+  return [
+    { code: 'INF', name: 'Informatika' },
+    { code: 'MAT', name: 'Matematika' },
+    { code: 'FIZ', name: 'Fizika' },
+  ];
+});
 
 function openGradingModal(res: AssessmentResult) {
   gradingResult.value = res;
@@ -92,9 +110,30 @@ async function handleSaveFormative(studentId: string) {
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
   const tenantId = getResolvedTenantId();
-  await teacherStore.loadTeacherData(tenantId);
+  await Promise.all([
+    teacherStore.loadTeacherData(tenantId),
+    orgStore.loadSchoolContext(tenantSlug).catch(() => undefined),
+  ]);
   await refreshGradebook();
 });
+
+async function handleMarkAbsence(attemptId: string) {
+  try {
+    await httpClient.post(`/assessments/attempts/${attemptId}/absence`, { reason: 'EXCUSED' });
+    await teacherStore.loadTeacherData(getResolvedTenantId(), true);
+  } catch (err) {
+    console.error('Failed to mark absence:', err);
+  }
+}
+
+async function handleReopenAttempt(attemptId: string) {
+  try {
+    await httpClient.post(`/assessments/attempts/${attemptId}/reopen`, {});
+    await teacherStore.loadTeacherData(getResolvedTenantId(), true);
+  } catch (err) {
+    console.error('Failed to reopen attempt:', err);
+  }
+}
 
 const filteredGradebookRows = computed(() => {
   let rows = teacherStore.quarterGradebookRows;
@@ -122,13 +161,29 @@ const filteredResults = computed(() => {
 
 function handleExportCSV() {
   isExporting.value = true;
-  const csvContent = teacherStore.exportResultsCSV();
-  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const classLabel = selectedClass.value ? selectedClass.value.replace(/\s+/g, '_') : 'Barcha_Sinflar';
+  const csvContent =
+    activeTab.value === 'quarter'
+      ? generateQuarterJournalCsv(
+          filteredGradebookRows.value.map((row, idx) => ({
+            orderIndex: idx + 1,
+            studentName: row.studentName,
+            emaktabId: row.rosterCode,
+            formativeScore: row.formativeScore,
+            bsbScore: row.bsbScore,
+            chsbScore: row.chsbScore,
+            totalScore100: row.totalScore100,
+            grade5: row.grade5,
+            note: row.annualGrade5 ? `Yillik baho: ${row.annualGrade5}` : '',
+          }))
+        )
+      : '\uFEFF' + teacherStore.exportResultsCSV();
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  const classLabel = selectedClass.value ? selectedClass.value.replace(/\s+/g, '_') : 'Barcha_Sinflar';
-  link.setAttribute('download', `CHSB_${classLabel}_Natijalari_${tenantSlug}.csv`);
+  const prefix = activeTab.value === 'quarter' ? `${selectedQuarter.value}-chorak_${selectedSubject.value}` : 'CHSB';
+  link.setAttribute('download', `${prefix}_${classLabel}_${tenantSlug}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -228,9 +283,9 @@ function handleExportCSV() {
             aria-label="Fanni tanlash"
             class="px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer min-h-[36px]"
           >
-            <option value="INF">Informatika</option>
-            <option value="MAT">Matematika</option>
-            <option value="FIZ">Fizika</option>
+            <option v-for="sub in subjectOptions" :key="sub.code" :value="sub.code">
+              {{ sub.name }}
+            </option>
             <option value="ALL">Barcha fanlar</option>
           </select>
         </template>
@@ -370,12 +425,29 @@ function handleExportCSV() {
                 {{ res.submittedAt.slice(0, 16).replace('T', ' ') }}
               </td>
               <td class="p-3.5">
-                <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  {{ res.verifiedByTeacher ? 'Tasdiqlangan' : 'Dastlabki' }}
+                <span
+                  :class="[
+                    'px-2 py-0.5 rounded text-[11px] font-semibold border',
+                    res.status === 'absent'
+                      ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                      : res.verifiedByTeacher
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                  ]"
+                >
+                  {{
+                    res.status === 'absent'
+                      ? (res.absenceReason || 'Qatnashmadi')
+                      : res.verifiedByTeacher
+                        ? 'Tasdiqlangan'
+                        : res.status === 'pending_review'
+                          ? 'Tekshirish kutilmoqda'
+                          : 'Dastlabki'
+                  }}
                 </span>
               </td>
               <td class="p-3.5 text-right">
-                <div class="flex items-center justify-end gap-2">
+                <div class="flex items-center justify-end gap-1.5 flex-wrap">
                   <button
                     type="button"
                     @click="openGradingModal(res)"
@@ -384,6 +456,22 @@ function handleExportCSV() {
                   >
                     <span>🏛️</span>
                     <span>Baholash</span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="handleMarkAbsence(res.attemptId)"
+                    class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition cursor-pointer min-h-[32px]"
+                    title="Sababli/sababsiz qatnashmagan deb belgilash"
+                  >
+                    Kelmagan
+                  </button>
+                  <button
+                    type="button"
+                    @click="handleReopenAttempt(res.attemptId)"
+                    class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 transition cursor-pointer min-h-[32px]"
+                    title="Imtihon urinishini qayta ochish"
+                  >
+                    Qayta ochish
                   </button>
                   <router-link
                     :to="`/t/${tenantSlug}/teacher/students/${res.rosterRecordId}`"

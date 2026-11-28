@@ -259,7 +259,7 @@ export function parseExamQuestionsFromText(
 
   // Extract trailing answer key table for MCQs if present ("Javoblar: 1-A, 2-B, ...")
   const answerKeyMap = new Map<number, string>();
-  const keySectionMatch = cleanedBody.match(/(?:Javoblar|To'g'ri javoblar|Kalit|Answers)\s*[:\-]\s*([\s\S]+)$/i);
+  const keySectionMatch = cleanedBody.match(/(?:Javoblar|To'g'ri javoblar|Kalit|Answers)\s*[:-]\s*([\s\S]+)$/i);
   let bodyText = cleanedBody;
   if (keySectionMatch && keySectionMatch[1]) {
     const pairs = Array.from(keySectionMatch[1].matchAll(/(\d+)\s*[-–:.]\s*([A-Ea-e])/g));
@@ -370,14 +370,14 @@ export function parseExamQuestionsFromText(
       }
 
       // 2. Check inline answer hint: "Javob: B", "To'g'ri javob: A", "Ans: C"
-      const ansMatch = line.match(/^(?:To'g'ri javob|Javob|Kalit|Ans|Answer)\s*[:\-]\s*([A-Ea-e])\b/i);
+      const ansMatch = line.match(/^(?:To'g'ri javob|Javob|Kalit|Ans|Answer)\s*[:-]\s*([A-Ea-e])\b/i);
       if (ansMatch && ansMatch[1]) {
         inlineAnswer = `opt-${ansMatch[1].toLowerCase()}`;
         continue;
       }
 
       // 3. Check inline rubric hint: "Baholash mezoni: ..."
-      const rubricMatch = line.match(/^Baholash mezoni\s*[:\-]\s*(.+)$/i);
+      const rubricMatch = line.match(/^Baholash mezoni\s*[:-]\s*(.+)$/i);
       if (rubricMatch) {
         rubricHint = cleanBsbFillLines(rubricMatch[1] || line);
         continue;
@@ -394,7 +394,7 @@ export function parseExamQuestionsFromText(
       }
 
       // 5. Check MCQ option "A) text" or "A. text"
-      const optMatch = line.match(/^([A-E])\s*[\).]\s+(.+)$/);
+      const optMatch = line.match(/^([A-E])\s*[).]\s+(.+)$/);
       if (optMatch && optMatch[1] && OPTION_LETTERS.includes(optMatch[1] as typeof OPTION_LETTERS[number])) {
         parsedOptions.push({
           id: `opt-${optMatch[1].toLowerCase()}`,

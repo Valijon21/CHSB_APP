@@ -11,6 +11,8 @@ import CreateSubjectModal from '../organization/components/CreateSubjectModal.vu
 import TeacherRosterTable from '../organization/components/TeacherRosterTable.vue';
 import SubjectRosterTable from '../organization/components/SubjectRosterTable.vue';
 import SystemLogViewer from './components/SystemLogViewer.vue';
+import { httpClient } from '../../shared/api/httpClient';
+import type { GradingPresetKey } from '../../entities/emaktab/model';
 import type { TeacherInput, ClassGroupInput, SubjectInput } from '../../entities/organization/model';
 
 const route = useRoute();
@@ -26,13 +28,37 @@ const isCreateSubjectModalOpen = ref(false);
 const activeTab = ref<'teachers' | 'subjects' | 'logs'>(
   route.query.tab === 'logs' ? 'logs' : route.query.tab === 'subjects' ? 'subjects' : 'teachers'
 );
+const gradingPreset = ref<GradingPresetKey>('MMTV_STANDARD');
+const isSavingPreset = ref(false);
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
   const tenantId = tenantStore.currentTenant?.tenantId || (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
-  await teacherStore.loadTeacherData(tenantId);
-  await orgStore.loadSchoolContext(tenantSlug);
+  await Promise.all([
+    teacherStore.loadTeacherData(tenantId),
+    orgStore.loadSchoolContext(tenantSlug),
+    orgStore.loadSchools().catch(() => undefined),
+  ]);
+  const school = orgStore.activeSchool as ({ gradingPreset?: string } | null);
+  if (school?.gradingPreset === 'SPECIALIZED' || school?.gradingPreset === 'MMTV_STANDARD') {
+    gradingPreset.value = school.gradingPreset;
+    teacherStore.gradebookPreset = school.gradingPreset;
+  }
 });
+
+async function handlePresetChange() {
+  const schoolId = orgStore.activeSchool?.id || tenantStore.currentTenant?.tenantId;
+  if (!schoolId) return;
+  isSavingPreset.value = true;
+  try {
+    await httpClient.patch(`/schools/${schoolId}`, { gradingPreset: gradingPreset.value });
+    teacherStore.gradebookPreset = gradingPreset.value;
+  } catch (err) {
+    console.error('Failed to update grading preset:', err);
+  } finally {
+    isSavingPreset.value = false;
+  }
+}
 
 async function handleCreateTeacher(input: TeacherInput) {
   await orgStore.createTeacher(input);
@@ -66,7 +92,20 @@ async function handleDeleteSubject(id: string) {
           Muassasa: <span class="font-semibold text-teal-800 dark:text-teal-300">{{ tenantStore.currentTenant?.displayName }}</span>
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs">
+          <span class="text-slate-500 dark:text-slate-400 font-semibold">Baholash mezoni:</span>
+          <select
+            v-model="gradingPreset"
+            @change="handlePresetChange"
+            :disabled="isSavingPreset"
+            aria-label="Maktab baholash mezoni standarti"
+            class="bg-transparent font-bold text-teal-800 dark:text-teal-300 focus:outline-hidden cursor-pointer"
+          >
+            <option value="MMTV_STANDARD">MMTV Umumta'lim (86/66/30)</option>
+            <option value="SPECIALIZED">Ixtisoslashtirilgan (86/71/56)</option>
+          </select>
+        </div>
         <router-link
           v-if="authStore.hasRole(['SUPER_ADMIN'])"
           to="/schools"

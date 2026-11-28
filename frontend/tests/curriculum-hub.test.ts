@@ -17,9 +17,11 @@ describe('CurriculumHubView Component', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     global.fetch = vi.fn().mockImplementation((url: string) => {
+      const jsonHeaders = { get: () => 'application/json' };
       if (url.includes('/api/v1/curriculum/solutions')) {
         return Promise.resolve({
           ok: true,
+          headers: jsonHeaders,
           json: () =>
             Promise.resolve([
               {
@@ -35,31 +37,39 @@ describe('CurriculumHubView Component', () => {
             ]),
         });
       }
+      if (url.includes('/api/v1/curriculum/resources')) {
+        return Promise.resolve({
+          ok: true,
+          headers: jsonHeaders,
+          json: () =>
+            Promise.resolve([
+              {
+                id: 'res-pres-11',
+                gradeLevel: 11,
+                quarter: 1,
+                title: '11-sinf Dars Taqdimoti',
+                topic: 'Sun’iy intellekt va SQL',
+                resourceType: 'PRESENTATION',
+                description: 'Taqdimot tavsifi',
+                contentJson: JSON.stringify({
+                  slides: [
+                    {
+                      slideNumber: 1,
+                      title: '11-sinf Informatika',
+                      subtitle: 'Kirish slaydi',
+                      bullets: ['Maqsad', 'Reja'],
+                    },
+                  ],
+                }),
+                downloadCount: 150,
+              },
+            ]),
+        });
+      }
       return Promise.resolve({
         ok: true,
-        json: () =>
-          Promise.resolve([
-            {
-              id: 'res-pres-11',
-              gradeLevel: 11,
-              quarter: 1,
-              title: '11-sinf Dars Taqdimoti',
-              topic: 'Sun’iy intellekt va SQL',
-              resourceType: 'PRESENTATION',
-              description: 'Taqdimot tavsifi',
-              contentJson: JSON.stringify({
-                slides: [
-                  {
-                    slideNumber: 1,
-                    title: '11-sinf Informatika',
-                    subtitle: 'Kirish slaydi',
-                    bullets: ['Maqsad', 'Reja'],
-                  },
-                ],
-              }),
-              downloadCount: 150,
-            },
-          ]),
+        headers: jsonHeaders,
+        json: () => Promise.resolve([]),
       });
     });
   });

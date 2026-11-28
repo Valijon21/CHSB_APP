@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { httpClient } from '../../../shared/api/httpClient';
+import { useTeacherStore } from '../teacherStore';
+
 const route = useRoute();
+const teacherStore = useTeacherStore();
 const tenantSlug = computed(() => (route.params.tenantSlug as string) || 'al-xorazmiy');
 
 // State
@@ -50,12 +54,13 @@ async function loadCurriculum() {
   isLoading.value = true;
   activeSlideIndex.value = 0;
   try {
-    const res = await fetch(
-      `/api/v1/curriculum/resources?gradeLevel=${selectedGrade.value}&quarter=${selectedQuarter.value}&tenantSlug=${tenantSlug.value}`
-    );
-    if (res.ok) {
-      resources.value = await res.json();
-    }
+    resources.value = await httpClient.get<CurriculumResource[]>('/curriculum/resources', {
+      params: {
+        gradeLevel: selectedGrade.value,
+        quarter: selectedQuarter.value,
+        tenantSlug: tenantSlug.value,
+      },
+    });
   } catch (err) {
     console.error('Failed to load curriculum resources:', err);
   } finally {
@@ -65,10 +70,17 @@ async function loadCurriculum() {
 
 async function loadSolutions() {
   try {
-    const res = await fetch(`/api/v1/curriculum/solutions/chsb-inf-11-q1`);
-    if (res.ok) {
-      solutions.value = await res.json();
+    if (teacherStore.assessments.length === 0) {
+      await teacherStore.loadTeacherData(tenantSlug.value).catch(() => false);
     }
+    const matchingAsm =
+      teacherStore.assessments.find(
+        (a) => a.grade === selectedGrade.value && a.quarter === selectedQuarter.value
+      ) ||
+      teacherStore.assessments.find((a) => a.grade === selectedGrade.value) ||
+      teacherStore.assessments[0];
+    const targetAsmId = matchingAsm?.id || 'chsb-inf-11-q1';
+    solutions.value = await httpClient.get<AssessmentSolution[]>(`/curriculum/solutions/${targetAsmId}`);
   } catch (err) {
     console.error('Failed to load solutions:', err);
   }
@@ -81,6 +93,7 @@ onMounted(async () => {
 
 watch([selectedGrade, selectedQuarter], async () => {
   await loadCurriculum();
+  await loadSolutions();
 });
 
 // Computed active resources by type

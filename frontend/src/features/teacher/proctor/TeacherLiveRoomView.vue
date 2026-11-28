@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useLiveProctorStore } from './liveProctorStore';
+import { useTeacherStore } from '../teacherStore';
 import type { LiveStudentSession, ProctorActionType } from '../../../entities/proctor/model';
 import StudentLiveCard from './components/StudentLiveCard.vue';
 import ProctorActionModal from './components/ProctorActionModal.vue';
@@ -9,12 +10,20 @@ import LiveAuditTimeline from './components/LiveAuditTimeline.vue';
 
 const route = useRoute();
 const proctorStore = useLiveProctorStore();
+const teacherStore = useTeacherStore();
 
 const tenantSlug = (route?.params?.tenantSlug as string) || 'al-xorazmiy';
 const assessmentId = (route?.params?.assessmentId as string) || 'chsb-inf-11-q1';
+const liveAssessmentTitle = computed(() => {
+  const found = teacherStore.assessments.find((a) => a.id === assessmentId);
+  return found ? `${found.subject} — ${found.grade}-sinf • ${found.title}` : `Faol nazorat (${assessmentId})`;
+});
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 onMounted(() => {
+  if (teacherStore.assessments.length === 0) {
+    void teacherStore.loadTeacherData(tenantSlug).catch(() => false);
+  }
   void proctorStore.loadLiveSessions(assessmentId, tenantSlug);
   pollTimer = setInterval(() => {
     void proctorStore.loadLiveSessions(assessmentId, tenantSlug);
@@ -89,7 +98,7 @@ function handleConfirmAction(payload: {
           </h1>
         </div>
         <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Informatika va axborot texnologiyalari — 11-A sinf. 1-ChSB ({{ assessmentId }})
+          {{ liveAssessmentTitle }} ({{ assessmentId }})
         </p>
       </div>
 

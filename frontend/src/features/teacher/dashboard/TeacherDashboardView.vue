@@ -34,7 +34,7 @@ onMounted(async () => {
           Xush kelibsiz, {{ teacherStore.profile?.fullName || 'Anvar Ustoz' }}!
         </h1>
         <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-          {{ tenantStore.currentTenant?.displayName }} — 11-sinf Informatika va axborot texnologiyalari bo'yicha hisobotlar paneli.
+          {{ tenantStore.currentTenant?.displayName }} — BSB, ChSB va choraklik baholash hisobotlari paneli.
         </p>
       </div>
 
@@ -81,7 +81,7 @@ onMounted(async () => {
             {{ teacherStore.assessments.length }} ta
           </div>
           <div class="mt-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-            <span>1-CHSB (15 savol, 40 ball)</span>
+            <span>{{ teacherStore.assessments[0]?.title || `Faol nazorat ishlari: ${teacherStore.assessments.length} ta` }}</span>
           </div>
         </div>
 
@@ -96,12 +96,19 @@ onMounted(async () => {
         </div>
 
         <div class="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs transition-colors">
-          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">O'rtacha Ball (40 ballik)</span>
+          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">O'rtacha Ball</span>
           <div class="text-2xl font-black text-teal-700 dark:text-teal-400 mt-1 font-mono">
             {{ teacherStore.averageScore }} ball
           </div>
           <div class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-            O'rtacha: {{ ((teacherStore.averageScore / 40) * 100).toFixed(1) }}%
+            O'zlashtirish: {{
+              teacherStore.results.length > 0
+                ? (
+                  teacherStore.results.reduce((acc, r) => acc + (r.percentage || 0), 0) /
+                  teacherStore.results.length
+                ).toFixed(1)
+                : '0.0'
+            }}%
           </div>
         </div>
       </div>
@@ -172,12 +179,15 @@ onMounted(async () => {
               </div>
             </div>
 
-            <div class="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-300 text-xs">
+            <div
+              v-if="teacherStore.results.some((r) => !r.verifiedByTeacher)"
+              class="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-300 text-xs"
+            >
               <span class="font-bold flex items-center gap-1">
-                <span>⚠️</span> Eslatma:
+                <span>⏳</span> Tekshiruv kutilmoqda:
               </span>
               <p class="mt-1 text-[11px] leading-relaxed">
-                1-CHSB imtihonlari yakunlanishiga 3 kun qoldi. Qatnashmagan o'quvchilarga xabar bering.
+                {{ teacherStore.results.filter((r) => !r.verifiedByTeacher).length }} ta topshirilgan ish o'qituvchi rubrika tasdig'ini kutmoqda.
               </p>
             </div>
           </div>

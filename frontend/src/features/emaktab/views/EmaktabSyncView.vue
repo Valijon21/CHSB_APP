@@ -101,7 +101,8 @@ function selectGroup(grp: 'ALL' | '1-guruh' | '2-guruh') {
 }
 
 onMounted(async () => {
-  const initialAsmId = (route?.params?.assessmentId as string) || 'asm-algebra-01';
+  const routeAsmId = route?.params?.assessmentId as string | undefined;
+  const initialAsmId = routeAsmId || teacherStore.assessments[0]?.id || 'chsb-inf-11-q1';
   if (initialAsmId === 'asm-algebra-01' && store.emaktabStudents.length === 0) {
     store.setAssessmentContext({
       assessmentId: initialAsmId,
@@ -245,7 +246,7 @@ function goBack() {
 
       <!-- Live Room ga o'tish tugmasi -->
       <router-link
-        :to="`/t/${route?.params?.tenantSlug ?? 'xorazm-demo'}/teacher/assessments/${store.assessmentId}/live`"
+        :to="`/t/${route?.params?.tenantSlug ?? 'al-xorazmiy'}/teacher/assessments/${store.assessmentId}/live`"
         class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-2xs"
       >
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>

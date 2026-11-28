@@ -164,8 +164,28 @@ onMounted(async () => {
               {{ q.text }}
             </p>
 
-            <!-- Options Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <!-- BSB Sub-Questions & Rubric Display -->
+            <div v-if="q.subQuestions && q.subQuestions.length > 0" class="space-y-2 pl-3 border-l-2 border-teal-200 dark:border-teal-800 pt-1">
+              <div
+                v-for="sub in q.subQuestions"
+                :key="sub.id"
+                class="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs flex items-start justify-between gap-2"
+              >
+                <div>
+                  <span class="font-bold text-teal-700 dark:text-teal-300 mr-1">{{ sub.label }}</span>
+                  <span class="text-slate-800 dark:text-slate-200">{{ sub.prompt }}</span>
+                </div>
+                <span class="font-mono font-bold text-slate-500 shrink-0">{{ sub.points }} b</span>
+              </div>
+            </div>
+
+            <div v-if="q.rubric && q.rubric.length > 0" class="p-2.5 rounded-lg bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/70 dark:border-teal-800/70 text-[11px] text-teal-900 dark:text-teal-200">
+              <span class="font-bold">Baholash mezoni:</span>
+              <span class="ml-1">{{ q.rubric.map((r) => r.guideline || r.criterion).join(' • ') }}</span>
+            </div>
+
+            <!-- Options Grid (for MCQ tests) -->
+            <div v-if="q.options && q.options.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               <div
                 v-for="opt in q.options"
                 :key="opt.id"

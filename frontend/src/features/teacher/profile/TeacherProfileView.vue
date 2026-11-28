@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
-import {
-  saveStoredGeminiApiKey,
-  getCustomApiKey,
-  hasCustomApiKey,
-} from '../../../shared/utils/groundedAiExtractor';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
@@ -21,8 +16,13 @@ const defaultLanguage = ref('uz');
 const rowsPerPage = ref('25');
 const savedMessage = ref(false);
 
-const customApiKeyInput = ref(getCustomApiKey());
-const isCustomKeyActive = ref(hasCustomApiKey());
+const profileInitials = computed(() => {
+  const fullName = teacherStore.profile?.fullName?.trim();
+  if (!fullName) return 'O‘';
+  const parts = fullName.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]!.charAt(0)}${parts[1]!.charAt(0)}`.toUpperCase();
+});
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
@@ -32,24 +32,7 @@ onMounted(async () => {
   await teacherStore.loadTeacherData(tenantId);
 });
 
-function clearCustomKey() {
-  customApiKeyInput.value = '';
-  saveStoredGeminiApiKey('');
-  isCustomKeyActive.value = false;
-  savedMessage.value = true;
-  setTimeout(() => {
-    savedMessage.value = false;
-  }, 2500);
-}
-
 function handleSave() {
-  if (customApiKeyInput.value.trim()) {
-    saveStoredGeminiApiKey(customApiKeyInput.value.trim());
-    isCustomKeyActive.value = true;
-  } else {
-    saveStoredGeminiApiKey('');
-    isCustomKeyActive.value = false;
-  }
   savedMessage.value = true;
   setTimeout(() => {
     savedMessage.value = false;
@@ -86,7 +69,7 @@ function handleSave() {
       <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-6 transition-colors">
         <div class="flex items-center gap-4 pb-6 border-b border-slate-100 dark:border-slate-700/80">
           <div class="w-16 h-16 rounded-2xl bg-teal-700 dark:bg-teal-600 text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0">
-            DU
+            {{ profileInitials }}
           </div>
           <div>
             <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ teacherStore.profile.fullName }}</h2>
@@ -131,54 +114,22 @@ function handleSave() {
         </div>
       </div>
 
-      <!-- Sun'iy Intellekt (AI) Sozlamalari -->
-      <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4 transition-colors">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700/80 flex-wrap gap-2">
-          <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-            <span>🤖</span>
-            <span>Sun'iy Intellekt (AI) Sozlamalari</span>
-          </h3>
-          <span
-            :class="[
-              'px-2.5 py-0.5 rounded-md text-[10px] font-bold',
-              isCustomKeyActive
-                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                : 'bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300'
-            ]"
-          >
-            {{ isCustomKeyActive ? "✓ Shaxsiy API kalit faol" : "Standart loyiha kaliti faol" }}
-          </span>
-        </div>
-
-        <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-          PDF fayllardan topshiriqlarni avtomatik ajratib olish uchun shaxsiy Google Gemini API kalitingizni kiritishingiz mumkin. Agar bo'sh qoldirsangiz, loyihaning o'zida o'rnatilgan standart kalitdan foydalaniladi.
-        </p>
-
-        <div class="space-y-2">
-          <label for="ai-custom-api-key" class="block font-bold text-slate-700 dark:text-slate-300 text-xs">
-            Shaxsiy Gemini API Kaliti (Ixtiyoriy):
-          </label>
-          <div class="flex gap-2 flex-wrap sm:flex-nowrap">
-            <input
-              id="ai-custom-api-key"
-              v-model="customApiKeyInput"
-              type="password"
-              placeholder="Shaxsiy Gemini API kaliti (bo'sh qoldirilsa server kaliti ishlaydi)"
-              class="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono focus:outline-hidden focus:ring-2 focus:ring-teal-700"
-            />
-            <button
-              v-if="isCustomKeyActive"
-              type="button"
-              @click="clearCustomKey"
-              class="px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition cursor-pointer"
-            >
-              Standartga qaytarish
-            </button>
+      <!-- Server AI status notice -->
+      <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center justify-between gap-3 flex-wrap transition-colors">
+        <div class="flex items-center gap-2.5">
+          <span class="text-lg">🤖</span>
+          <div>
+            <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Sun'iy Intellekt (AI) Hujjat Tahlili
+            </h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">
+              PDF topshiriqlar va jadvallarni tahlil qilish server tomonida markazlashgan holda boshqariladi.
+            </p>
           </div>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500">
-            🔒 Kalit faqat sizning brauzeringizda xavfsiz saqlanadi va begonalarga ko'rinmaydi.
-          </p>
         </div>
+        <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+          Server kaliti faol
+        </span>
       </div>
 
       <!-- Settings & Preferences -->

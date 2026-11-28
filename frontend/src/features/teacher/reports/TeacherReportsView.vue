@@ -74,27 +74,36 @@ const currentAssessmentGrade = computed(() => {
   return currentAssessment.value?.grade || 11;
 });
 
+import { GRADING_SCALE_PRESETS } from '../../../entities/emaktab/model';
+
 const currentAssessmentQuarter = computed(() => {
   return currentAssessment.value?.quarter || 1;
 });
 
-// Grade 5-point mapping helper
-function getGrade5(score: number): { grade: number; label: string; badgeClass: string } {
-  if (score >= 35) {
+const currentAssessmentMaxScore = computed(() => {
+  return currentAssessment.value?.maxScore || 40;
+});
+
+// Grade 5-point mapping helper synchronized with school preset & assessment maxScore
+function getGrade5(score: number, maxScore = 40): { grade: number; label: string; badgeClass: string } {
+  const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+  const presetKey = teacherStore.gradebookPreset || 'MMTV_STANDARD';
+  const thresholds = GRADING_SCALE_PRESETS[presetKey].thresholds;
+  if (pct >= thresholds.grade5Min) {
     return {
       grade: 5,
       label: "A'lo (5)",
       badgeClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
     };
   }
-  if (score >= 28) {
+  if (pct >= thresholds.grade4Min) {
     return {
       grade: 4,
       label: 'Yaxshi (4)',
       badgeClass: 'bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800',
     };
   }
-  if (score >= 20) {
+  if (pct >= thresholds.grade3Min) {
     return {
       grade: 3,
       label: 'Qoniqarli (3)',
@@ -110,18 +119,19 @@ function getGrade5(score: number): { grade: number; label: string; badgeClass: s
 
 // Cognitive Points Estimator based on score ratio
 function getCognitivePoints(score: number, maxScore = 40) {
-  const ratio = Math.min(1, score / maxScore);
-  const knowledge = Number((17.5 * ratio).toFixed(1));
-  const application = Number((13.5 * ratio).toFixed(1));
-  const reasoning = Number((9.0 * ratio).toFixed(1));
+  const ratio = maxScore > 0 ? Math.min(1, score / maxScore) : 0;
+  const knowledge = Number((maxScore * 0.4375 * ratio).toFixed(1));
+  const application = Number((maxScore * 0.3375 * ratio).toFixed(1));
+  const reasoning = Number((maxScore * 0.225 * ratio).toFixed(1));
   return { knowledge, application, reasoning };
 }
 
 // Filtered and Sorted Records
 const processedRecords = computed(() => {
   let list = teacherStore.reportData.map((item) => {
-    const g = getGrade5(item.score);
-    const cog = getCognitivePoints(item.score, item.maxScore);
+    const maxS = item.maxScore || currentAssessmentMaxScore.value || 40;
+    const g = getGrade5(item.score, maxS);
+    const cog = getCognitivePoints(item.score, maxS);
     return {
       ...item,
       grade5: g.grade,
@@ -535,7 +545,7 @@ function printReport() {
           </div>
           <div>
             <span class="text-slate-500 dark:text-slate-400 print:text-black block text-[10px]">O'rtacha ball:</span>
-            <span class="font-bold text-teal-800 dark:text-teal-300 print:text-black font-mono">{{ summaryStats.averageScore }} / 40</span>
+            <span class="font-bold text-teal-800 dark:text-teal-300 print:text-black font-mono">{{ summaryStats.averageScore }} / {{ currentAssessmentMaxScore }}</span>
           </div>
           <div>
             <span class="text-slate-500 dark:text-slate-400 print:text-black block text-[10px]">Sifat ko'rsatkichi (4 va 5):</span>
@@ -715,7 +725,7 @@ function printReport() {
                 <th class="p-2.5 text-center bg-indigo-50/50 dark:bg-indigo-950/30 border-r border-slate-200 dark:border-slate-700 print:border-black">
                   Mulohaza (M)<br /><span class="text-[10px] font-normal text-slate-500">Max 9.0 b.</span>
                 </th>
-                <th class="p-2.5 text-center font-bold">Jami Ball (40)</th>
+                <th class="p-2.5 text-center font-bold">Jami Ball ({{ currentAssessmentMaxScore }})</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-700/80 print:divide-black">

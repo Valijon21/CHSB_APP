@@ -2,7 +2,7 @@ import { httpClient } from '../httpClient';
 import type { TeacherRepository } from '../repositories/TeacherRepository';
 import type { ClassGroup } from '../../../entities/class-group/model';
 import type { StudentRosterRecord } from '../../../entities/roster/model';
-import type { Assessment, AssessmentSummary, CreateAssessmentInput } from '../../../entities/assessment/model';
+import type { AssessmentSummary, CreateAssessmentInput } from '../../../entities/assessment/model';
 import type { AssessmentResult } from '../../../entities/result/model';
 import type {
   TeacherProfile,
