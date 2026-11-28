@@ -3,13 +3,19 @@ import { computed } from 'vue';
 import type { Assessment, Question } from '../../../entities/assessment/model';
 import BsbTaskRenderer from './BsbTaskRenderer.vue';
 
-const props = defineProps<{
-  assessment: Assessment;
-  answers: Record<string, string>;
-  answeredCount: number;
-  totalQuestions: number;
-  isSubmitting: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    assessment: Assessment;
+    answers: Record<string, string>;
+    answeredCount: number;
+    totalQuestions: number;
+    isSubmitting: boolean;
+    heightClass?: string;
+  }>(),
+  {
+    heightClass: 'h-[74vh] min-h-[520px]',
+  }
+);
 
 const emit = defineEmits<{
   (e: 'select-answer', questionId: string, value: string): void;
@@ -61,7 +67,8 @@ function isRowAnswered(q: Question): boolean {
 
 <template>
   <aside
-    class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col h-[74vh] min-h-[520px] overflow-hidden"
+    class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-col overflow-hidden"
+    :class="heightClass"
     aria-label="Javoblar varaqasi"
   >
     <!-- Header & Progress -->
@@ -114,6 +121,7 @@ function isRowAnswered(q: Question): boolean {
           <BsbTaskRenderer
             :question="q"
             :model-value="answers[q.id] || ''"
+            compact
             @update:model-value="emit('select-answer', q.id, $event)"
           />
         </template>

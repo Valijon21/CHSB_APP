@@ -24,7 +24,7 @@ const props = withDefaults(
 const isLoading = ref(true);
 const errorMessage = ref<string | null>(null);
 const numPages = ref(0);
-const scale = ref(1.1);
+const scale = ref(1.0);
 const canvasRefs = ref<Record<number, HTMLCanvasElement | null>>({});
 
 let pdfDoc: pdfjsLib.PDFDocumentProxy | null = null;
@@ -98,13 +98,15 @@ async function renderAllPages() {
     const page = await pdfDoc.getPage(pageNumber);
     if (currentGen !== renderGeneration) return;
 
-    const viewport = page.getViewport({ scale: scale.value });
+    // Render internally at high crisp resolution and scale visually inside pane width
+    const renderScale = 1.6 * scale.value;
+    const viewport = page.getViewport({ scale: renderScale });
     const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
 
     canvas.width = Math.floor(viewport.width * dpr);
     canvas.height = Math.floor(viewport.height * dpr);
-    canvas.style.width = `${Math.floor(viewport.width)}px`;
-    canvas.style.height = `${Math.floor(viewport.height)}px`;
+    canvas.style.width = `${Math.round(scale.value * 100)}%`;
+    canvas.style.height = 'auto';
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     await page.render({ canvasContext: ctx, canvas, viewport }).promise;
@@ -162,7 +164,7 @@ function zoomIn() {
 }
 
 function resetZoom() {
-  scale.value = 1.1;
+  scale.value = 1.0;
 }
 
 watch(scale, () => {
@@ -268,10 +270,10 @@ onBeforeUnmount(() => {
           :key="pageNumber"
           class="flex flex-col items-center gap-1.5"
         >
-          <div class="bg-white rounded-lg shadow-md overflow-hidden border border-slate-300/60 dark:border-slate-700 max-w-full overflow-x-auto">
+          <div class="w-full bg-white rounded-lg shadow-md border border-slate-300/60 dark:border-slate-700 overflow-x-auto">
             <canvas
               :ref="(el) => setCanvasRef(pageNumber, el)"
-              class="block"
+              class="block mx-auto"
             ></canvas>
           </div>
           <span class="text-[11px] font-mono text-slate-500 dark:text-slate-400">

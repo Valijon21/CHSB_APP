@@ -2,11 +2,18 @@
 import { computed } from 'vue';
 import type { Question } from '../../../entities/assessment/model';
 
-const props = defineProps<{
-  question: Question;
-  modelValue: string; // serialized JSON or raw string
-  readOnly?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    question: Question;
+    modelValue: string; // serialized JSON or raw string
+    readOnly?: boolean;
+    compact?: boolean;
+  }>(),
+  {
+    readOnly: false,
+    compact: false,
+  }
+);
 
 const emit = defineEmits<{
   (e: 'update:modelValue', val: string): void;
@@ -175,7 +182,7 @@ function getSubAnswer(key: string): string {
 
     <!-- Official Rubric Table (Pedagogik Mahorat Markazi) -->
     <div
-      v-if="question.rubricCriteria && question.rubricCriteria.length > 0"
+      v-if="!compact && question.rubricCriteria && question.rubricCriteria.length > 0"
       class="p-4 rounded-xl bg-teal-50/50 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/70 space-y-2.5"
     >
       <div class="flex items-center justify-between">
