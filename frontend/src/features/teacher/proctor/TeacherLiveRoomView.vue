@@ -16,7 +16,16 @@ const tenantSlug = (route?.params?.tenantSlug as string) || 'al-xorazmiy';
 const assessmentId = (route?.params?.assessmentId as string) || 'chsb-inf-11-q1';
 const liveAssessmentTitle = computed(() => {
   const found = teacherStore.assessments.find((a) => a.id === assessmentId);
-  return found ? `${found.subject} — ${found.grade}-sinf • ${found.title}` : `Faol nazorat (${assessmentId})`;
+  if (found) {
+    return `${found.subject} — ${found.grade}-sinf • ${found.title}`;
+  }
+  const lower = assessmentId.toLowerCase();
+  const subjectHint = lower.includes('inf')
+    ? 'Informatika va axborot texnologiyalari'
+    : lower.includes('mat')
+      ? 'Matematika'
+      : 'Jonli nazorat sessiyasi';
+  return `${subjectHint} (${assessmentId})`;
 });
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -98,7 +107,7 @@ function handleConfirmAction(payload: {
           </h1>
         </div>
         <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-          {{ liveAssessmentTitle }} ({{ assessmentId }})
+          {{ liveAssessmentTitle }}
         </p>
       </div>
 
