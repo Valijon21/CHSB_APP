@@ -16,7 +16,7 @@ const assessmentStore = useAssessmentStore();
   <div class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors">
     <!-- Exam Top Bar (Sticky & Rigid) -->
     <header class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30 shrink-0 shadow-xs">
-      <div :class="['mx-auto px-4 h-14 flex items-center justify-between', assessmentStore.assessment?.hasPdf ? 'max-w-7xl' : 'max-w-5xl']">
+      <div :class="['mx-auto px-3 sm:px-5 h-14 flex items-center justify-between', assessmentStore.assessment?.hasPdf ? 'max-w-[1760px]' : 'max-w-5xl']">
         <div class="flex items-center gap-2">
           <span class="w-8 h-8 rounded-md bg-teal-800 flex items-center justify-center text-white font-bold text-sm">
             C
@@ -47,7 +47,7 @@ const assessmentStore = useAssessmentStore();
     />
 
     <!-- Main Exam Workspace -->
-    <main :class="['flex-1 w-full mx-auto p-3 sm:p-6 flex flex-col', assessmentStore.assessment?.hasPdf ? 'max-w-7xl' : 'max-w-5xl']">
+    <main :class="['flex-1 w-full mx-auto flex flex-col', assessmentStore.assessment?.hasPdf ? 'max-w-[1760px] p-2.5 sm:p-4' : 'max-w-5xl p-3 sm:p-6']">
       <slot>
         <router-view />
       </slot>

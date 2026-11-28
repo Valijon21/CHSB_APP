@@ -234,13 +234,13 @@ async function handleFinish() {
     </div>
 
     <!-- Split-Screen Original PDF + Answer Sheet Mode -->
-    <div v-if="isSplitPdfMode" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+    <div v-if="isSplitPdfMode" class="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-stretch">
       <div class="md:col-span-7 min-w-0">
         <PdfDocumentPane
           :assessment-id="assessmentStore.assessment.id"
           :source-pdf-url="assessmentStore.assessment.sourcePdfUrl"
           :file-name="assessmentStore.assessment.sourcePdfName"
-          height-class="h-[calc(100vh-210px)] min-h-[540px]"
+          height-class="h-[calc(100vh-180px)] min-h-[560px]"
         />
       </div>
 
@@ -251,7 +251,7 @@ async function handleFinish() {
           :answered-count="assessmentStore.answeredCount"
           :total-questions="assessmentStore.totalQuestions"
           :is-submitting="assessmentStore.isSubmitting"
-          height-class="h-[calc(100vh-210px)] min-h-[540px]"
+          height-class="h-[calc(100vh-180px)] min-h-[560px]"
           @select-answer="(qId, val) => assessmentStore.selectAnswer(qId, val)"
           @finish="handleFinish"
         />
