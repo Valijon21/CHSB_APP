@@ -75,23 +75,38 @@ export interface BackendClassItem {
 
 export interface BackendAssessmentItem {
   id: string;
+  tenantId?: string;
   code: string;
   title: string;
   subject: string;
+  subjectCode?: string;
   gradeLevel: number;
   quarter?: number;
+  academicYear?: string;
   assessmentType?: string;
   durationMinutes: number;
   totalQuestions: number;
   maxScore: number;
   targetGroup?: string;
+  status?: string;
   questions?: Array<{
     id: string;
     order: number;
     text: string;
     points: number;
     cognitiveLevel: string;
-    options: Array<{ id: string; text: string }>;
+    taskType?: string;
+    correctOptionId?: string;
+    subQuestions?: Array<{ id: string; label: string; prompt: string; points: number; rubric?: string }>;
+    rubric?: Array<{
+      id: string;
+      criterion: string;
+      fullScore: number;
+      partialScore: number;
+      zeroScore: 0;
+      guideline: string;
+    }>;
+    options: Array<{ id: string; label?: string; text: string }>;
   }>;
 }
 

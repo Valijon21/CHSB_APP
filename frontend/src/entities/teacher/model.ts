@@ -56,6 +56,16 @@ export interface AssessmentDetail {
     correctOptionId?: string;
     points: number;
     cognitiveLevel: string;
+    taskType?: string;
+    subQuestions?: Array<{ id: string; label: string; prompt: string; points: number; rubric?: string }>;
+    rubric?: Array<{
+      id: string;
+      criterion: string;
+      fullScore: number;
+      partialScore: number;
+      zeroScore?: number;
+      guideline: string;
+    }>;
   }>;
 }
 

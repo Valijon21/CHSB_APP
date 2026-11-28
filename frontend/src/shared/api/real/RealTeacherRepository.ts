@@ -73,18 +73,21 @@ export class RealTeacherRepository implements TeacherRepository {
       const list = await httpClient.get<BackendAssessmentItem[]>('/assessments', { params: { tenantId } });
       return list.map((a) => ({
         id: a.id,
-        tenantId: tenantId || 'tenant-al-xorazmiy',
+        tenantId: a.tenantId || tenantId || 'tenant-al-xorazmiy',
         title: a.title,
         subject: a.subject,
+        subjectCode: a.subjectCode || undefined,
+        assessmentType: (a.assessmentType as AssessmentSummary['assessmentType']) || 'CHSB',
         grade: a.gradeLevel || 11,
         quarter: a.quarter || 1,
+        academicYear: a.academicYear || '2026-2027',
         assessmentNumber: 1,
         durationMinutes: a.durationMinutes || 45,
         durationSeconds: (a.durationMinutes || 45) * 60,
         questionCount: a.totalQuestions || 15,
         maxScore: a.maxScore || 40,
         targetGroup: a.targetGroup || 'all',
-        status: 'available' as const,
+        status: (a.status === 'closed' || a.status === 'scheduled' ? a.status : 'available') as 'available' | 'scheduled' | 'closed',
       }));
     } catch {
       return [];
@@ -95,11 +98,14 @@ export class RealTeacherRepository implements TeacherRepository {
     const res = await httpClient.post<BackendAssessmentItem>('/assessments', input);
     return {
       id: res.id,
-      tenantId: 'tenant-al-xorazmiy',
+      tenantId: res.tenantId || 'tenant-al-xorazmiy',
       title: res.title,
       subject: res.subject,
+      subjectCode: res.subjectCode || input.subjectCode || undefined,
+      assessmentType: (res.assessmentType as AssessmentSummary['assessmentType']) || input.assessmentType || 'CHSB',
       grade: res.gradeLevel || input.gradeLevel,
-      quarter: input.quarter || 1,
+      quarter: res.quarter || input.quarter || 1,
+      academicYear: res.academicYear || '2026-2027',
       assessmentNumber: 1,
       durationMinutes: res.durationMinutes || input.durationMinutes,
       durationSeconds: (res.durationMinutes || input.durationMinutes) * 60,
@@ -181,20 +187,29 @@ export class RealTeacherRepository implements TeacherRepository {
       fullName: string;
       role: string;
       email?: string;
+      phone?: string;
+      subjectArea?: string;
     }
-    const [me, classes] = await Promise.all([
+    const [me, classes, assessments] = await Promise.all([
       httpClient.get<AuthMePayload>('/auth/me'),
       this.getClasses(tenantId).catch(() => [] as ClassGroup[]),
+      this.getAssessments(tenantId).catch(() => [] as AssessmentSummary[]),
     ]);
+    const derivedSubjects = Array.from(
+      new Set([
+        ...(me.subjectArea ? [me.subjectArea] : []),
+        ...assessments.map((a) => a.subject).filter(Boolean),
+      ])
+    );
     return {
       id: me.id,
       tenantId: me.tenantId || tenantId,
       fullName: me.fullName,
       title: me.role === 'SCHOOL_ADMIN' ? 'Maktab ma’muri' : "Fan o'qituvchisi",
       email: me.email || `${me.username}@chsb.uz`,
-      phone: '+998901234567',
+      phone: me.phone || 'Kiritilmagan',
       assignedSchoolName: me.schoolName || 'Ta’lim muassasasi',
-      subjects: ['Informatika va AT'],
+      subjects: derivedSubjects.length > 0 ? derivedSubjects : ['Informatika va AT'],
       assignedClassIds: classes.map((c) => c.id),
     };
   }
@@ -260,7 +275,7 @@ export class RealTeacherRepository implements TeacherRepository {
         questionStats: Array<{ order: number; cognitiveLevel: string; points: number; correctRate: number }>;
       }
       const [assessment, stats] = await Promise.all([
-        httpClient.get<Assessment>(`/assessments/${assessmentId}`),
+        httpClient.get<BackendAssessmentItem>(`/assessments/${assessmentId}`),
         httpClient
           .get<StatsPayload>(`/assessments/${assessmentId}/stats`, { params: { tenantId } })
           .catch(() => ({
@@ -276,24 +291,39 @@ export class RealTeacherRepository implements TeacherRepository {
       return {
         summary: {
           id: assessment.id,
-          tenantId: assessment.tenantId,
+          tenantId: assessment.tenantId || tenantId,
           title: assessment.title,
           subject: assessment.subject,
-          grade: assessment.grade,
-          quarter: assessment.quarter,
-          assessmentNumber: assessment.assessmentNumber,
-          durationMinutes: assessment.durationMinutes,
-          durationSeconds: assessment.durationSeconds,
-          questionCount: assessment.questionCount,
-          maxScore: assessment.maxScore,
-          status: assessment.status,
+          subjectCode: assessment.subjectCode || undefined,
+          assessmentType: (assessment.assessmentType as AssessmentSummary['assessmentType']) || 'CHSB',
+          grade: assessment.gradeLevel || 11,
+          quarter: assessment.quarter || 1,
+          academicYear: assessment.academicYear || '2026-2027',
+          assessmentNumber: 1,
+          durationMinutes: assessment.durationMinutes || 45,
+          durationSeconds: (assessment.durationMinutes || 45) * 60,
+          questionCount: assessment.totalQuestions || (assessment.questions?.length ?? 0),
+          maxScore: assessment.maxScore || 40,
+          targetGroup: assessment.targetGroup || undefined,
+          status: (assessment.status === 'closed' || assessment.status === 'scheduled' ? assessment.status : 'available') as AssessmentSummary['status'],
         },
         totalAssigned: stats.totalAssigned,
         totalCompleted: stats.totalCompleted,
         completionRate: stats.completionRate,
         averageScore: stats.averageScore,
         questionStats: stats.questionStats,
-        questions: (assessment as unknown as { questions?: AssessmentDetail['questions'] }).questions || [],
+        questions: (assessment.questions || []).map((q) => ({
+          id: q.id,
+          order: q.order,
+          text: q.text,
+          options: q.options || [],
+          correctOptionId: q.correctOptionId,
+          points: q.points,
+          cognitiveLevel: q.cognitiveLevel,
+          taskType: q.taskType,
+          subQuestions: q.subQuestions,
+          rubric: q.rubric,
+        })),
       };
     } catch {
       return null;
@@ -350,6 +380,7 @@ export class RealTeacherRepository implements TeacherRepository {
       interface ResultPayload {
         studentName?: string;
         className?: string;
+        rosterCode?: string;
         studentId?: string;
         assessmentId?: string;
         assessmentTitle?: string;
@@ -364,7 +395,7 @@ export class RealTeacherRepository implements TeacherRepository {
       return results.map((r) => ({
         studentName: r.studentName || "O'quvchi",
         className: r.className || '11-sinf',
-        rosterCode: r.studentId?.slice(0, 8) || 'STU-0001',
+        rosterCode: r.rosterCode || r.studentId?.slice(0, 8) || 'STU-0001',
         assessmentTitle: r.assessmentTitle || 'CHSB Choraklik Baholash',
         score: r.score,
         maxScore: r.maxScore || 40,

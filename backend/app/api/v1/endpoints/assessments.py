@@ -134,8 +134,8 @@ async def create_assessment(
     db: Prisma = Depends(get_prisma),
 ):
     asm_type = payload.assessmentType.upper() if payload.assessmentType else "CHSB"
-    if asm_type not in {"CHSB", "BSB", "PRACTICAL"}:
-        raise HTTPException(status_code=400, detail="Noto'g'ri baholash turi (CHSB, BSB, PRACTICAL).")
+    if asm_type not in {"CHSB", "BSB", "PRACTICAL", "PROJECT"}:
+        raise HTTPException(status_code=400, detail="Noto'g'ri baholash turi (CHSB, BSB, PRACTICAL, PROJECT).")
 
     # Generate unique code if not provided
     code = payload.code
@@ -691,6 +691,7 @@ def _format_result_row(r) -> dict:
         "assessmentType": getattr(asm, "assessmentType", "CHSB") if asm else "CHSB",
         "quarter": getattr(asm, "quarter", 1) if asm else 1,
         "studentId": r.studentId,
+        "rosterCode": r.student.rosterCode if r.student else "",
         "studentName": f"{r.student.firstName} {r.student.lastName}",
         "className": r.student.classGroup.name if r.student.classGroup else "",
         "score": r.score,
@@ -700,6 +701,8 @@ def _format_result_row(r) -> dict:
         "status": r.status,
         "verifiedByTeacher": bool(getattr(r, "verifiedByTeacher", False)),
         "rubricScores": _parse_json_value(getattr(r, "rubricScoresJson", None), {}),
+        "answers": _parse_json_value(getattr(r.attempt, "answersJson", None), {}) if r.attempt else {},
+        "absenceReason": getattr(r.attempt, "absenceReason", None) if r.attempt else None,
         "teacherFeedback": getattr(r, "teacherFeedback", None) or "",
         "gradedBy": getattr(r, "gradedBy", None),
         "gradedAt": _as_utc(r.gradedAt).isoformat() if getattr(r, "gradedAt", None) else None,

@@ -47,19 +47,15 @@ class ExtractQuestionsRequest(BaseModel):
     rawText: str = Field(..., min_length=1)
     model: str = DEFAULT_GEMINI_MODEL
     maxScore: float = Field(default=50.0, ge=1.0, le=200.0)
-    customApiKey: str | None = None
 
 
 class ExtractRosterRequest(BaseModel):
     rawText: str = Field(..., min_length=1)
     defaultGroup: str | None = None
     model: str = DEFAULT_GEMINI_MODEL
-    customApiKey: str | None = None
 
 
-def _resolve_gemini_key(custom_key: str | None = None) -> str:
-    if custom_key and custom_key.strip():
-        return custom_key.strip()
+def _resolve_gemini_key() -> str:
     return (settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY") or "").strip()
 
 
@@ -158,7 +154,7 @@ async def extract_questions_proxy(payload: ExtractQuestionsRequest):
             "error": "Hujjat matni bo'sh yoki o'qib bo'lmadi.",
         }
 
-    api_key = _resolve_gemini_key(payload.customApiKey)
+    api_key = _resolve_gemini_key()
     if not api_key:
         return {
             "success": False,
@@ -286,7 +282,7 @@ async def extract_roster_proxy(payload: ExtractRosterRequest):
             "error": "Tahlil qilish uchun matn yoki jadval ma'lumoti bo'sh.",
         }
 
-    api_key = _resolve_gemini_key(payload.customApiKey)
+    api_key = _resolve_gemini_key()
     if not api_key:
         return {
             "success": False,

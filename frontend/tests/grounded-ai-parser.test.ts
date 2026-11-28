@@ -16,22 +16,21 @@ import {
 
 describe('Grounded AI Extractor & Human-in-the-Loop Validation', () => {
   beforeEach(() => {
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
     vi.restoreAllMocks();
   });
 
   describe('API Key Management', () => {
-    it('saves and retrieves Gemini API key from localStorage', () => {
+    it('disables browser-side localStorage API key storage in favor of server .env key', () => {
       saveStoredGeminiApiKey('test-key-12345');
-      expect(getStoredGeminiApiKey()).toBe('test-key-12345');
-      expect(hasCustomApiKey()).toBe(true);
-      expect(getCustomApiKey()).toBe('test-key-12345');
-
-      saveStoredGeminiApiKey('');
+      expect(getStoredGeminiApiKey()).toBe('');
       expect(hasCustomApiKey()).toBe(false);
       expect(getCustomApiKey()).toBe('');
-      // Zero secret policy: no built-in key is shipped in frontend code
-      expect(getStoredGeminiApiKey()).toBe('');
+      if (typeof localStorage !== 'undefined') {
+        expect(localStorage.getItem('chsb_gemini_api_key')).toBeNull();
+      }
     });
   });
 

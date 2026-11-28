@@ -148,13 +148,13 @@ async def get_quarter_gradebook(
         ) or "MMTV_STANDARD"
         default_preset = school_preset
 
-        def _compute_for_q(q_num: int) -> tuple[dict, float, float]:
+        def _compute_for_q(q_num: int) -> tuple[dict, float, float, bool]:
             fb_candidates = fb_by_student_quarter.get((stu.id, q_num), [])
             matched_fb = None
             if subjectCode and subjectCode.upper() != "ALL":
                 target = subjectCode.strip().upper()
                 matched_fb = next((f for f in fb_candidates if f.subjectCode.upper() == target), None)
-            if not matched_fb and fb_candidates:
+            elif fb_candidates:
                 matched_fb = fb_candidates[0]
 
             cw = matched_fb.classwork if matched_fb else 0.0
@@ -171,23 +171,24 @@ async def get_quarter_gradebook(
                 if asm_q != q_num or not _matches_subject(asm, subjectCode):
                     continue
                 asm_type = (getattr(asm, "assessmentType", "CHSB") or "CHSB").upper()
-                if asm_type in {"BSB", "PRACTICAL"}:
+                if asm_type in {"BSB", "PRACTICAL", "PROJECT"}:
                     bsb_entries.append((res.score, res.maxScore))
                 else:
                     chsb_scores.append(normalize_chsb_score(res.score, res.maxScore))
 
             bsb_total = normalize_bsb_total(bsb_entries)
             chsb_total = max(chsb_scores) if chsb_scores else 0.0
+            has_activity = bool(matched_fb is not None or bsb_entries or chsb_scores)
             summary = calculate_quarter_total(fb_total, bsb_total, chsb_total, preset=school_preset)
-            return summary, cw, hw
+            return summary, cw, hw, has_activity
 
-        q_summary, classwork, homework = _compute_for_q(quarter)
+        q_summary, classwork, homework, _ = _compute_for_q(quarter)
 
-        # Collect totals across quarters where student has at least some score
+        # Collect totals across quarters where student has recorded assessments or scores
         available_quarter_totals: list[float] = []
         for q_idx in range(1, 5):
-            s_q, _, _ = _compute_for_q(q_idx)
-            if s_q["totalScore100"] > 0 or q_idx == quarter:
+            s_q, _, _, has_act = _compute_for_q(q_idx)
+            if has_act or q_idx == quarter:
                 available_quarter_totals.append(s_q["totalScore100"])
         annual = calculate_annual_grade(available_quarter_totals, preset=school_preset)
 

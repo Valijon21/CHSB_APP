@@ -287,3 +287,83 @@ def test_quarter_100_point_gradebook_aggregates_fb_bsb_chsb(
     assert row["chsbScore"] == 40.0
     assert row["totalScore100"] == 90.0
     assert row["grade5"] == "5"
+
+
+def test_project_type_strict_subject_formative_and_student_answers_payload(
+    client: TestClient,
+    teacher_headers: dict[str, str],
+):
+    cls_id, student_id, student_headers = _ensure_student_and_class(client, teacher_headers, "PROJ")
+    run_uid = uuid.uuid4().hex[:6].upper()
+
+    # Record formative score ONLY for MAT (must NOT leak when querying INF)
+    fb_mat = client.post(
+        "/api/v1/gradebook/formative",
+        headers=teacher_headers,
+        json={
+            "studentId": student_id,
+            "subjectCode": "MAT",
+            "quarter": 1,
+            "academicYear": "2026-2027",
+            "classwork": 6.0,
+            "homework": 4.0,
+        },
+    )
+    assert fb_mat.status_code == 200, fb_mat.text
+
+    # Create a PROJECT assessment (must be accepted and counted alongside BSB)
+    proj_resp = client.post(
+        "/api/v1/assessments",
+        headers=teacher_headers,
+        json={
+            "code": f"PROJ-INF-{run_uid}",
+            "title": "Loyiha ishi #1",
+            "subject": "Informatika",
+            "subjectCode": "INF",
+            "gradeLevel": 11,
+            "quarter": 1,
+            "academicYear": "2026-2027",
+            "assessmentType": "PROJECT",
+            "totalQuestions": 1,
+            "maxScore": 25.0,
+        },
+    )
+    assert proj_resp.status_code == 200, proj_resp.text
+    proj_id = proj_resp.json()["id"]
+
+    # Student starts & submits answers -> answers and rosterCode must be exposed in results
+    start = client.post(
+        "/api/v1/attempts",
+        headers=student_headers,
+        json={"tenantId": "al-xorazmiy", "assessmentId": proj_id, "rosterRecordId": student_id},
+    )
+    assert start.status_code == 200, start.text
+    attempt_id = start.json()["id"]
+
+    sub = client.post(
+        f"/api/v1/attempts/{attempt_id}/submit",
+        headers=student_headers,
+        json={"answers": {"q-1": "Loyiha javobi"}},
+    )
+    assert sub.status_code == 200, sub.text
+
+    grade_res = client.patch(
+        f"/api/v1/assessments/results/{attempt_id}/grade",
+        headers=teacher_headers,
+        json={"score": 20.0, "verifiedByTeacher": True},
+    )
+    assert grade_res.status_code == 200, grade_res.text
+    graded = grade_res.json()
+    assert graded["answers"] == {"q-1": "Loyiha javobi"}
+    assert graded["rosterCode"].startswith("STU-GB-PROJ-")
+
+    # Query INF gradebook: MAT formative (10.0) must NOT leak into INF (0.0); PROJECT 20/25 -> 40/50
+    gb_inf = client.get(
+        f"/api/v1/gradebook/quarter?tenantId=al-xorazmiy&classGroupId={cls_id}&quarter=1&academicYear=2026-2027&subjectCode=INF",
+        headers=teacher_headers,
+    )
+    assert gb_inf.status_code == 200, gb_inf.text
+    row_inf = gb_inf.json()["rows"][0]
+    assert row_inf["formativeScore"] == 0.0
+    assert row_inf["bsbScore"] == 40.0
+    assert row_inf["totalScore100"] == 40.0

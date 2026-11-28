@@ -99,8 +99,11 @@ export const AssessmentSchema = z.object({
   tenantId: z.string().min(1),
   title: z.string().min(1),
   subject: z.string().min(1),
+  subjectCode: z.string().optional(),
+  assessmentType: z.enum(['CHSB', 'BSB', 'PRACTICAL', 'PROJECT']).optional(),
   grade: z.number().int().min(1).max(11),
   quarter: z.number().int().min(1).max(4),
+  academicYear: z.string().optional(),
   assessmentNumber: z.number().int().min(1),
   durationMinutes: z.number().int().positive(),
   durationSeconds: z.number().int().positive(),
@@ -119,6 +122,8 @@ export type AssessmentSummary = z.infer<typeof AssessmentSummarySchema>;
 export interface CreateAssessmentInput {
   title: string;
   subject: string;
+  subjectCode?: string;
+  assessmentType?: 'CHSB' | 'BSB' | 'PRACTICAL' | 'PROJECT';
   gradeLevel: number;
   quarter: number;
   durationMinutes: number;

@@ -259,6 +259,8 @@ async def create_student(
         data={"studentCount": {"increment": 1}},
     )
 
+    all_assessments = await db.assessment.find_many(order={"code": "asc"})
+
     return {
         "id": created.id,
         "tenantId": created.tenantId,
@@ -274,7 +276,11 @@ async def create_student(
         "status": created.status.lower(),
         "group": created.group,
         "emaktabId": created.emaktabId,
-        "availableAssessmentIds": ["chsb-inf-11-q1"],
+        "availableAssessmentIds": _match_assessment_ids(
+            all_assessments,
+            created.classGroup.gradeLevel if created.classGroup else None,
+            created.group,
+        ),
         "createdAt": created.createdAt.isoformat(),
     }
 
@@ -345,6 +351,7 @@ async def bulk_create_students(
     all_classes = await db.classgroup.find_many(
         where={"tenantId": {"in": tenant_ids}}
     ) if tenant_ids else []
+    all_assessments = await db.assessment.find_many(order={"code": "asc"})
     class_map = {c.id: c for c in all_classes}
     class_name_map = {(c.tenantId, c.name.strip().lower()): c for c in all_classes}
 
@@ -439,7 +446,11 @@ async def bulk_create_students(
             "status": created.status.lower(),
             "group": created.group,
             "emaktabId": created.emaktabId,
-            "availableAssessmentIds": ["chsb-inf-11-q1"],
+            "availableAssessmentIds": _match_assessment_ids(
+                all_assessments,
+                created.classGroup.gradeLevel if created.classGroup else None,
+                created.group,
+            ),
             "createdAt": created.createdAt.isoformat(),
         })
 

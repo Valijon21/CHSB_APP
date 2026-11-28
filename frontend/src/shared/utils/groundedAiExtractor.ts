@@ -37,7 +37,6 @@ export interface GroundedExtractionResult {
 }
 
 const DEFAULT_MODEL = 'gemini-2.0-flash';
-const STORAGE_KEY = 'chsb_gemini_api_key';
 
 function getAuthToken(): string | null {
   try {
@@ -64,23 +63,19 @@ function getApiBaseUrl(): string {
 }
 
 export function hasCustomApiKey(): boolean {
-  return !!localStorage.getItem(STORAGE_KEY)?.trim();
+  return false;
 }
 
 export function getCustomApiKey(): string {
-  return localStorage.getItem(STORAGE_KEY)?.trim() || '';
+  return '';
 }
 
 export function getStoredGeminiApiKey(): string {
-  return getCustomApiKey();
+  return '';
 }
 
-export function saveStoredGeminiApiKey(key: string): void {
-  if (key && key.trim()) {
-    localStorage.setItem(STORAGE_KEY, key.trim());
-  } else {
-    localStorage.removeItem(STORAGE_KEY);
-  }
+export function saveStoredGeminiApiKey(_key: string): void {
+  // Server-managed GEMINI_API_KEY only; browser storage is disabled for security.
 }
 
 /**
@@ -115,7 +110,6 @@ export async function extractGroundedQuestionsWithAi(
   rawPdfText: string,
   options: { apiKey?: string; model?: string; maxScore?: number } = {}
 ): Promise<GroundedExtractionResult> {
-  const customKey = (options.apiKey ?? getCustomApiKey()).trim();
   const model = options.model || DEFAULT_MODEL;
   const maxScore = options.maxScore || 50;
 
@@ -145,7 +139,6 @@ export async function extractGroundedQuestionsWithAi(
         rawText: rawPdfText,
         model,
         maxScore,
-        customApiKey: customKey || undefined,
       }),
     });
 
@@ -205,10 +198,9 @@ export interface GroundedRosterExtractionResult {
  */
 export async function extractStudentsRosterWithAi(
   rawTableText: string,
-  options?: { apiKey?: string; defaultGroup?: string }
+  options?: { defaultGroup?: string }
 ): Promise<GroundedRosterExtractionResult> {
   const model = DEFAULT_MODEL;
-  const customKey = (options?.apiKey ?? getCustomApiKey()).trim();
   const defaultGroup = (options?.defaultGroup || (rawTableText.includes('2-gur') ? '2-guruh' : '1-guruh')) as '1-guruh' | '2-guruh';
 
   if (!rawTableText || !rawTableText.trim()) {
@@ -236,7 +228,6 @@ export async function extractStudentsRosterWithAi(
         rawText: rawTableText,
         defaultGroup,
         model,
-        customApiKey: customKey || undefined,
       }),
     });
 
