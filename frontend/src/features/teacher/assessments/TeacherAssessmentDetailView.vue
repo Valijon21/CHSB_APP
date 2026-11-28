@@ -3,6 +3,7 @@ import { onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
+import PdfDocumentPane from '../../assessment/components/PdfDocumentPane.vue';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
@@ -67,6 +68,15 @@ onMounted(async () => {
           </div>
         </div>
       </div>
+
+      <!-- Original Attached PDF Document Preview -->
+      <PdfDocumentPane
+        v-if="teacherStore.assessmentDetail.summary.hasPdf"
+        :assessment-id="teacherStore.assessmentDetail.summary.id"
+        :source-pdf-url="teacherStore.assessmentDetail.summary.sourcePdfUrl"
+        :file-name="teacherStore.assessmentDetail.summary.sourcePdfName"
+        height-class="h-[520px]"
+      />
 
       <!-- Question Difficulty & Cognitive Analysis Table -->
       <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs overflow-hidden transition-colors">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTenantStore } from '../tenant-context/tenantStore';
 import { useStudentAdmissionStore } from '../student-admission/admissionStore';
@@ -7,6 +7,8 @@ import { useAssessmentStore } from './assessmentStore';
 import { useExamProctor } from '../../shared/composables/useExamProctor';
 import QuestionBlockRenderer from '../../shared/components/QuestionBlockRenderer.vue';
 import BsbTaskRenderer from './components/BsbTaskRenderer.vue';
+import PdfDocumentPane from './components/PdfDocumentPane.vue';
+import PdfAnswerSheetPane from './components/PdfAnswerSheetPane.vue';
 import type { Question } from '../../entities/assessment/model';
 
 const route = useRoute();
@@ -53,6 +55,8 @@ function handleBsbAnswerUpdate(serializedVal: string) {
     assessmentStore.selectAnswer(assessmentStore.currentQuestion.id, serializedVal);
   }
 }
+
+const isSplitPdfMode = computed(() => Boolean(assessmentStore.assessment?.hasPdf));
 
 function isBsbTask(q: Question | null | undefined): boolean {
   if (!q) return false;
@@ -229,8 +233,31 @@ async function handleFinish() {
       </button>
     </div>
 
+    <!-- Split-Screen Original PDF + Answer Sheet Mode -->
+    <div v-if="isSplitPdfMode" class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      <div class="lg:col-span-7">
+        <PdfDocumentPane
+          :assessment-id="assessmentStore.assessment.id"
+          :source-pdf-url="assessmentStore.assessment.sourcePdfUrl"
+          :file-name="assessmentStore.assessment.sourcePdfName"
+        />
+      </div>
+
+      <div class="lg:col-span-5">
+        <PdfAnswerSheetPane
+          :assessment="assessmentStore.assessment"
+          :answers="assessmentStore.answers"
+          :answered-count="assessmentStore.answeredCount"
+          :total-questions="assessmentStore.totalQuestions"
+          :is-submitting="assessmentStore.isSubmitting"
+          @select-answer="(qId, val) => assessmentStore.selectAnswer(qId, val)"
+          @finish="handleFinish"
+        />
+      </div>
+    </div>
+
     <!-- Main Workspace (Col 1-3 Question, Col 4 Navigator) -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+    <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-4">
       <!-- Question Content Area -->
       <div
         v-if="assessmentStore.currentQuestion"

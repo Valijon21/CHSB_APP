@@ -86,7 +86,8 @@ export const useAssessmentStore = defineStore('assessment', () => {
       }
 
       let questions = data.questions;
-      if (options?.shuffle) {
+      // Preserve canonical 1..N and A/B/C/D order when student answers against a static original PDF
+      if (options?.shuffle && !data.hasPdf) {
         const seed = `${tenantId}_${assessmentId}_${rosterRecordId}`;
         questions = seededShuffle(data.questions, `${seed}_questions`).map((q, idx) => ({
           ...q,
