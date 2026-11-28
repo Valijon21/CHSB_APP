@@ -248,7 +248,10 @@ export const useTeacherStore = defineStore('teacher', () => {
     isLoading.value = true;
     errorMessage.value = null;
     try {
-      const created = await api.teacher.createAssessment(input);
+      let created = await api.teacher.createAssessment(input);
+      if (input.pdfFile && api.teacher.uploadAssessmentPdf) {
+        created = await api.teacher.uploadAssessmentPdf(created.id, input.pdfFile);
+      }
       assessments.value.unshift(created);
       return created;
     } catch (err) {

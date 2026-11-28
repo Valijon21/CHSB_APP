@@ -97,6 +97,13 @@ async function handleCreateAssessment(input: CreateAssessmentInput) {
             <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
               {{ asm.status === 'available' ? 'Faol / Ochiq' : 'Rejalashtirilgan' }}
             </span>
+            <span
+              v-if="asm.hasPdf"
+              class="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+              :title="asm.sourcePdfName || 'Asl PDF biriktirilgan'"
+            >
+              📄 PDF
+            </span>
           </div>
 
           <h2 class="text-lg font-bold text-slate-900 dark:text-white">

@@ -21,6 +21,7 @@ export interface TeacherRepository {
   getRoster(tenantId: string, classGroupId?: string): Promise<StudentRosterRecord[]>;
   getAssessments(tenantId: string): Promise<AssessmentSummary[]>;
   createAssessment(input: CreateAssessmentInput): Promise<AssessmentSummary>;
+  uploadAssessmentPdf?(assessmentId: string, file: File): Promise<AssessmentSummary>;
   getResults(tenantId: string): Promise<AssessmentResult[]>;
   gradeResult?(attemptId: string, input: GradeResultInput): Promise<AssessmentResult>;
   getQuarterGradebook?(

@@ -88,6 +88,10 @@ export interface BackendAssessmentItem {
   totalQuestions: number;
   maxScore: number;
   targetGroup?: string;
+  hasPdf?: boolean;
+  sourcePdfName?: string;
+  sourcePdfSize?: number;
+  sourcePdfUrl?: string;
   status?: string;
   questions?: Array<{
     id: string;

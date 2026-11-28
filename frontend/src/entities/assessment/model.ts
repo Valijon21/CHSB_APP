@@ -110,6 +110,9 @@ export const AssessmentSchema = z.object({
   questionCount: z.number().int().positive(),
   maxScore: z.number().positive(),
   targetGroup: z.string().optional(),
+  hasPdf: z.boolean().optional(),
+  sourcePdfName: z.string().optional(),
+  sourcePdfUrl: z.string().optional(),
   status: z.enum(['scheduled', 'available', 'closed']),
   questions: z.array(QuestionSchema),
 });
@@ -131,6 +134,8 @@ export interface CreateAssessmentInput {
   maxScore: number;
   targetGroup?: string;
   code?: string;
+  answerKey?: string;
+  pdfFile?: File;
   questions?: Array<{
     prompt: string;
     options: Array<{ id: string; label: string; text: string }>;

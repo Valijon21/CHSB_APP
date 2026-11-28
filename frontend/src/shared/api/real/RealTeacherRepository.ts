@@ -87,6 +87,9 @@ export class RealTeacherRepository implements TeacherRepository {
         questionCount: a.totalQuestions || 15,
         maxScore: a.maxScore || 40,
         targetGroup: a.targetGroup || 'all',
+        hasPdf: Boolean(a.hasPdf),
+        sourcePdfName: a.sourcePdfName || undefined,
+        sourcePdfUrl: a.sourcePdfUrl || undefined,
         status: (a.status === 'closed' || a.status === 'scheduled' ? a.status : 'available') as 'available' | 'scheduled' | 'closed',
       }));
     } catch {
@@ -95,7 +98,8 @@ export class RealTeacherRepository implements TeacherRepository {
   }
 
   async createAssessment(input: CreateAssessmentInput): Promise<AssessmentSummary> {
-    const res = await httpClient.post<BackendAssessmentItem>('/assessments', input);
+    const { pdfFile: _pdfFile, ...payload } = input;
+    const res = await httpClient.post<BackendAssessmentItem>('/assessments', payload);
     return {
       id: res.id,
       tenantId: res.tenantId || 'tenant-al-xorazmiy',
@@ -112,6 +116,65 @@ export class RealTeacherRepository implements TeacherRepository {
       questionCount: res.totalQuestions || input.totalQuestions,
       maxScore: res.maxScore || input.maxScore,
       targetGroup: res.targetGroup || input.targetGroup || 'all',
+      hasPdf: Boolean(res.hasPdf),
+      sourcePdfName: res.sourcePdfName || undefined,
+      sourcePdfUrl: res.sourcePdfUrl || undefined,
+      status: 'available' as const,
+    };
+  }
+
+  async uploadAssessmentPdf(assessmentId: string, file: File): Promise<AssessmentSummary> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers: Record<string, string> = {};
+    try {
+      const rawSession =
+        sessionStorage.getItem('chsb_auth_session') ||
+        localStorage.getItem('chsb_auth_session');
+      if (rawSession) {
+        const parsed = JSON.parse(rawSession);
+        const token = parsed?.token || parsed?.user?.token;
+        if (token) headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    const isLocal =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.port === '5173' ||
+        window.location.port === '5174');
+    const apiBase = isLocal ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1');
+    const res = await fetch(`${apiBase.replace(/\/$/, '')}/assessments/${assessmentId}/pdf`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.detail || 'PDF faylni yuklashda xatolik yuz berdi.');
+    }
+    const a = (await res.json()) as BackendAssessmentItem;
+    return {
+      id: a.id,
+      tenantId: a.tenantId || 'tenant-al-xorazmiy',
+      title: a.title,
+      subject: a.subject,
+      subjectCode: a.subjectCode || undefined,
+      assessmentType: (a.assessmentType as AssessmentSummary['assessmentType']) || 'CHSB',
+      grade: a.gradeLevel || 11,
+      quarter: a.quarter || 1,
+      academicYear: a.academicYear || '2026-2027',
+      assessmentNumber: 1,
+      durationMinutes: a.durationMinutes || 45,
+      durationSeconds: (a.durationMinutes || 45) * 60,
+      questionCount: a.totalQuestions || 15,
+      maxScore: a.maxScore || 40,
+      targetGroup: a.targetGroup || 'all',
+      hasPdf: Boolean(a.hasPdf),
+      sourcePdfName: a.sourcePdfName || undefined,
+      sourcePdfUrl: a.sourcePdfUrl || undefined,
       status: 'available' as const,
     };
   }
@@ -305,6 +368,9 @@ export class RealTeacherRepository implements TeacherRepository {
           questionCount: assessment.totalQuestions || (assessment.questions?.length ?? 0),
           maxScore: assessment.maxScore || 40,
           targetGroup: assessment.targetGroup || undefined,
+          hasPdf: Boolean(assessment.hasPdf),
+          sourcePdfName: assessment.sourcePdfName || undefined,
+          sourcePdfUrl: assessment.sourcePdfUrl || undefined,
           status: (assessment.status === 'closed' || assessment.status === 'scheduled' ? assessment.status : 'available') as AssessmentSummary['status'],
         },
         totalAssigned: stats.totalAssigned,

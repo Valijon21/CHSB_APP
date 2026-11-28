@@ -4,14 +4,7 @@ import { useModalA11y } from '../../../shared/composables/useModalA11y';
 import { getActivePinia } from 'pinia';
 import { useOrganizationStore } from '../../organization/store/organizationStore';
 import type { CreateAssessmentInput } from '../../../entities/assessment/model';
-import { extractTextFromPdf } from '../../../shared/utils/pdfExtractor';
-import { parseExamQuestionsFromText, type ParsedQuestionItem } from '../../../shared/utils/pdfQuestionParser';
 import { getBsbStandardByGrade } from '../../../entities/assessment/officialBsbData';
-import {
-  extractGroundedQuestionsWithAi,
-  type GroundedQuestionItem,
-} from '../../../shared/utils/groundedAiExtractor';
-import AiQuestionReviewCard from './components/AiQuestionReviewCard.vue';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -41,6 +34,16 @@ const availableSubjects = computed(() => {
   ];
 });
 
+interface BsbPdfTaskConfig {
+  number: number;
+  points: number;
+  subCount: number;
+}
+
+const MAX_PDF_BYTES = 15 * 1024 * 1024;
+const OMR_OPTIONS = ['A', 'B', 'C', 'D'] as const;
+const SUB_LABELS = ['a', 'b', 'c', 'd', 'e', 'f'] as const;
+
 const activeTab = ref<'params' | 'questions'>('params');
 const title = ref('');
 const subject = ref(availableSubjects.value[0] || 'Informatika va AT');
@@ -54,124 +57,141 @@ const targetGroup = ref<string>('all');
 const errorMessage = ref<string | null>(null);
 const isSubmitting = ref<boolean>(false);
 
-// Question creation mode
-const questionMode = ref<'auto' | 'custom' | 'pdf'>('auto');
+// Question creation mode: Original Split-PDF mode is primary
+const questionMode = ref<'pdf' | 'auto' | 'custom'>('pdf');
 const customQuestionsText = ref('');
 
-// PDF Upload & Grounded AI Extraction State
-const isPdfProcessing = ref(false);
+// Original PDF upload state (no client-side text extraction)
+const selectedPdfFile = ref<File | null>(null);
 const pdfFileName = ref('');
 const pdfFileSize = ref('');
-const pdfQuestions = ref<ParsedQuestionItem[]>([]);
-const pdfGroundedQuestions = ref<GroundedQuestionItem[]>([]);
-const pdfWarnings = ref<string[]>([]);
 const pdfDropzoneActive = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const aiExtractionMode = ref<'gemini' | 'local'>('local');
-const lastExtractionSource = ref<'ai' | 'local'>('local');
 
-const approvedCount = computed(() => pdfGroundedQuestions.value.filter((q) => q.isApprovedByHuman).length);
-const allApproved = computed(
-  () => pdfGroundedQuestions.value.length > 0 && approvedCount.value === pdfGroundedQuestions.value.length
+// Right-pane Answer Sheet state for CHSB (OMR answer key)
+const chsbAnswerKeys = ref<Record<number, string>>({});
+const answerKeyText = ref('');
+
+function buildDefaultBsbTasks(count: number, totalMax: number): BsbPdfTaskConfig[] {
+  const safeCount = Math.max(1, Math.min(20, count));
+  const basePts = Math.floor((totalMax / safeCount) * 10) / 10;
+  let remaining = Number(totalMax);
+  const items: BsbPdfTaskConfig[] = [];
+  for (let i = 1; i <= safeCount; i++) {
+    const pts = i === safeCount ? Math.max(1, Math.round(remaining * 10) / 10) : Math.max(1, basePts);
+    remaining = Math.max(0, Math.round((remaining - pts) * 10) / 10);
+    items.push({ number: i, points: pts, subCount: 0 });
+  }
+  return items;
+}
+
+// Right-pane Answer Sheet tasks for BSB / PROJECT
+const bsbPdfTasks = ref<BsbPdfTaskConfig[]>(buildDefaultBsbTasks(5, 50));
+
+const chsbQuestionNumbers = computed(() => {
+  const count = Math.max(1, Math.min(100, Number(totalQuestions.value) || 1));
+  return Array.from({ length: count }, (_, i) => i + 1);
+});
+
+const bsbTotalPoints = computed(() =>
+  Math.round(bsbPdfTasks.value.reduce((acc, t) => acc + (Number(t.points) || 0), 0) * 10) / 10
 );
 
-function approveAllQuestions() {
-  pdfGroundedQuestions.value.forEach((q) => {
-    q.isApprovedByHuman = true;
-  });
-}
-
-function toggleApproval(idx: number) {
-  const item = pdfGroundedQuestions.value[idx];
-  if (item) {
-    item.isApprovedByHuman = !item.isApprovedByHuman;
+function syncAnswerKeyTextFromMap() {
+  const count = Math.max(1, Math.min(100, Number(totalQuestions.value) || 1));
+  const pairs: string[] = [];
+  for (let i = 1; i <= count; i++) {
+    const letter = chsbAnswerKeys.value[i];
+    if (letter) {
+      pairs.push(`${i}-${letter}`);
+    }
   }
+  answerKeyText.value = pairs.join(', ');
 }
 
-function updateGroundedQuestion(idx: number, updated: GroundedQuestionItem) {
-  pdfGroundedQuestions.value[idx] = updated;
+function setChsbQuestionKey(num: number, letter: string) {
+  chsbAnswerKeys.value = { ...chsbAnswerKeys.value, [num]: letter.toUpperCase() };
+  syncAnswerKeyTextFromMap();
 }
 
-function deleteGroundedQuestion(idx: number) {
-  pdfGroundedQuestions.value.splice(idx, 1);
-  totalQuestions.value = pdfGroundedQuestions.value.length;
+function handleAnswerKeyTextInput(val: string) {
+  answerKeyText.value = val;
+  const parsed: Record<number, string> = {};
+  const pairRegex = /(\d+)\s*[-:.)]?\s*([A-Da-d])/g;
+  let match: RegExpExecArray | null = pairRegex.exec(val);
+  let foundPairs = false;
+  while (match !== null) {
+    foundPairs = true;
+    const num = Number(match[1]);
+    const letter = match[2]?.toUpperCase();
+    if (num >= 1 && num <= 100 && letter) {
+      parsed[num] = letter;
+    }
+    match = pairRegex.exec(val);
+  }
+  if (!foundPairs) {
+    const letters = val.match(/\b([A-Da-d])\b/g) || [];
+    letters.forEach((letter, idx) => {
+      parsed[idx + 1] = letter.toUpperCase();
+    });
+  }
+  chsbAnswerKeys.value = parsed;
 }
 
-async function handlePdfFile(file: File) {
+function fillDefaultAnswerKeys(letter: string = 'A') {
+  const count = Math.max(1, Math.min(100, Number(totalQuestions.value) || 1));
+  const next: Record<number, string> = {};
+  for (let i = 1; i <= count; i++) {
+    next[i] = letter;
+  }
+  chsbAnswerKeys.value = next;
+  syncAnswerKeyTextFromMap();
+}
+
+function addBsbTaskRow() {
+  const nextNum = bsbPdfTasks.value.length + 1;
+  bsbPdfTasks.value.push({ number: nextNum, points: 5, subCount: 0 });
+  totalQuestions.value = bsbPdfTasks.value.length;
+}
+
+function removeBsbTaskRow(idx: number) {
+  if (bsbPdfTasks.value.length <= 1) return;
+  bsbPdfTasks.value.splice(idx, 1);
+  bsbPdfTasks.value.forEach((t, i) => {
+    t.number = i + 1;
+  });
+  totalQuestions.value = bsbPdfTasks.value.length;
+}
+
+function loadOfficialBsbSheet() {
+  applyBsbStandard();
+  const std = getBsbStandardByGrade(gradeLevel.value);
+  bsbPdfTasks.value = std.sampleQuestions.map((q, idx) => ({
+    number: q.order || idx + 1,
+    points: q.points,
+    subCount: q.subQuestions ? q.subQuestions.length : 0,
+  }));
+  totalQuestions.value = bsbPdfTasks.value.length;
+}
+
+function handlePdfFile(file: File) {
   if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+  const isPdfExt = file.name.toLowerCase().endsWith('.pdf');
+  const isPdfMime = file.type === 'application/pdf';
+  if (!isPdfExt && !isPdfMime) {
     errorMessage.value = "Iltimos, faqat .pdf formatidagi faylni yuklang!";
     return;
   }
-  isPdfProcessing.value = true;
-  errorMessage.value = null;
-  pdfFileName.value = file.name;
-  pdfFileSize.value = `${(file.size / 1024).toFixed(1)} KB`;
-  pdfGroundedQuestions.value = [];
-  pdfWarnings.value = [];
-
-  try {
-    const rawText = await extractTextFromPdf(file);
-    let extracted: GroundedQuestionItem[] = [];
-
-    // Mode 1: Sun'iy intellekt (Backend AI Proxy) with Strict Grounding
-    if (aiExtractionMode.value === 'gemini') {
-      const aiRes = await extractGroundedQuestionsWithAi(rawText, {
-        maxScore: Number(maxScore.value),
-      });
-
-      if (aiRes.success && aiRes.questions.length > 0) {
-        extracted = aiRes.questions;
-        lastExtractionSource.value = 'ai';
-      } else if (aiRes.error) {
-        pdfWarnings.value.push(`Sun'iy intellekt: ${aiRes.error}. Standart BSB algoritmi orqali savollar ajratildi.`);
-      }
-    }
-
-    // Mode 2: Local BSB deterministic parser (Fallback or direct)
-    if (extracted.length === 0) {
-      const localParsed = parseExamQuestionsFromText(rawText, {
-        maxScore: Number(maxScore.value),
-      });
-
-      if (localParsed.success && localParsed.questions.length > 0) {
-        extracted = localParsed.questions.map((q, idx) => ({
-          id: `local-q-${q.number || idx + 1}`,
-          number: q.number || idx + 1,
-          title: `${q.number || idx + 1}-topshiriq`,
-          prompt: q.prompt,
-          taskType: (q.taskType || (q.options && q.options.length >= 2 ? 'multiple_choice' : 'subquestions')) as GroundedQuestionItem['taskType'],
-          points: q.points,
-          options: q.options,
-          correctOptionId: q.correctOptionId,
-          subQuestions: q.subQuestions?.map((s) => ({
-            id: s.id,
-            label: s.label,
-            prompt: s.prompt,
-            points: s.points,
-            rubric: s.rubric,
-          })),
-          rubric: q.rubric,
-          sourceExcerpt: q.sourceExcerpt || q.prompt,
-          isApprovedByHuman: false,
-        }));
-        lastExtractionSource.value = 'local';
-      }
-    }
-
-    if (extracted.length === 0) {
-      errorMessage.value = "PDF fayldan topshiriqlar ajratib olinmadi. Iltimos, fayl matni to'liq ekanligini tekshiring.";
-      pdfGroundedQuestions.value = [];
-    } else {
-      pdfGroundedQuestions.value = extracted;
-      totalQuestions.value = extracted.length;
-    }
-  } catch (err: unknown) {
-    const msg = (err as Error)?.message || "PDF faylni tahlil qilishda xatolik yuz berdi.";
-    errorMessage.value = msg;
-  } finally {
-    isPdfProcessing.value = false;
+  if (file.size > MAX_PDF_BYTES) {
+    errorMessage.value = "PDF fayl hajmi 15 MB dan oshmasligi kerak!";
+    return;
   }
+  errorMessage.value = null;
+  selectedPdfFile.value = file;
+  pdfFileName.value = file.name;
+  pdfFileSize.value = file.size >= 1024 * 1024
+    ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+    : `${Math.max(1, Math.round(file.size / 1024))} KB`;
 }
 
 function onFileSelect(event: Event) {
@@ -191,16 +211,13 @@ function onDrop(event: DragEvent) {
 }
 
 function removePdf() {
+  selectedPdfFile.value = null;
   pdfFileName.value = '';
   pdfFileSize.value = '';
-  pdfQuestions.value = [];
-  pdfGroundedQuestions.value = [];
-  pdfWarnings.value = [];
   if (fileInputRef.value) {
     fileInputRef.value.value = '';
   }
 }
-
 
 interface ParsedQuestion {
   prompt: string;
@@ -287,8 +304,14 @@ function applyBsbStandard(grade?: number) {
   const g = grade ?? Number(gradeLevel.value);
   gradeLevel.value = g;
   const std = getBsbStandardByGrade(g);
-  maxScore.value = g <= 7 ? 25 : 50;
+  const nextMax = g <= 7 ? 25 : 50;
+  maxScore.value = nextMax;
   totalQuestions.value = std.sampleQuestions.length || 5;
+  bsbPdfTasks.value = std.sampleQuestions.map((q, idx) => ({
+    number: q.order || idx + 1,
+    points: q.points,
+    subCount: q.subQuestions ? q.subQuestions.length : 0,
+  }));
   durationMinutes.value = 40;
   title.value = `${subject.value}, ${g}-sinf. ${quarter.value}-BSB (Rasmiy ${maxScore.value} ball mezon)`;
 }
@@ -296,9 +319,17 @@ function applyBsbStandard(grade?: number) {
 function onAssessmentTypeChange() {
   if (assessmentType.value === 'BSB' || assessmentType.value === 'PROJECT') {
     const g = Number(gradeLevel.value);
-    maxScore.value = g <= 7 ? 25 : 50;
+    const nextMax = g <= 7 ? 25 : 50;
+    maxScore.value = nextMax;
     const std = getBsbStandardByGrade(g);
     totalQuestions.value = std.sampleQuestions.length || 5;
+    bsbPdfTasks.value = std.sampleQuestions.length
+      ? std.sampleQuestions.map((q, idx) => ({
+          number: q.order || idx + 1,
+          points: q.points,
+          subCount: q.subQuestions ? q.subQuestions.length : 0,
+        }))
+      : buildDefaultBsbTasks(totalQuestions.value, nextMax);
   } else {
     maxScore.value = 40;
     totalQuestions.value = 15;
@@ -312,25 +343,6 @@ function onGradeChange() {
   } else {
     autoGenerateTitle();
   }
-}
-
-function loadOfficialBsbQuestions() {
-  applyBsbStandard();
-  const std = getBsbStandardByGrade(gradeLevel.value);
-  pdfGroundedQuestions.value = std.sampleQuestions.map((q) => ({
-    id: q.id,
-    number: q.order,
-    title: `${q.order}-topshiriq`,
-    prompt: q.blocks[0]?.type === 'paragraph' ? q.blocks[0].text : `${q.order}-topshiriq`,
-    taskType: q.taskType || 'subquestions',
-    points: q.points,
-    subQuestions: q.subQuestions || [],
-    rubric: q.rubricCriteria?.[0]?.guideline || '',
-    sourceExcerpt: q.blocks[0]?.type === 'paragraph' ? q.blocks[0].text : '',
-    isApprovedByHuman: true,
-  }));
-  totalQuestions.value = std.sampleQuestions.length;
-  questionMode.value = 'pdf';
 }
 
 function handleClose() {
@@ -352,6 +364,32 @@ function autoGenerateTitle() {
   }
 }
 
+function buildBsbQuestionsPayload(): CreateAssessmentInput['questions'] {
+  return bsbPdfTasks.value.map((task) => {
+    const hasSubs = task.subCount > 0;
+    const subCount = Math.min(SUB_LABELS.length, Math.max(0, task.subCount));
+    const perSub = hasSubs ? Math.round((Number(task.points) / subCount) * 10) / 10 : 0;
+    const subQuestions = hasSubs
+      ? SUB_LABELS.slice(0, subCount).map((lbl, idx) => ({
+          id: `q${task.number}-${lbl}`,
+          label: `${lbl})`,
+          prompt: `Asl PDF hujjatdagi ${task.number}-topshiriq ${lbl}) bandi javobi`,
+          points: idx === subCount - 1
+            ? Math.max(0.5, Math.round((Number(task.points) - perSub * (subCount - 1)) * 10) / 10)
+            : perSub,
+        }))
+      : undefined;
+
+    return {
+      prompt: `${task.number}-topshiriq (Chap tomondagi asl PDF hujjatga qarang)`,
+      options: [],
+      points: Number(task.points) || 5,
+      taskType: hasSubs ? 'subquestions' : 'open_text',
+      subQuestions,
+    };
+  });
+}
+
 function handleSubmit() {
   errorMessage.value = null;
 
@@ -369,35 +407,36 @@ function handleSubmit() {
   }
 
   let finalQuestions: CreateAssessmentInput['questions'] | undefined = undefined;
+  let finalAnswerKey: string | undefined = undefined;
+  let finalPdfFile: File | undefined = undefined;
 
   if (questionMode.value === 'pdf') {
-    if (pdfGroundedQuestions.value.length === 0) {
-      errorMessage.value = "PDF rejimida kamida bitta topshiriq aniqlangan bo'lishi shart!";
+    if (!selectedPdfFile.value) {
+      errorMessage.value = "Asl PDF rejimida imtihon PDF fayli yuklanishi shart!";
       activeTab.value = 'questions';
       return;
     }
-    if (!allApproved.value) {
-      errorMessage.value = `Inson nazorati talab etiladi: Barcha topshiriqlar (${pdfGroundedQuestions.value.length} tadan ${approvedCount.value} tasi tasdiqlangan) inson tomonidan ko'rib chiqilib tasdiqlanishi shart! ("Barchasini tasdiqlash" tugmasini bosing yoki har birini alohida tekshiring).`;
-      activeTab.value = 'questions';
-      return;
+    finalPdfFile = selectedPdfFile.value;
+
+    if (assessmentType.value === 'CHSB') {
+      if (totalQuestions.value < 1 || totalQuestions.value > 100) {
+        errorMessage.value = "Savollar soni 1 dan 100 tagacha bo'lishi kerak!";
+        return;
+      }
+      const pairs: string[] = [];
+      for (let i = 1; i <= Number(totalQuestions.value); i++) {
+        pairs.push(`${i}-${chsbAnswerKeys.value[i] || 'A'}`);
+      }
+      finalAnswerKey = pairs.join(', ');
+    } else {
+      if (bsbPdfTasks.value.length === 0) {
+        errorMessage.value = "BSB / Loyiha javob varaqasida kamida bitta topshiriq bo'lishi shart!";
+        activeTab.value = 'questions';
+        return;
+      }
+      finalQuestions = buildBsbQuestionsPayload();
+      totalQuestions.value = finalQuestions.length;
     }
-    finalQuestions = pdfGroundedQuestions.value.map((q) => ({
-      prompt: q.prompt,
-      options: q.options || [],
-      correctOptionId: q.correctOptionId || 'opt-a',
-      points: q.points,
-      taskType: q.taskType,
-      subQuestions: q.subQuestions?.map((sub) => ({
-        id: sub.id,
-        label: sub.label,
-        prompt: sub.prompt,
-        points: sub.points,
-        rubric: sub.rubric,
-      })),
-      rubric: q.rubric,
-      sourceExcerpt: q.sourceExcerpt,
-    }));
-    totalQuestions.value = pdfGroundedQuestions.value.length;
   } else if (questionMode.value === 'custom') {
     if (parsedQuestions.value.length === 0) {
       errorMessage.value = "Maxsus savollar rejimida kamida bitta to'liq test savoli (savol matni va kamida 2 ta variant) kiritilishi shart!";
@@ -424,6 +463,8 @@ function handleSubmit() {
     totalQuestions: Number(totalQuestions.value),
     maxScore: Number(maxScore.value),
     targetGroup: targetGroup.value,
+    answerKey: finalAnswerKey,
+    pdfFile: finalPdfFile,
     questions: finalQuestions,
   });
 
@@ -442,18 +483,12 @@ function resetForm() {
   maxScore.value = 40;
   targetGroup.value = 'all';
   activeTab.value = 'params';
-  questionMode.value = 'auto';
+  questionMode.value = 'pdf';
   customQuestionsText.value = '';
-  pdfFileName.value = '';
-  pdfFileSize.value = '';
-  pdfQuestions.value = [];
-  pdfGroundedQuestions.value = [];
-  pdfWarnings.value = [];
-  isPdfProcessing.value = false;
-  lastExtractionSource.value = 'ai';
-  if (fileInputRef.value) {
-    fileInputRef.value.value = '';
-  }
+  chsbAnswerKeys.value = {};
+  answerKeyText.value = '';
+  bsbPdfTasks.value = buildDefaultBsbTasks(5, 50);
+  removePdf();
   errorMessage.value = null;
   isSubmitting.value = false;
 }
@@ -468,7 +503,7 @@ function resetForm() {
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs font-sans"
   >
     <div
-      class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 max-w-xl w-full p-6 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto"
+      class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 max-w-2xl w-full p-6 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto"
     >
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
         <div>
@@ -476,16 +511,17 @@ function resetForm() {
             <svg class="w-5 h-5 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Yangi Imtihon Qo'shish (CHSB)
+            Yangi Imtihon Qo'shish ({{ assessmentType }})
           </h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            O'qituvchilar va maktab ma'muriyati uchun yangi baholash testini yaratish
+            O'qituvchilar uchun asl PDF yoki raqamli baholash topshirig'ini yaratish
           </p>
         </div>
 
         <button
           type="button"
           @click="handleClose"
+          aria-label="Modalni yopish"
           class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -500,10 +536,10 @@ function resetForm() {
           type="button"
           @click="activeTab = 'params'"
           :class="[
-            'flex-1 py-1.5 px-3 rounded-lg transition-all text-center',
+            'flex-1 py-1.5 px-3 rounded-lg transition-all text-center cursor-pointer',
             activeTab === 'params'
               ? 'bg-white dark:bg-slate-800 text-teal-800 dark:text-teal-300 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           ]"
         >
           ⚙️ 1. Asosiy Parametrlar
@@ -512,16 +548,22 @@ function resetForm() {
           type="button"
           @click="activeTab = 'questions'"
           :class="[
-            'flex-1 py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5',
+            'flex-1 py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer',
             activeTab === 'questions'
               ? 'bg-white dark:bg-slate-800 text-teal-800 dark:text-teal-300 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           ]"
         >
-          <span>❓ 2. Test Savollari</span>
+          <span>📄 2. PDF va Javoblar Varaqasi</span>
           <span
-            v-if="questionMode === 'custom' && parsedQuestions.length > 0"
-            class="px-1.5 py-0.2 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300 text-[10px]"
+            v-if="questionMode === 'pdf' && selectedPdfFile"
+            class="px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[10px]"
+          >
+            PDF biriktirildi
+          </span>
+          <span
+            v-else-if="questionMode === 'custom' && parsedQuestions.length > 0"
+            class="px-1.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300 text-[10px]"
           >
             {{ parsedQuestions.length }} ta
           </span>
@@ -624,7 +666,7 @@ function resetForm() {
             </div>
           </div>
 
-          <!-- Mo'ljallangan Guruh (Guruhga bo'linadigan fanlar uchun) -->
+          <!-- Mo'ljallangan Guruh -->
           <div class="p-3 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
             <div class="flex items-center justify-between mb-1.5">
               <label class="font-bold text-slate-700 dark:text-slate-300 text-xs">
@@ -676,7 +718,7 @@ function resetForm() {
             <div>
               <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Vaqt (daqiqa)</label>
               <input
-                v-model="durationMinutes"
+                v-model.number="durationMinutes"
                 type="number"
                 min="10"
                 max="180"
@@ -685,9 +727,9 @@ function resetForm() {
             </div>
 
             <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Savollar soni</label>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Savollar / topshiriqlar</label>
               <input
-                v-model="totalQuestions"
+                v-model.number="totalQuestions"
                 type="number"
                 min="1"
                 max="100"
@@ -698,7 +740,7 @@ function resetForm() {
             <div>
               <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Maksimal ball</label>
               <input
-                v-model="maxScore"
+                v-model.number="maxScore"
                 type="number"
                 min="1"
                 max="100"
@@ -706,13 +748,43 @@ function resetForm() {
               />
             </div>
           </div>
+
+          <div class="flex justify-end">
+            <button
+              type="button"
+              @click="activeTab = 'questions'"
+              class="px-3.5 py-2 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 font-bold text-xs hover:bg-teal-100 dark:hover:bg-teal-900/60 transition cursor-pointer"
+            >
+              2-qadam: Asl PDF faylni biriktirish →
+            </button>
+          </div>
         </div>
 
-        <!-- TAB 2: TEST SAVOLLARI -->
+        <!-- TAB 2: PDF VA JAVOBLAR VARAQASI -->
         <div v-show="activeTab === 'questions'" class="space-y-3.5">
           <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">Savollar shakllantirish usuli:</label>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">Imtihon shakli:</label>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <label
+                :class="[
+                  'p-3 rounded-xl border cursor-pointer flex items-start gap-2.5 transition',
+                  questionMode === 'pdf'
+                    ? 'border-teal-600 bg-teal-50/70 dark:bg-teal-950/40 text-teal-950 dark:text-teal-100 shadow-xs ring-1 ring-teal-600/30'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 text-slate-700 dark:text-slate-300'
+                ]"
+              >
+                <input type="radio" value="pdf" v-model="questionMode" class="mt-0.5 text-teal-600" />
+                <div>
+                  <span class="font-bold block text-xs flex items-center gap-1">
+                    <span>📄 Asl PDF</span>
+                    <span class="px-1.5 py-0.2 bg-teal-700 text-white rounded text-[9px] font-mono">Asosiy</span>
+                  </span>
+                  <span class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight block mt-0.5">
+                    Chapda PDF + O'ngda Javoblar varaqasi
+                  </span>
+                </div>
+              </label>
+
               <label
                 :class="[
                   'p-3 rounded-xl border cursor-pointer flex items-start gap-2.5 transition',
@@ -742,29 +814,11 @@ function resetForm() {
                   <span class="text-[11px] text-slate-500 dark:text-slate-400">Nusxalangan matn</span>
                 </div>
               </label>
-
-              <label
-                :class="[
-                  'p-3 rounded-xl border cursor-pointer flex items-start gap-2.5 transition',
-                  questionMode === 'pdf'
-                    ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/30 text-teal-900 dark:text-teal-200 shadow-xs'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 text-slate-700 dark:text-slate-300'
-                ]"
-              >
-                <input type="radio" value="pdf" v-model="questionMode" class="mt-0.5 text-teal-600" />
-                <div>
-                  <span class="font-bold block text-xs flex items-center gap-1">
-                    <span>📄 PDF Yuklash</span>
-                    <span class="px-1.5 py-0.2 bg-teal-600 text-white rounded text-[9px] font-mono">Yangi</span>
-                  </span>
-                  <span class="text-[11px] text-slate-500 dark:text-slate-400">PDF hujjatdan avto-tahlil</span>
-                </div>
-              </label>
             </div>
           </div>
 
-          <!-- PDF UPLOAD & REVIEW MODE -->
-          <div v-if="questionMode === 'pdf'" class="space-y-3">
+          <!-- PRIMARY MODE: ORIGINAL PDF + RIGHT ANSWER SHEET -->
+          <div v-if="questionMode === 'pdf'" class="space-y-3.5">
             <input
               ref="fileInputRef"
               type="file"
@@ -773,36 +827,14 @@ function resetForm() {
               class="hidden"
             />
 
-            <!-- Top Extraction Mode Selector (Local Deterministic First, AI Optional) -->
-            <div class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 flex-wrap">
-              <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Tahlil usuli:</span>
-              <button
-                type="button"
-                @click="aiExtractionMode = 'local'"
-                :class="[
-                  'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
-                  aiExtractionMode === 'local'
-                    ? 'bg-teal-700 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
-                ]"
-              >
-                <span>⚡ Lokal algoritm (AI siz, tezkor)</span>
-              </button>
-              <button
-                type="button"
-                @click="aiExtractionMode = 'gemini'"
-                :class="[
-                  'px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer',
-                  aiExtractionMode === 'gemini'
-                    ? 'bg-teal-700 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-100'
-                ]"
-              >
-                <span>🤖 Gemini (Ixtiyoriy)</span>
-              </button>
+            <!-- Info Banner -->
+            <div class="p-3 rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-900 dark:text-teal-200 text-[11px] leading-relaxed">
+              <strong>Asl PDF rejimi:</strong> Yuklangan PDF fayl matnga ajratilmaydi va o'zgartirilmaydi — o'quvchi ekranining
+              <strong>chap tomonida asl holicha</strong> ko'rsatiladi (rasm, jadval, chizma va formulalari bilan).
+              <strong>O'ng tomonda</strong> esa javoblar varaqasi chiqadi.
             </div>
 
-            <!-- Drag & Drop Dropzone -->
+            <!-- PDF Dropzone / Attached File Card -->
             <div
               v-if="!pdfFileName"
               @dragover.prevent="pdfDropzoneActive = true"
@@ -816,135 +848,190 @@ function resetForm() {
                   : 'border-slate-300 dark:border-slate-600 hover:border-teal-500 hover:bg-slate-50 dark:hover:bg-slate-700/30'
               ]"
             >
-              <div class="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-700 dark:text-teal-300 mb-1">
+              <div class="w-11 h-11 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-700 dark:text-teal-300">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
               <p class="font-bold text-sm text-slate-800 dark:text-slate-200">
-                PDF test yoki BSB hujjatini bu yerga tashlang yoki tanlash uchun bosing
+                Asl CHSB / BSB PDF hujjatini bu yerga tashlang yoki tanlang
               </p>
-              <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-                Pedagogik Mahorat Markazi BSB topshiriqlari (1-topshiriq, a, b, c, d bandlari, rubrikalar) va standart testlar qo'llab-quvvatlanadi
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                Faqat .pdf formati (maksimal 15 MB) • Ma'lumotlar bazasida xavfsiz saqlanadi
               </p>
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-800 text-white text-xs font-semibold mt-1">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-800 text-white text-xs font-semibold mt-1">
                 PDF faylni tanlash
               </span>
             </div>
 
-            <!-- Processing Spinner -->
-            <div v-else-if="isPdfProcessing" class="p-8 text-center bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-200 dark:border-slate-600">
-              <div class="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-              <p class="text-xs font-bold text-slate-800 dark:text-slate-200">
-                PDF fayl o'qilmoqda va topshiriqlar qat'iy nazorat (Strict Grounding) bilan tahlil qilinmoqda...
-              </p>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{{ pdfFileName }}</p>
+            <div
+              v-else
+              class="flex items-center justify-between p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex-wrap gap-2"
+            >
+              <div class="flex items-center gap-2.5">
+                <span class="text-lg">📄</span>
+                <div>
+                  <span class="text-xs font-bold text-emerald-950 dark:text-emerald-200 block truncate max-w-[240px] sm:max-w-xs">
+                    {{ pdfFileName }}
+                  </span>
+                  <span class="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono">
+                    {{ pdfFileSize }} • Asl ko'rinishda saqlashga tayyor
+                  </span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  @click="fileInputRef?.click()"
+                  class="text-xs px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-100 cursor-pointer"
+                >
+                  Almashtirish
+                </button>
+                <button
+                  type="button"
+                  @click="removePdf"
+                  class="text-xs px-2 py-1 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold cursor-pointer"
+                >
+                  O'chirish
+                </button>
+              </div>
             </div>
 
-            <!-- Parsed Questions Review & Control -->
-            <div v-else class="space-y-3">
-              <!-- Header with file info & reset -->
-              <div class="flex items-center justify-between p-3 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex-wrap gap-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-lg">📄</span>
-                  <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-xs font-bold text-teal-950 dark:text-teal-200 block truncate max-w-[200px] sm:max-w-xs">{{ pdfFileName }}</span>
-                      <span
-                        v-if="lastExtractionSource === 'ai'"
-                        class="px-2 py-0.5 rounded-md bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300 font-bold text-[10px]"
-                      >
-                        🤖 Sun'iy intellekt
-                      </span>
-                      <span
-                        v-else
-                        class="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 font-bold text-[10px]"
-                      >
-                        🧠 BSB algoritmi
-                      </span>
-                    </div>
-                    <span class="text-[11px] text-teal-700 dark:text-teal-400 font-mono">
-                      {{ pdfFileSize }} • <strong>{{ pdfGroundedQuestions.length }} ta topshiriq aniqlandi</strong>
-                    </span>
-                  </div>
+            <!-- Answer Sheet Configurator: CHSB OMR Key vs BSB Written Tasks -->
+            <div v-if="assessmentType === 'CHSB'" class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 space-y-3">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h4 class="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                    O'ng panel: CHSB Javoblar kaliti ({{ totalQuestions }} ta savol)
+                  </h4>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                    Avtomatik tekshirish uchun har bir test savolining to'g'ri javobini (A/B/C/D) belgilang
+                  </p>
                 </div>
                 <div class="flex items-center gap-1.5">
                   <button
                     type="button"
-                    @click="fileInputRef?.click()"
-                    class="text-xs px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-100 cursor-pointer"
+                    @click="fillDefaultAnswerKeys('A')"
+                    class="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
                   >
-                    Boshqa fayl
+                    Hammasini A
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <input
+                  :value="answerKeyText"
+                  @input="handleAnswerKeyTextInput(($event.target as HTMLInputElement).value)"
+                  type="text"
+                  placeholder="Tezkor kiritish: 1-A, 2-B, 3-C, 4-D..."
+                  aria-label="CHSB javoblar kaliti matni"
+                  class="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono text-xs"
+                />
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
+                <div
+                  v-for="qNum in chsbQuestionNumbers"
+                  :key="qNum"
+                  class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                >
+                  <span class="font-mono font-bold text-slate-700 dark:text-slate-300 w-7">{{ qNum }}.</span>
+                  <div class="flex items-center gap-1">
+                    <button
+                      v-for="letter in OMR_OPTIONS"
+                      :key="letter"
+                      type="button"
+                      @click="setChsbQuestionKey(qNum, letter)"
+                      :class="[
+                        'w-6 h-6 rounded text-[11px] font-bold transition cursor-pointer',
+                        (chsbAnswerKeys[qNum] || 'A') === letter
+                          ? 'bg-teal-700 text-white shadow-2xs'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      ]"
+                    >
+                      {{ letter }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- BSB / PROJECT Answer Sheet Builder -->
+            <div v-else class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 space-y-3">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h4 class="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                    O'ng panel: {{ assessmentType }} Topshiriqlar varaqasi ({{ bsbPdfTasks.length }} ta topshiriq • {{ bsbTotalPoints }} ball)
+                  </h4>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                    PDF dagi har bir topshiriq uchun yozma javob katakchalari (va a, b, c, d bandlari) sonini sozlang
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    @click="loadOfficialBsbSheet"
+                    class="px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 text-[11px] font-bold cursor-pointer hover:bg-teal-100"
+                  >
+                    🏛️ {{ gradeLevel }}-sinf standarti
                   </button>
                   <button
                     type="button"
-                    @click="removePdf"
-                    class="text-xs px-2 py-1 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold cursor-pointer"
+                    @click="addBsbTaskRow"
+                    class="px-2.5 py-1 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold cursor-pointer"
                   >
-                    O'chirish
+                    + Topshiriq
                   </button>
                 </div>
               </div>
 
-              <!-- Warnings Alert if any -->
-              <div v-if="pdfWarnings.length > 0" class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300">
-                <span v-for="(warn, wIdx) in pdfWarnings" :key="wIdx" class="block">
-                  ⚠️ {{ warn }}
-                </span>
-              </div>
-
-              <!-- Human-in-the-Loop Approval Banner -->
-              <div
-                :class="[
-                  'p-3 rounded-xl border flex items-center justify-between gap-2 flex-wrap transition',
-                  allApproved
-                    ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
-                    : 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800'
-                ]"
-              >
-                <div class="flex items-center gap-2">
-                  <span class="text-base">{{ allApproved ? '✅' : '🛡️' }}</span>
-                  <div>
-                    <span
-                      class="text-xs font-bold block"
-                      :class="allApproved ? 'text-emerald-900 dark:text-emerald-200' : 'text-amber-900 dark:text-amber-200'"
+              <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div
+                  v-for="(task, tIdx) in bsbPdfTasks"
+                  :key="task.number"
+                  class="grid grid-cols-12 items-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                >
+                  <span class="col-span-4 font-bold text-slate-800 dark:text-slate-200">
+                    {{ task.number }}-topshiriq
+                  </span>
+                  <div class="col-span-3 flex items-center gap-1">
+                    <input
+                      v-model.number="task.points"
+                      type="number"
+                      min="1"
+                      max="50"
+                      step="0.5"
+                      :aria-label="`${task.number}-topshiriq balli`"
+                      class="w-full p-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-xs"
+                    />
+                    <span class="text-[11px] text-slate-400">b</span>
+                  </div>
+                  <div class="col-span-4">
+                    <select
+                      v-model.number="task.subCount"
+                      :aria-label="`${task.number}-topshiriq bandlari`"
+                      class="w-full p-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-[11px]"
                     >
-                      Inson nazorati: {{ approvedCount }} / {{ pdfGroundedQuestions.length }} ta topshiriq tasdiqlandi
-                    </span>
-                    <span
-                      class="text-[11px]"
-                      :class="allApproved ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'"
+                      <option :value="0">Ochiq javob</option>
+                      <option :value="2">2 band (a, b)</option>
+                      <option :value="3">3 band (a, b, c)</option>
+                      <option :value="4">4 band (a, b, c, d)</option>
+                      <option :value="5">5 band (a..e)</option>
+                    </select>
+                  </div>
+                  <div class="col-span-1 text-right">
+                    <button
+                      type="button"
+                      @click="removeBsbTaskRow(tIdx)"
+                      :disabled="bsbPdfTasks.length <= 1"
+                      title="O'chirish"
+                      class="text-rose-500 hover:text-rose-700 disabled:opacity-30 font-bold cursor-pointer px-1"
                     >
-                      {{ allApproved ? "Barcha topshiriqlar o'qituvchi tomonidan tekshirildi va tasdiqlandi" : "Savollarni ko'rib chiqing va har birini alohida tasdiqlang yoki barchasini birdan tasdiqlang" }}
-                    </span>
+                      ✕
+                    </button>
                   </div>
                 </div>
-
-                <button
-                  v-if="!allApproved"
-                  type="button"
-                  @click="approveAllQuestions"
-                  class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1 cursor-pointer"
-                >
-                  <span>✓</span>
-                  <span>Barchasini tasdiqlash</span>
-                </button>
-                <div v-else class="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                  <span>✓ Imtihonni saqlashga ruxsat berildi</span>
-                </div>
-              </div>
-
-              <!-- Question Cards List -->
-              <div class="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-                <AiQuestionReviewCard
-                  v-for="(q, qIdx) in pdfGroundedQuestions"
-                  :key="q.id || qIdx"
-                  :question="q"
-                  :index="qIdx"
-                  @update:question="updateGroundedQuestion(qIdx, $event)"
-                  @delete="deleteGroundedQuestion(qIdx)"
-                  @toggle-approval="toggleApproval(qIdx)"
-                />
               </div>
             </div>
           </div>
@@ -955,23 +1042,13 @@ function resetForm() {
               <span class="font-bold text-slate-700 dark:text-slate-300">
                 Savollar matni (Aniqlangan: <strong class="text-teal-700 dark:text-teal-300">{{ parsedQuestions.length }} ta</strong>)
               </span>
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  @click="loadOfficialBsbQuestions"
-                  class="text-[11px] font-bold text-teal-700 dark:text-teal-300 hover:underline cursor-pointer flex items-center gap-1"
-                >
-                  <span>🏛️</span>
-                  <span>Rasmiy BSB topshiriqlari ({{ gradeLevel }}-sinf)</span>
-                </button>
-                <button
-                  type="button"
-                  @click="loadSampleQuestions"
-                  class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:underline cursor-pointer"
-                >
-                  📋 Oddiy test namuna
-                </button>
-              </div>
+              <button
+                type="button"
+                @click="loadSampleQuestions"
+                class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:underline cursor-pointer"
+              >
+                📋 Oddiy test namuna
+              </button>
             </div>
 
             <textarea

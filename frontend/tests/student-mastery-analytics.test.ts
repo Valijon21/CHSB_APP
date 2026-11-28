@@ -24,15 +24,16 @@ describe('AI-Free Local Mode & Student Mastery Analytics', () => {
     expect(store.studentMasteryDetail!.remediationPlan.trajectory.length).toBeGreaterThan(0);
   });
 
-  it('CreateAssessmentModal prioritizes local deterministic algorithm over Gemini by default', async () => {
+  it('CreateAssessmentModal defaults to original split-PDF mode without legacy AI/regex extractors', async () => {
     const wrapper = mount(CreateAssessmentModal, {
       props: { isOpen: true },
     });
 
-    await wrapper.find('input[value="pdf"]').setValue();
-    const localBtn = wrapper.findAll('button').find((b) => b.text().includes('Lokal algoritm (AI siz, tezkor)'));
-    expect(localBtn).toBeDefined();
-    expect(localBtn!.classes()).toContain('bg-teal-700');
+    const pdfRadio = wrapper.find('input[value="pdf"]').element as HTMLInputElement;
+    expect(pdfRadio.checked).toBe(true);
+    expect(wrapper.text()).toContain('Asl PDF');
+    expect(wrapper.text()).toContain("Chapda PDF + O'ngda Javoblar varaqasi");
+    expect(wrapper.text()).not.toContain('Lokal algoritm (AI siz, tezkor)');
   });
 });
 

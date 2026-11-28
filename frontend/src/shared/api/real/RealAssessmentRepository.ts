@@ -23,6 +23,9 @@ export class RealAssessmentRepository implements AssessmentRepository {
         questionCount: a.totalQuestions || 15,
         maxScore: a.maxScore || 40,
         targetGroup: a.targetGroup || undefined,
+        hasPdf: Boolean(a.hasPdf),
+        sourcePdfName: a.sourcePdfName || undefined,
+        sourcePdfUrl: a.sourcePdfUrl || undefined,
         status: (a.status === 'closed' || a.status === 'scheduled' ? a.status : 'available') as 'available' | 'scheduled' | 'closed',
       }));
     } catch {
@@ -50,6 +53,9 @@ export class RealAssessmentRepository implements AssessmentRepository {
         questionCount: a.totalQuestions || (a.questions ? a.questions.length : 15),
         maxScore: a.maxScore || 40,
         targetGroup: a.targetGroup || undefined,
+        hasPdf: Boolean(a.hasPdf),
+        sourcePdfName: a.sourcePdfName || undefined,
+        sourcePdfUrl: a.sourcePdfUrl || undefined,
         status: (a.status === 'closed' || a.status === 'scheduled' ? a.status : 'available') as 'available' | 'scheduled' | 'closed',
         questions: (a.questions || []).map((q) => ({
           id: q.id,
