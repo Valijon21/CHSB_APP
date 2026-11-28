@@ -14,6 +14,9 @@ const toast = useToast();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const isCreateModalOpen = ref(false);
+const pdfUploadInputRef = ref<HTMLInputElement | null>(null);
+const targetPdfAssessmentId = ref<string | null>(null);
+const uploadingPdfAssessmentId = ref<string | null>(null);
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
@@ -30,6 +33,33 @@ async function handleCreateAssessment(input: CreateAssessmentInput) {
   } catch (err: unknown) {
     const msg = (err as Error)?.message || "Imtihon yaratishda xatolik yuz berdi.";
     toast.error(msg, 'Xatolik');
+  }
+}
+
+function triggerAttachPdf(assessmentId: string) {
+  targetPdfAssessmentId.value = assessmentId;
+  if (pdfUploadInputRef.value) {
+    pdfUploadInputRef.value.value = '';
+    pdfUploadInputRef.value.click();
+  }
+}
+
+async function handleAttachPdfSelected(event: Event) {
+  const inputEl = event.target as HTMLInputElement;
+  const file = inputEl.files?.[0];
+  const assessmentId = targetPdfAssessmentId.value;
+  if (!file || !assessmentId) return;
+
+  uploadingPdfAssessmentId.value = assessmentId;
+  try {
+    const updated = await teacherStore.attachAssessmentPdf(assessmentId, file);
+    toast.success(`"${updated.sourcePdfName || file.name}" imtihonga biriktirildi!`, 'PDF biriktirildi');
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message || "PDF faylni yuklashda xatolik yuz berdi.";
+    toast.error(msg, 'Xatolik');
+  } finally {
+    uploadingPdfAssessmentId.value = null;
+    targetPdfAssessmentId.value = null;
   }
 }
 </script>
@@ -130,7 +160,19 @@ async function handleCreateAssessment(input: CreateAssessmentInput) {
             </span>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              @click="triggerAttachPdf(asm.id)"
+              :disabled="uploadingPdfAssessmentId === asm.id"
+              :aria-label="asm.hasPdf ? 'Imtihon PDF faylini almashtirish' : 'Imtihonga asl PDF fayl biriktirish'"
+              class="px-3 py-2 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg font-semibold transition flex items-center gap-1.5 shadow-2xs text-xs min-h-[38px] cursor-pointer disabled:opacity-50"
+              :title="asm.hasPdf ? `Yuklangan: ${asm.sourcePdfName || 'PDF'} (almashtirish)` : 'Asl PDF fayl biriktirish'"
+            >
+              <span>📄</span>
+              <span>{{ uploadingPdfAssessmentId === asm.id ? 'Yuklanmoqda...' : (asm.hasPdf ? 'PDF almashtirish' : 'PDF biriktirish') }}</span>
+            </button>
+
             <router-link
               :to="`/t/${tenantSlug}/teacher/assessments/${asm.id}/emaktab-sync`"
               aria-label="Baholarni eMaktab jurnaliga o'tkazish"
@@ -163,6 +205,15 @@ async function handleCreateAssessment(input: CreateAssessmentInput) {
         </div>
       </div>
     </div>
+
+    <!-- Hidden file input for attaching PDF to existing assessments -->
+    <input
+      ref="pdfUploadInputRef"
+      type="file"
+      accept=".pdf,application/pdf"
+      @change="handleAttachPdfSelected"
+      class="hidden"
+    />
 
     <!-- Create Assessment Modal -->
     <CreateAssessmentModal

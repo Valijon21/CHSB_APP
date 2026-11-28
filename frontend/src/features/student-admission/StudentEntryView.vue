@@ -66,7 +66,7 @@ async function handleSubmit() {
             v-model="rosterCode"
             type="text"
             aria-label="O'quvchi Roster kodi"
-            placeholder="Masalan: STU-10A-001"
+            placeholder="Masalan: STU-1101"
             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-teal-700 focus:border-teal-700 font-mono text-sm uppercase placeholder:normal-case placeholder:text-slate-400 dark:placeholder:text-slate-400"
             autocomplete="off"
             :disabled="admissionStore.status === 'looking_up'"

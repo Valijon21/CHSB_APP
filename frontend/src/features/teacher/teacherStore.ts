@@ -263,6 +263,24 @@ export const useTeacherStore = defineStore('teacher', () => {
     }
   }
 
+  async function attachAssessmentPdf(assessmentId: string, file: File): Promise<AssessmentSummary> {
+    if (!api.teacher.uploadAssessmentPdf) {
+      throw new Error("PDF yuklash xizmati mavjud emas.");
+    }
+    const updated = await api.teacher.uploadAssessmentPdf(assessmentId, file);
+    const idx = assessments.value.findIndex((a) => a.id === assessmentId);
+    if (idx !== -1) {
+      assessments.value[idx] = { ...assessments.value[idx]!, ...updated };
+    }
+    if (assessmentDetail.value && assessmentDetail.value.summary.id === assessmentId) {
+      assessmentDetail.value = {
+        ...assessmentDetail.value,
+        summary: { ...assessmentDetail.value.summary, ...updated },
+      };
+    }
+    return updated;
+  }
+
   function updateStudentScore(attemptId: string, newScore: number, isVerified = true): void {
     const resIdx = results.value.findIndex((r) => r.attemptId === attemptId);
     if (resIdx !== -1) {
@@ -400,6 +418,7 @@ export const useTeacherStore = defineStore('teacher', () => {
     studentSearchQuery,
     assessments,
     createAssessment,
+    attachAssessmentPdf,
     results,
     profile,
     classDetail,

@@ -16,13 +16,15 @@ const assessmentStore = useAssessmentStore();
   <div class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors">
     <!-- Exam Top Bar (Sticky & Rigid) -->
     <header class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30 shrink-0 shadow-xs">
-      <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div :class="['mx-auto px-4 h-14 flex items-center justify-between', assessmentStore.assessment?.hasPdf ? 'max-w-7xl' : 'max-w-5xl']">
         <div class="flex items-center gap-2">
           <span class="w-8 h-8 rounded-md bg-teal-800 flex items-center justify-center text-white font-bold text-sm">
             C
           </span>
           <div class="hidden sm:block">
-            <h1 class="text-xs font-semibold text-slate-900 dark:text-white leading-none">Informatika 11-sinf: 1-ChSB</h1>
+            <h1 class="text-xs font-semibold text-slate-900 dark:text-white leading-none truncate max-w-[260px] md:max-w-md">
+              {{ assessmentStore.assessment?.title || 'CHSB / BSB Baholash' }}
+            </h1>
             <span class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{{ tenantSlug }}</span>
           </div>
         </div>
@@ -45,7 +47,7 @@ const assessmentStore = useAssessmentStore();
     />
 
     <!-- Main Exam Workspace -->
-    <main class="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-6 flex flex-col">
+    <main :class="['flex-1 w-full mx-auto p-3 sm:p-6 flex flex-col', assessmentStore.assessment?.hasPdf ? 'max-w-7xl' : 'max-w-5xl']">
       <slot>
         <router-view />
       </slot>

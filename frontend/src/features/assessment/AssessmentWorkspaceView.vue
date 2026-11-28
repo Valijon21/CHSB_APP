@@ -36,8 +36,8 @@ onMounted(async () => {
 
   proctor.startProctoring();
 
-  // If assessment not loaded yet (e.g. direct refresh), initialize it with deterministic shuffle
-  if (!assessmentStore.assessment) {
+  // If assessment not loaded yet (or switched to another assessment), initialize it
+  if (!assessmentStore.assessment || assessmentStore.assessment.id !== assessmentId) {
     const tenantId = tenantStore.currentTenant?.tenantId || 'tenant-al-xorazmiy';
     const rosterRecordId = admissionStore.confirmedStudent?.rosterRecordId || 'rec-ax-101';
     await assessmentStore.startAssessment(tenantId, assessmentId, rosterRecordId, { shuffle: true });

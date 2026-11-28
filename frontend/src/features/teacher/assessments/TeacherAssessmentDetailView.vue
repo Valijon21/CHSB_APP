@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTenantStore } from '../../tenant-context/tenantStore';
 import { useTeacherStore } from '../teacherStore';
+import { useToast } from '../../../shared/composables/useToast';
 import PdfDocumentPane from '../../assessment/components/PdfDocumentPane.vue';
 
 const route = useRoute();
 const tenantStore = useTenantStore();
 const teacherStore = useTeacherStore();
+const toast = useToast();
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
 const assessmentId = (route.params.assessmentId as string) || '';
+const pdfInputRef = ref<HTMLInputElement | null>(null);
+const isUploadingPdf = ref(false);
 
 onMounted(async () => {
   await tenantStore.loadTenant(tenantSlug);
@@ -19,6 +23,23 @@ onMounted(async () => {
     (tenantSlug === 'temurbeklar-maktabi' ? 'tenant-temurbeklar' : 'tenant-al-xorazmiy');
   await teacherStore.loadAssessmentDetail(tenantId, assessmentId);
 });
+
+async function handleDetailPdfChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file || !teacherStore.assessmentDetail) return;
+  isUploadingPdf.value = true;
+  try {
+    const updated = await teacherStore.attachAssessmentPdf(teacherStore.assessmentDetail.summary.id, file);
+    toast.success(`"${updated.sourcePdfName || file.name}" biriktirildi!`, 'PDF yuklandi');
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message || 'PDF faylni yuklashda xatolik yuz berdi.';
+    toast.error(msg, 'Xatolik');
+  } finally {
+    isUploadingPdf.value = false;
+    input.value = '';
+  }
+}
 </script>
 
 <template>
@@ -51,6 +72,23 @@ onMounted(async () => {
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Fan: {{ teacherStore.assessmentDetail.summary.subject }} • Davomiyligi: {{ teacherStore.assessmentDetail.summary.durationMinutes }} daqiqa • Jami: {{ teacherStore.assessmentDetail.summary.maxScore }} ball
           </p>
+          <div class="mt-3 flex items-center gap-2">
+            <input
+              ref="pdfInputRef"
+              type="file"
+              accept=".pdf,application/pdf"
+              @change="handleDetailPdfChange"
+              class="hidden"
+            />
+            <button
+              type="button"
+              @click="pdfInputRef?.click()"
+              :disabled="isUploadingPdf"
+              class="px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+            >
+              📄 {{ isUploadingPdf ? 'Yuklanmoqda...' : (teacherStore.assessmentDetail.summary.hasPdf ? 'Asl PDF ni almashtirish' : 'Asl PDF fayl biriktirish') }}
+            </button>
+          </div>
         </div>
 
         <div class="grid grid-cols-3 gap-3 text-center">
