@@ -16,7 +16,7 @@ const availableAssessments = ref<AssessmentSummary[]>([]);
 const selectedAssessmentId = ref<string>('');
 const isLoadingAssessments = ref(false);
 
-const candidateAssessments = computed(() => {
+const candidateAssessments = computed<AssessmentSummary[]>(() => {
   const allowedIds = admissionStore.currentMatch?.availableAssessmentIds || [];
   if (allowedIds.length === 0) return [];
   const filtered = availableAssessments.value.filter((a) => allowedIds.includes(a.id));
@@ -26,6 +26,7 @@ const candidateAssessments = computed(() => {
     tenantId: tenantStore.currentTenant?.tenantId || tenantSlug,
     title: id,
     subject: 'Imtihon',
+    assessmentType: 'CHSB' as const,
     grade: 11,
     quarter: 1,
     assessmentNumber: 1,
