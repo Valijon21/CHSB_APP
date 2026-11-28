@@ -383,6 +383,7 @@ function buildBsbQuestionsPayload(): CreateAssessmentInput['questions'] {
     return {
       prompt: `${task.number}-topshiriq (Chap tomondagi asl PDF hujjatga qarang)`,
       options: [],
+      correctOptionId: '',
       points: Number(task.points) || 5,
       taskType: hasSubs ? 'subquestions' : 'open_text',
       subQuestions,
@@ -434,8 +435,9 @@ function handleSubmit() {
         activeTab.value = 'questions';
         return;
       }
-      finalQuestions = buildBsbQuestionsPayload();
-      totalQuestions.value = finalQuestions.length;
+      const builtBsbQuestions = buildBsbQuestionsPayload() || [];
+      finalQuestions = builtBsbQuestions;
+      totalQuestions.value = builtBsbQuestions.length;
     }
   } else if (questionMode.value === 'custom') {
     if (parsedQuestions.value.length === 0) {

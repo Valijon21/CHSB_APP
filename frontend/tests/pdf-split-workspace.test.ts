@@ -116,6 +116,7 @@ describe('Split-Screen Original PDF Workspace', () => {
       assessmentId: 'asm-pdf-1',
       rosterRecordId: 'rec-1',
       startedAt: new Date().toISOString(),
+      deadlineAt: new Date(Date.now() + 2400 * 1000).toISOString(),
       status: 'in_progress',
       answers: {},
       remainingSeconds: 2400,

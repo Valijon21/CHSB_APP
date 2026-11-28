@@ -30,6 +30,14 @@ const canvasRefs = ref<Record<number, HTMLCanvasElement | null>>({});
 let pdfDoc: pdfjsLib.PDFDocumentProxy | null = null;
 let renderGeneration = 0;
 
+async function disposePdfDoc(doc: pdfjsLib.PDFDocumentProxy | null) {
+  if (!doc) return;
+  const disposable = doc as unknown as { destroy?: () => Promise<void> };
+  if (typeof disposable.destroy === 'function') {
+    await disposable.destroy().catch(() => {});
+  }
+}
+
 const zoomPercent = computed(() => Math.round(scale.value * 100));
 
 function setCanvasRef(pageNumber: number, el: unknown) {
@@ -110,7 +118,7 @@ async function loadPdfDocument() {
   numPages.value = 0;
 
   if (pdfDoc) {
-    await pdfDoc.destroy().catch(() => {});
+    await disposePdfDoc(pdfDoc);
     pdfDoc = null;
   }
 
@@ -177,7 +185,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   renderGeneration++;
   if (pdfDoc) {
-    pdfDoc.destroy().catch(() => {});
+    void disposePdfDoc(pdfDoc);
     pdfDoc = null;
   }
 });
