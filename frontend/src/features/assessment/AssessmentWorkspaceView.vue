@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTenantStore } from '../tenant-context/tenantStore';
 import { useStudentAdmissionStore } from '../student-admission/admissionStore';
@@ -14,8 +14,16 @@ const router = useRouter();
 const tenantStore = useTenantStore();
 const admissionStore = useStudentAdmissionStore();
 const assessmentStore = useAssessmentStore();
+const teacherTimeNotice = ref<string | null>(null);
 const proctor = useExamProctor(3, {
   attemptId: () => assessmentStore.attempt?.id || null,
+  onGrantTime: (extraSeconds, message) => {
+    assessmentStore.addExtraSeconds(extraSeconds);
+    teacherTimeNotice.value = message || `O'qituvchi tomonidan +${Math.round(extraSeconds / 60)} daqiqa qo'shimcha vaqt berildi.`;
+  },
+  onForceSubmit: () => {
+    void handleFinish();
+  },
 });
 
 const tenantSlug = (route.params.tenantSlug as string) || 'al-xorazmiy';
@@ -202,10 +210,23 @@ async function handleFinish() {
         >
           {{ assessmentStore.formattedTime }}
         </div>
-        <span class="text-[10px] text-slate-400 font-medium bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600">
-          Demo Timer
-        </span>
       </div>
+    </div>
+
+    <!-- Teacher Proctor Extra-Time / Notice Banner -->
+    <div
+      v-if="teacherTimeNotice"
+      class="px-4 py-2.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-900 dark:text-teal-200 text-xs font-medium flex items-center justify-between gap-2"
+      role="status"
+    >
+      <span>⏱️ {{ teacherTimeNotice }}</span>
+      <button
+        type="button"
+        @click="teacherTimeNotice = null"
+        class="text-teal-700 dark:text-teal-300 font-bold hover:underline cursor-pointer"
+      >
+        Yopish
+      </button>
     </div>
 
     <!-- Main Workspace (Col 1-3 Question, Col 4 Navigator) -->

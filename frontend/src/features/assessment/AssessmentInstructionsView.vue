@@ -58,6 +58,11 @@ const maxScore = computed(() => {
   return assessmentStore.assessment?.maxScore || 40;
 });
 
+const isBsbType = computed(() => {
+  const t = assessmentStore.assessment?.assessmentType;
+  return t === 'BSB' || t === 'PRACTICAL' || t === 'PROJECT';
+});
+
 const durationMinutes = computed(() => {
   if (assessmentStore.assessment?.durationMinutes) {
     return assessmentStore.assessment.durationMinutes;
@@ -160,9 +165,11 @@ async function startExam() {
 
       <!-- 4. Savol turi -->
       <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/80 text-center transition hover:border-teal-400 dark:hover:border-teal-500">
-        <span class="text-lg block mb-0.5">🔠</span>
+        <span class="text-lg block mb-0.5">{{ isBsbType ? '✍️' : '🔠' }}</span>
         <span class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Format</span>
-        <span class="text-xs font-black text-slate-900 dark:text-white mt-1 block">A / B / C / D</span>
+        <span class="text-xs font-black text-slate-900 dark:text-white mt-1 block">
+          {{ isBsbType ? 'Amaliy / Yozma (BSB)' : 'A / B / C / D Test' }}
+        </span>
       </div>
     </div>
 
@@ -217,10 +224,11 @@ async function startExam() {
         <span>Muhim qoidalar va intizom:</span>
       </h3>
       <ul class="list-disc list-inside space-y-1 text-amber-950 dark:text-amber-200/90 leading-relaxed">
-        <li>Har bir savolda faqat bitta to'g'ri javob variantini belgilang.</li>
+        <li v-if="isBsbType">Har bir BSB topshirig'i va bandi bo'yicha to'liq, mantiqiy yozma yoki amaliy javob kiriting (o'qituvchi rubrika mezoniga ko'ra baholaydi).</li>
+        <li v-else>Har bir savolda faqat bitta to'g'ri javob variantini belgilang.</li>
         <li>Imtihon davomida boshqa ilova yoki brauzer sahifasiga o'tish qat'iyan taqiqlanadi (nazoratchi tizimi qayd etadi).</li>
         <li>Vaqt ko'rsatkichi {{ durationMinutes }} daqiqadan orqaga sanaydi, oxirgi 5 daqiqada ogohlantirish beriladi.</li>
-        <li>Barcha savollarga javob berilgach, "Imtihonni yakunlash" tugmasini bosing.</li>
+        <li>Barcha topshiriqlar yakunlangach, "Imtihonni yakunlash" tugmasini bosing.</li>
       </ul>
     </div>
 

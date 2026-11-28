@@ -46,7 +46,7 @@ export const useStudentAdmissionStore = defineStore('studentAdmission', () => {
     }
   }
 
-  function confirmIdentity(): boolean {
+  function confirmIdentity(selectedAssessmentId?: string): boolean {
     if (!currentMatch.value) {
       errorMessage.value = "Tasdiqlash uchun o'quvchi ma'lumoti topilmadi.";
       status.value = 'error';
@@ -55,7 +55,10 @@ export const useStudentAdmissionStore = defineStore('studentAdmission', () => {
 
     confirmedStudent.value = currentMatch.value;
     const available = currentMatch.value.availableAssessmentIds;
-    activeAssessmentId.value = available[0] ?? 'chsb-inf-11-q1';
+    activeAssessmentId.value =
+      (selectedAssessmentId && available.includes(selectedAssessmentId) ? selectedAssessmentId : null) ??
+      available[0] ??
+      'chsb-inf-11-q1';
     status.value = 'admitted';
     return true;
   }

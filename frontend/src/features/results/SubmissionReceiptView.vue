@@ -21,7 +21,7 @@ function viewResult() {
     </div>
 
     <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 mb-2">
-      Qabul qilindi (Demo Kvitansiya)
+      Qabul qilindi
     </span>
     <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Javoblaringiz muvaffaqiyatli topshirildi</h2>
     <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">

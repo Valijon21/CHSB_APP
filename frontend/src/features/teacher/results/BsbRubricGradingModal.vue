@@ -4,6 +4,7 @@ import type { AssessmentResult } from '../../../entities/result/model';
 import { getBsbStandardByGrade } from '../../../entities/assessment/officialBsbData';
 import type { Question } from '../../../entities/assessment/model';
 import { GRADING_SCALE_PRESETS, type GradingPresetKey } from '../../../entities/emaktab/model';
+import { api } from '../../../shared/api';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -28,6 +29,8 @@ const emit = defineEmits<{
 const scores = ref<Record<string, number>>({});
 const feedback = ref('');
 const activePreset = ref<GradingPresetKey>('MMTV_STANDARD');
+const loadedAssessmentQuestions = ref<Question[]>([]);
+const loadedMaxScore = ref<number | null>(null);
 
 // Extract grade from class name (e.g. "9-A sinf" -> 9, default 9)
 const inferredGrade = computed(() => {
@@ -37,15 +40,78 @@ const inferredGrade = computed(() => {
 });
 
 const standard = computed(() => getBsbStandardByGrade(inferredGrade.value));
-const questions = computed<Question[]>(() => standard.value.sampleQuestions);
+const effectiveMaxScore = computed(() => {
+  return props.result?.maxScore || loadedMaxScore.value || standard.value.maxScore;
+});
+const questions = computed<Question[]>(() => {
+  if (loadedAssessmentQuestions.value.length > 0) {
+    return loadedAssessmentQuestions.value;
+  }
+  return standard.value.sampleQuestions;
+});
+
+function formatStudentAnswerForQuestion(q: Question, subId?: string): string {
+  const ansMap = props.result?.answers;
+  if (!ansMap) return "O'quvchi javobi saqlanmagan.";
+  const raw = ansMap[q.id] ?? ansMap[String(q.order)];
+  if (raw === undefined || raw === null || raw === '') {
+    return "Javob kiritilmagan.";
+  }
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      if (parsed && typeof parsed === 'object') {
+        if (subId && parsed[subId] !== undefined) return String(parsed[subId] || "Javob kiritilmagan.");
+        return Object.entries(parsed)
+          .map(([k, v]) => `${k}: ${String(v)}`)
+          .join(' | ');
+      }
+    } catch {
+      return raw;
+    }
+    return raw;
+  }
+  if (typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    if (subId && obj[subId] !== undefined) return String(obj[subId] || "Javob kiritilmagan.");
+    return Object.entries(obj)
+      .map(([k, v]) => `${k}: ${String(v)}`)
+      .join(' | ');
+  }
+  return String(raw);
+}
+
+async function loadAssessmentDefinition() {
+  loadedAssessmentQuestions.value = [];
+  loadedMaxScore.value = null;
+  if (!props.result?.assessmentId) return;
+  try {
+    const tenantId = props.result.tenantId || 'al-xorazmiy';
+    const asm = api?.assessment?.getAssessmentById
+      ? await api.assessment.getAssessmentById(tenantId, props.result.assessmentId)
+      : null;
+    if (asm) {
+      loadedMaxScore.value = asm.maxScore;
+      if (asm.questions && asm.questions.length > 0) {
+        loadedAssessmentQuestions.value = asm.questions;
+      }
+    }
+  } catch {
+    // Fall back to standard BSB template if assessment detail fetch fails
+  }
+}
 
 // Reactive state is initialized on mount and whenever selected result changes
 watch(
-  () => props.result,
-  () => {
-    feedback.value = props.result?.teacherNote || '';
-    initScores();
-  }
+  () => [props.isOpen, props.result?.attemptId],
+  async ([open]) => {
+    if (open && props.result) {
+      feedback.value = props.result.teacherFeedback || props.result.teacherNote || '';
+      await loadAssessmentDefinition();
+      initScores();
+    }
+  },
+  { immediate: true }
 );
 
 onMounted(() => {
@@ -56,18 +122,23 @@ function initScores() {
   scores.value = {};
   if (!props.result) return;
 
-  // Distribute the initial score across tasks or default to full score
-  const initialRatio = props.result.score / (props.result.maxScore || standard.value.maxScore);
+  const savedRubric = props.result.rubricScores || {};
+  const maxS = effectiveMaxScore.value || 50;
+  const initialRatio = maxS > 0 ? props.result.score / maxS : 0;
 
   for (const q of questions.value) {
     if (q.subQuestions && q.subQuestions.length > 0) {
       for (const sub of q.subQuestions) {
-        const defaultSubScore = Number((sub.points * initialRatio).toFixed(1));
-        scores.value[sub.id] = defaultSubScore;
+        scores.value[sub.id] =
+          typeof savedRubric[sub.id] === 'number'
+            ? savedRubric[sub.id]!
+            : Number((sub.points * initialRatio).toFixed(1));
       }
     } else {
-      const defaultTaskScore = Number((q.points * initialRatio).toFixed(1));
-      scores.value[q.id] = defaultTaskScore;
+      scores.value[q.id] =
+        typeof savedRubric[q.id] === 'number'
+          ? savedRubric[q.id]!
+          : Number((q.points * initialRatio).toFixed(1));
     }
   }
 }
@@ -78,12 +149,12 @@ function setScore(key: string, val: number) {
 
 const totalCalculatedScore = computed(() => {
   const sum = Object.values(scores.value).reduce((acc, val) => acc + (val || 0), 0);
-  return Math.min(standard.value.maxScore, Math.max(0, Number(sum.toFixed(1))));
+  return Math.min(effectiveMaxScore.value, Math.max(0, Number(sum.toFixed(1))));
 });
 
 const percentage = computed(() => {
-  if (standard.value.maxScore === 0) return 0;
-  return Math.round((totalCalculatedScore.value / standard.value.maxScore) * 100);
+  if (effectiveMaxScore.value === 0) return 0;
+  return Math.round((totalCalculatedScore.value / effectiveMaxScore.value) * 100);
 });
 
 const gradeLevel = computed(() => {
@@ -144,7 +215,7 @@ function handleSave() {
               </span>
             </div>
             <h2 id="rubric-modal-title" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-0.5">
-              {{ result.studentName }} — 1-BSB Baholash Varakasi
+              {{ result.studentName }} — {{ result.assessmentTitle || 'BSB Baholash Varakasi' }}
             </h2>
           </div>
         </div>
@@ -167,7 +238,7 @@ function handleSave() {
           <span class="font-mono font-bold text-lg text-teal-950 dark:text-teal-100">
             {{ totalCalculatedScore }}
           </span>
-          <span class="text-xs text-teal-700 dark:text-teal-400">/ {{ standard.maxScore }} ball</span>
+          <span class="text-xs text-teal-700 dark:text-teal-400">/ {{ effectiveMaxScore }} ball</span>
           <span class="ml-2 font-semibold text-xs text-slate-600 dark:text-slate-300">
             ({{ percentage }}%)
           </span>
@@ -225,6 +296,12 @@ function handleSave() {
                 <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">
                   Max: {{ sub.points }}b
                 </span>
+              </div>
+
+              <!-- Student Submitted Answer -->
+              <div class="text-[11px] text-slate-700 dark:text-slate-200 bg-teal-50/50 dark:bg-teal-950/30 p-2 rounded-lg border border-teal-200/60 dark:border-teal-800/60">
+                <span class="font-bold text-teal-800 dark:text-teal-300">O'quvchi javobi:</span>
+                <span class="ml-1 whitespace-pre-wrap">{{ formatStudentAnswerForQuestion(q, sub.id) }}</span>
               </div>
 
               <!-- Rubric standard description -->
@@ -293,6 +370,14 @@ function handleSave() {
 
           <!-- Single task evaluation pills (if no subquestions) -->
           <div v-else class="p-3 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200/80 dark:border-slate-600/80 space-y-2">
+            <div class="text-[11px] text-slate-700 dark:text-slate-200 bg-teal-50/50 dark:bg-teal-950/30 p-2 rounded-lg border border-teal-200/60 dark:border-teal-800/60">
+              <span class="font-bold text-teal-800 dark:text-teal-300">O'quvchi javobi:</span>
+              <span class="ml-1 whitespace-pre-wrap">{{ formatStudentAnswerForQuestion(q) }}</span>
+            </div>
+            <div v-if="q.rubricCriteria && q.rubricCriteria.length > 0" class="text-[11px] text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+              <span class="font-bold text-teal-700 dark:text-teal-400">Mezon:</span>
+              <span class="ml-1">{{ q.rubricCriteria.map((c) => c.guideline || c.criterion).join(' • ') }}</span>
+            </div>
             <div class="flex items-center gap-2 flex-wrap">
               <button
                 type="button"

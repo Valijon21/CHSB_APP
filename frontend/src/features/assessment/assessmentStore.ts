@@ -299,5 +299,10 @@ export const useAssessmentStore = defineStore('assessment', () => {
     submitAssessment,
     syncQueuedSubmissions,
     stopTimer,
+    addExtraSeconds(seconds: number) {
+      if (seconds > 0) {
+        remainingSeconds.value += seconds;
+      }
+    },
   };
 });

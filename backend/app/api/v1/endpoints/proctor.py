@@ -277,6 +277,8 @@ async def perform_proctor_action(
             data={"status": "submitted", "submittedAt": now},
         )
         existing_res = await db.assessmentresult.find_unique(where={"attemptId": attempt_id})
+        asm_type = (getattr(attempt.assessment, "assessmentType", None) or "CHSB").upper() if attempt.assessment else "CHSB"
+        is_manual = asm_type in {"BSB", "PRACTICAL", "PROJECT"}
         if not existing_res:
             await db.assessmentresult.create(
                 data={
@@ -286,8 +288,8 @@ async def perform_proctor_action(
                     "maxScore": max_score,
                     "percentage": pct,
                     "grade": grade,
-                    "status": "verified",
-                    "verifiedByTeacher": True,
+                    "status": "pending_review" if is_manual else "verified",
+                    "verifiedByTeacher": False if is_manual else True,
                     "submittedAt": now,
                 }
             )

@@ -41,5 +41,30 @@ describe('Proctor Backend Telemetry Integration (TASK-3.3)', () => {
     store.sendWarning(target.rosterRecordId, 'Diqqat!');
     expect(target.status).toBe('warning');
   });
+
+  it('invokes onGrantTime and onForceSubmit callbacks when teacher actions arrive in pendingActions', async () => {
+    const onGrantTime = vi.fn();
+    const onForceSubmit = vi.fn();
+    vi.spyOn(httpClient, 'post').mockResolvedValue({
+      ok: true,
+      status: 'in_progress',
+      pendingActions: [
+        { id: 'act-1', action: 'grant_time', message: '+5 daqiqa berildi', extra: { extraSeconds: 300 } },
+        { id: 'act-2', action: 'force_submit', message: 'Yakunlandi' },
+      ],
+    });
+
+    const proctor = useExamProctor(3, {
+      attemptId: () => 'att-telemetry-2',
+      onGrantTime,
+      onForceSubmit,
+    });
+    proctor.startProctoring();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(onGrantTime).toHaveBeenCalledWith(300, '+5 daqiqa berildi');
+    expect(onForceSubmit).toHaveBeenCalledTimes(1);
+    proctor.stopProctoring();
+  });
 });
 

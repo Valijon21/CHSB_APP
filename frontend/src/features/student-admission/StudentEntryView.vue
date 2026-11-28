@@ -66,7 +66,7 @@ async function handleSubmit() {
             v-model="rosterCode"
             type="text"
             aria-label="O'quvchi Roster kodi"
-            placeholder="masalan: STU-1101"
+            placeholder="Masalan: STU-10A-001"
             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-teal-700 focus:border-teal-700 font-mono text-sm uppercase placeholder:normal-case placeholder:text-slate-400 dark:placeholder:text-slate-400"
             autocomplete="off"
             :disabled="admissionStore.status === 'looking_up'"
@@ -96,18 +96,11 @@ async function handleSubmit() {
         </div>
       </form>
 
-      <!-- Synthetic Demo Hint -->
-      <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/80 flex flex-col gap-2 text-xs text-slate-500 dark:text-slate-400">
-        <div class="flex justify-between items-center">
-          <span>Demo kodlar:</span>
-          <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">STU-1101, STU-1102</span>
-        </div>
-        <div class="flex justify-between items-center text-[11px] text-slate-400 dark:text-slate-400">
-          <span>Nofaol kod: <code class="font-mono">STU-1103</code></span>
-          <router-link :to="`/t/${tenantSlug}/teacher`" class="text-indigo-600 dark:text-indigo-400 hover:underline">
-            O'qituvchi paneli
-          </router-link>
-        </div>
+      <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <span>Kodingizni o'qituvchidan oling</span>
+        <router-link :to="`/t/${tenantSlug}/teacher`" class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+          O'qituvchi paneli
+        </router-link>
       </div>
     </div>
   </div>

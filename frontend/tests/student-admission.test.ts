@@ -70,6 +70,17 @@ describe('Phase 3 — Student Roster Admission Flow', () => {
       expect(admissionStore.activeAssessmentId).toBe('chsb-inf-11-q1');
     });
 
+    it('supports explicit multi-exam selection during confirmIdentity', async () => {
+      const admissionStore = useStudentAdmissionStore();
+      await admissionStore.lookup('al-xorazmiy', 'STU-1101');
+      if (admissionStore.currentMatch) {
+        admissionStore.currentMatch.availableAssessmentIds = ['bsb-inf-11-q1', 'chsb-inf-11-q1'];
+      }
+      const confirmed = admissionStore.confirmIdentity('bsb-inf-11-q1');
+      expect(confirmed).toBe(true);
+      expect(admissionStore.activeAssessmentId).toBe('bsb-inf-11-q1');
+    });
+
     it('rejects inactive roster code STU-1103 with explanation', async () => {
       const admissionStore = useStudentAdmissionStore();
       const success = await admissionStore.lookup('al-xorazmiy', 'STU-1103');

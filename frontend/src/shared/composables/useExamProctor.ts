@@ -10,6 +10,7 @@ export interface ProctorViolationLog {
 export interface ExamProctorTelemetryOptions {
   attemptId?: () => string | null;
   onForceSubmit?: () => void;
+  onGrantTime?: (extraSeconds: number, message?: string) => void;
 }
 
 export function useExamProctor(maxViolations = 3, options?: ExamProctorTelemetryOptions) {
@@ -49,6 +50,11 @@ export function useExamProctor(maxViolations = 3, options?: ExamProctorTelemetry
           if (act.action === 'send_warning' && act.message) {
             lastWarningMessage.value = act.message;
             isWarningModalOpen.value = true;
+          } else if (act.action === 'grant_time') {
+            const extraSec = Number((act as { extra?: { extraSeconds?: number } }).extra?.extraSeconds || 300);
+            options?.onGrantTime?.(extraSec, act.message);
+          } else if (act.action === 'force_submit' && options?.onForceSubmit) {
+            options.onForceSubmit();
           }
         }
       }

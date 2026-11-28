@@ -37,36 +37,73 @@ function finish() {
 <template>
   <div class="max-w-lg mx-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs p-6 sm:p-8 transition-colors">
     <div class="text-center pb-5 border-b border-slate-100 dark:border-slate-700/80">
-      <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 mb-2">
-        Dastlabki Demo Natija
+      <span
+        :class="[
+          'inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border mb-2',
+          assessmentStore.result?.status === 'pending_review'
+            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+            : assessmentStore.result?.verifiedByTeacher
+              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+              : 'bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800'
+        ]"
+      >
+        {{
+          assessmentStore.result?.status === 'pending_review'
+            ? "O'qituvchi tekshiruvi kutilmoqda"
+            : assessmentStore.result?.verifiedByTeacher
+              ? 'Rasmiy Tasdiqlangan Natija'
+              : 'Dastlabki Natija'
+        }}
       </span>
-      <h2 class="text-xl font-bold text-slate-900 dark:text-white">1-ChSB Natijasi</h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Informatika va axborot texnologiyalari — 11-sinf</p>
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white">
+        {{ assessmentStore.result?.assessmentTitle || assessmentStore.assessment?.title || 'Baholash Natijasi' }}
+      </h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        {{ assessmentStore.result?.className || '' }}
+        {{ assessmentStore.result?.assessmentType ? `• ${assessmentStore.result.assessmentType}` : '' }}
+      </p>
+    </div>
+
+    <!-- Pending Review Card for BSB/PROJECT -->
+    <div
+      v-if="assessmentStore.result?.status === 'pending_review'"
+      class="my-6 p-6 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center space-y-2"
+    >
+      <div class="text-3xl">⏳</div>
+      <h3 class="text-sm font-bold text-amber-900 dark:text-amber-200">
+        Ishingiz rubrika tekshiruviga yuborildi
+      </h3>
+      <p class="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+        Bu {{ assessmentStore.result?.assessmentType || 'BSB' }} ishi ochiq/amaliy topshiriqlardan iborat bo‘lib, o‘qituvchi baholash varaqasi asosida tekshirganidan so‘ng yakuniy ball va 5 ballik baho e’lon qilinadi.
+      </p>
     </div>
 
     <!-- Score Highlight Card -->
-    <div class="my-6 p-6 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-center">
+    <div v-else class="my-6 p-6 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-center">
       <span class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider block mb-1">
-        To'plangan dastlabki ball
+        To'plangan ball
       </span>
       <div class="text-4xl font-black text-teal-800 dark:text-teal-400 my-2">
-        {{ assessmentStore.result?.score ?? 35 }}
-        <span class="text-lg font-normal text-slate-400 dark:text-slate-500">/ {{ assessmentStore.result?.maxScore ?? 40 }}</span>
+        {{ assessmentStore.result?.score ?? 0 }}
+        <span class="text-lg font-normal text-slate-400 dark:text-slate-500">/ {{ assessmentStore.result?.maxScore ?? assessmentStore.assessment?.maxScore ?? 40 }}</span>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-        {{ assessmentStore.result?.percentage ?? 87.5 }}% umumiy o'zlashtirish ko'rsatkichi
+        {{ assessmentStore.result?.percentage ?? 0 }}% umumiy o'zlashtirish
+        <span v-if="assessmentStore.result?.grade" class="ml-1.5 font-bold text-teal-800 dark:text-teal-300">
+          • Baho: {{ assessmentStore.result.grade }}
+        </span>
       </p>
     </div>
 
     <!-- Questions answered breakdown -->
     <div class="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 border border-slate-100 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 mb-6 space-y-1.5">
       <div class="flex justify-between">
-        <span>Jami savollar:</span>
-        <span class="font-bold text-slate-800 dark:text-white">15 ta</span>
+        <span>Jami topshiriqlar:</span>
+        <span class="font-bold text-slate-800 dark:text-white">{{ assessmentStore.result?.totalQuestions ?? assessmentStore.totalQuestions ?? 0 }} ta</span>
       </div>
       <div class="flex justify-between">
-        <span>Javob berilgan savollar:</span>
-        <span class="font-bold text-teal-800 dark:text-teal-400">{{ assessmentStore.result?.answeredQuestions ?? 15 }} ta</span>
+        <span>Javob berilgan:</span>
+        <span class="font-bold text-teal-800 dark:text-teal-400">{{ assessmentStore.result?.answeredQuestions ?? assessmentStore.answeredCount ?? 0 }} ta</span>
       </div>
       <div class="flex justify-between">
         <span>O'quvchi:</span>
@@ -74,9 +111,19 @@ function finish() {
       </div>
     </div>
 
-    <!-- Official note about teacher verification (Preserved from legacy HTML) -->
-    <div class="p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs leading-relaxed mb-6">
-      <strong>Eslatma:</strong> Bu natija o'qituvchi tomonidan tekshiriladi, ball o'zgarishi mumkin.
+    <div
+      v-if="assessmentStore.result?.teacherFeedback || assessmentStore.result?.teacherNote"
+      class="p-3.5 rounded-xl bg-teal-50/80 dark:bg-teal-950/50 border border-teal-200 dark:border-teal-800 text-teal-900 dark:text-teal-200 text-xs leading-relaxed mb-4"
+    >
+      <strong>O'qituvchi izohi:</strong> {{ assessmentStore.result?.teacherFeedback || assessmentStore.result?.teacherNote }}
+    </div>
+
+    <!-- Official note about teacher verification -->
+    <div
+      v-else-if="!assessmentStore.result?.verifiedByTeacher"
+      class="p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs leading-relaxed mb-6"
+    >
+      <strong>Eslatma:</strong> Natija o'qituvchi tomonidan tasdiqlangach yakuniy jurnalga kiritiladi.
     </div>
 
     <!-- Official Certificate Action -->
