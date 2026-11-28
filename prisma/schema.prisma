@@ -123,6 +123,9 @@ model Assessment {
   durationMinutes Int      @default(45) @map("duration_minutes")
   totalQuestions  Int      @default(15) @map("total_questions")
   maxScore        Float    @default(40.0) @map("max_score")
+  sourcePdfData   Bytes?   @map("source_pdf_data")
+  sourcePdfName   String?  @map("source_pdf_name")
+  sourcePdfSize   Int?     @map("source_pdf_size")
   createdAt       DateTime @default(now()) @map("created_at")
 
   questions Question[]

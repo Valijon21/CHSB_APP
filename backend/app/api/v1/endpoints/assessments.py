@@ -1,8 +1,9 @@
 from __future__ import annotations
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta, timezone
 import json
+import re
 from backend.app.core.dependencies import (
     Actor,
     assert_tenant_ownership,
@@ -12,7 +13,7 @@ from backend.app.core.dependencies import (
 )
 from backend.app.db.prisma import get_prisma
 from backend.app.services.grading import calculate_grade5
-from prisma import Prisma
+from prisma import Base64, Prisma
 
 router = APIRouter(tags=["Assessments"])
 STAFF_ACCESS = require_role(["TEACHER", "SCHOOL_ADMIN", "REGIONAL_INSPECTOR", "SUPER_ADMIN"])
@@ -69,7 +70,36 @@ class AssessmentCreate(BaseModel):
     maxScore: float = Field(default=40.0, ge=1.0)
     targetGroup: str = Field(default="all")
     code: str | None = None
+    answerKey: dict | str | None = None
     questions: list[dict] | None = None
+
+
+def _parse_answer_key_map(raw_key: dict | str | None) -> dict[int, str]:
+    def _norm(val: object) -> str:
+        s = str(val or "A").strip().lower()
+        if s.startswith("opt-"):
+            return s
+        if s in {"a", "b", "c", "d", "e"}:
+            return f"opt-{s}"
+        return "opt-a"
+
+    out: dict[int, str] = {}
+    if isinstance(raw_key, dict):
+        for k, v in raw_key.items():
+            try:
+                out[int(k)] = _norm(v)
+            except (TypeError, ValueError):
+                continue
+    elif isinstance(raw_key, str) and raw_key.strip():
+        pairs = re.findall(r"(\d{1,3})\s*[-:. ]\s*([A-Ea-e])\b", raw_key)
+        if pairs:
+            for num_s, let in pairs:
+                out[int(num_s)] = _norm(let)
+        else:
+            letters = re.findall(r"\b([A-Ea-e])\b", raw_key)
+            for idx, let in enumerate(letters, 1):
+                out[idx] = _norm(let)
+    return out
 
 
 def _parse_json_value(raw: object, default):
@@ -84,6 +114,7 @@ def _parse_json_value(raw: object, default):
 
 
 def _format_assessment_summary(a) -> dict:
+    has_pdf = bool(getattr(a, "sourcePdfName", None) or getattr(a, "sourcePdfData", None))
     return {
         "id": a.id,
         "code": a.code,
@@ -98,6 +129,10 @@ def _format_assessment_summary(a) -> dict:
         "totalQuestions": a.totalQuestions,
         "maxScore": a.maxScore,
         "targetGroup": getattr(a, "targetGroup", "all") or "all",
+        "hasPdf": has_pdf,
+        "sourcePdfName": getattr(a, "sourcePdfName", None),
+        "sourcePdfSize": getattr(a, "sourcePdfSize", None),
+        "sourcePdfUrl": f"/api/v1/assessments/{a.id}/pdf" if has_pdf else None,
         "status": "published",
     }
 
@@ -202,30 +237,129 @@ async def create_assessment(
                 }
             )
     else:
+        key_map = _parse_answer_key_map(payload.answerKey)
+        is_open_bsb = asm_type in {"BSB", "PRACTICAL", "PROJECT"}
         for i in range(1, payload.totalQuestions + 1):
             bloom = bloom_cycle[(i - 1) % len(bloom_cycle)]
-            options = [
-                {"id": "opt-a", "label": "A", "text": f"{payload.subject} fani bo'yicha to'g'ri javob varianti"},
-                {"id": "opt-b", "label": "B", "text": "Noto'g'ri chalg'ituvchi variant 1"},
-                {"id": "opt-c", "label": "C", "text": "Noto'g'ri chalg'ituvchi variant 2"},
-                {"id": "opt-d", "label": "D", "text": "Noto'g'ri chalg'ituvchi variant 3"},
-            ]
-            await db.question.create(
-                data={
-                    "id": f"q-{created.id}-{i}",
-                    "assessmentId": created.id,
-                    "questionNumber": i,
-                    "prompt": f"{i}-savol: {payload.subject} {payload.gradeLevel}-sinf uchun test topshirig'i.",
-                    "taskType": "MCQ_SINGLE",
-                    "optionsJson": json.dumps(options),
-                    "correctOptionId": "opt-a",
-                    "bloomLevel": bloom,
-                    "difficulty": "hard" if i > 10 else "medium" if i > 5 else "easy",
-                    "points": points_per_q,
-                }
-            )
+            if is_open_bsb:
+                await db.question.create(
+                    data={
+                        "id": f"q-{created.id}-{i}",
+                        "assessmentId": created.id,
+                        "questionNumber": i,
+                        "prompt": f"{i}-topshiriq",
+                        "taskType": "BSB_OPEN_TASK",
+                        "optionsJson": "[]",
+                        "subQuestionsJson": "[]",
+                        "rubricJson": "[]",
+                        "correctOptionId": "",
+                        "bloomLevel": bloom,
+                        "difficulty": "medium",
+                        "points": points_per_q,
+                    }
+                )
+            else:
+                options = [
+                    {"id": "opt-a", "label": "A", "text": "A"},
+                    {"id": "opt-b", "label": "B", "text": "B"},
+                    {"id": "opt-c", "label": "C", "text": "C"},
+                    {"id": "opt-d", "label": "D", "text": "D"},
+                ]
+                await db.question.create(
+                    data={
+                        "id": f"q-{created.id}-{i}",
+                        "assessmentId": created.id,
+                        "questionNumber": i,
+                        "prompt": f"{i}-savol",
+                        "taskType": "MCQ_SINGLE",
+                        "optionsJson": json.dumps(options),
+                        "correctOptionId": key_map.get(i, "opt-a"),
+                        "bloomLevel": bloom,
+                        "difficulty": "hard" if i > 10 else "medium" if i > 5 else "easy",
+                        "points": points_per_q,
+                    }
+                )
 
     return _format_assessment_summary(created)
+
+
+MAX_PDF_BYTES = 15 * 1024 * 1024
+
+
+@router.post("/assessments/{assessment_id}/pdf")
+async def upload_assessment_pdf(
+    assessment_id: str,
+    file: UploadFile = File(...),
+    _actor: Actor = Depends(STAFF_ACCESS),
+    db: Prisma = Depends(get_prisma),
+):
+    assessment = await db.assessment.find_first(
+        where={
+            "OR": [
+                {"id": assessment_id},
+                {"code": assessment_id},
+                {"code": assessment_id.upper()},
+                {"code": assessment_id.lower()},
+            ]
+        }
+    )
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Baholash topilmadi.")
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="PDF fayl bo'sh.")
+    if len(file_bytes) > MAX_PDF_BYTES:
+        raise HTTPException(status_code=400, detail="PDF hajmi 15 MB dan oshmasligi kerak.")
+    if b"%PDF-" not in file_bytes[:1024]:
+        raise HTTPException(status_code=400, detail="Faqat haqiqiy PDF fayl yuklash mumkin.")
+
+    raw_name = (file.filename or "imtihon.pdf").strip()
+    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", raw_name) or "imtihon.pdf"
+    if not safe_name.lower().endswith(".pdf"):
+        safe_name += ".pdf"
+
+    updated = await db.assessment.update(
+        where={"id": assessment.id},
+        data={
+            "sourcePdfData": Base64.encode(file_bytes),
+            "sourcePdfName": safe_name,
+            "sourcePdfSize": len(file_bytes),
+        },
+    )
+    return _format_assessment_summary(updated)
+
+
+@router.get("/assessments/{assessment_id}/pdf")
+async def get_assessment_pdf(
+    assessment_id: str,
+    _actor: Actor = Depends(get_current_actor),
+    db: Prisma = Depends(get_prisma),
+):
+    assessment = await db.assessment.find_first(
+        where={
+            "OR": [
+                {"id": assessment_id},
+                {"code": assessment_id},
+                {"code": assessment_id.upper()},
+                {"code": assessment_id.lower()},
+            ]
+        }
+    )
+    if not assessment or not getattr(assessment, "sourcePdfData", None):
+        raise HTTPException(status_code=404, detail="Ushbu imtihon uchun PDF fayl biriktirilmagan.")
+
+    raw_pdf = assessment.sourcePdfData
+    pdf_bytes = raw_pdf.decode() if hasattr(raw_pdf, "decode") else bytes(raw_pdf)
+    safe_name = getattr(assessment, "sourcePdfName", None) or f"{assessment.code}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{safe_name}"',
+            "Cache-Control": "private, max-age=300",
+        },
+    )
 
 class QuestionUpdate(BaseModel):
     prompt: str | None = None
@@ -313,6 +447,7 @@ async def get_assessment_by_id(
             item["correctOptionId"] = q.correctOptionId
         formatted_questions.append(item)
 
+    has_pdf = bool(getattr(assessment, "sourcePdfName", None) or getattr(assessment, "sourcePdfData", None))
     return {
         "id": assessment.id,
         "code": assessment.code,
@@ -327,6 +462,10 @@ async def get_assessment_by_id(
         "totalQuestions": assessment.totalQuestions,
         "maxScore": assessment.maxScore,
         "targetGroup": getattr(assessment, "targetGroup", "all") or "all",
+        "hasPdf": has_pdf,
+        "sourcePdfName": getattr(assessment, "sourcePdfName", None),
+        "sourcePdfSize": getattr(assessment, "sourcePdfSize", None),
+        "sourcePdfUrl": f"/api/v1/assessments/{assessment.id}/pdf" if has_pdf else None,
         "questions": formatted_questions,
     }
 
